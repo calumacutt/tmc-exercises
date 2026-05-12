@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Twelve Traits of the Ultimate Mover — Spectrum</title>
+<style>
+  /* ---------- Design tokens ---------- */
+  :root {
+    --bg: #FAF7F2;
+    --ink: #2A2A2A;
+    --ink-soft: #5A5A5A;
+    --ink-faint: #9A9A9A;
+    --rule: #E0DBD2;
+    --anchor: #3B2438;
+    --panel-bg: #FFFFFF;
+    --shadow: 0 8px 32px rgba(0,0,0,0.08);
+
+    /* Pastel palette - one per trait, matching the PDF */
+    --c-01: #C9D8E8;  /* Hanging */
+    --c-02: #B8CCDA;  /* Lever */
+    --c-03: #BFD6CE;  /* Pressing */
+    --c-04: #C8D8C0;  /* Hand Balancing */
+    --c-05: #DCD2BE;  /* Loaded Lower */
+    --c-06: #E8CDB8;  /* Bounciness */
+    --c-07: #E0D4B8;  /* Foundational */
+    --c-08: #D8C8DC;  /* Spinal */
+    --c-09: #E0C8D2;  /* Inverted */
+    --c-10: #CFC8DC;  /* Ground */
+    --c-11: #E0D4B0;  /* Hand-Eye */
+    --c-12: #E0BEC0;  /* Rhythm */
+
+    /* Darker label colours */
+    --l-01: #5A7090;
+    --l-02: #506A82;
+    --l-03: #557066;
+    --l-04: #5C7050;
+    --l-05: #806E50;
+    --l-06: #9A6E50;
+    --l-07: #806E40;
+    --l-08: #76608A;
+    --l-09: #8E5A70;
+    --l-10: #6A5E90;
+    --l-11: #806A40;
+    --l-12: #9A5A5A;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Top bar ---------- */
+  header {
+    padding: 24px 28px 16px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .title-block h1 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+
+  .title-block p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .file-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .file-btn:hover { opacity: 0.85; }
+
+  .file-btn input { display: none; }
+
+  .status {
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  /* ---------- Empty state ---------- */
+  .empty {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--ink-soft);
+  }
+
+  .empty h2 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 400;
+  }
+
+  .empty p {
+    margin: 4px 0;
+    font-size: 13px;
+  }
+
+  .empty .hint {
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  /* ---------- Spectrum container ---------- */
+  #spectrum-container {
+    padding: 16px 28px 60px;
+    position: relative;
+  }
+
+  .axis-strip {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    align-items: end;
+    margin-bottom: 4px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 5;
+    padding-top: 10px;
+  }
+
+  .axis-spacer { font-size: 10px; color: var(--ink-faint); font-style: italic; }
+
+  .axis-numbers {
+    position: relative;
+    height: 22px;
+  }
+
+  .axis-tick {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  }
+
+  .axis-tick::before {
+    content: "";
+    display: block;
+    width: 1px;
+    height: 6px;
+    background: var(--ink-faint);
+    margin: 0 auto 2px;
+  }
+
+  .axis-endpoint {
+    position: absolute;
+    font-size: 10px;
+    color: var(--ink-faint);
+    font-style: italic;
+    top: -2px;
+  }
+
+  .axis-endpoint.left { left: 0; }
+  .axis-endpoint.right { right: 0; }
+
+  /* ---------- Trait block ---------- */
+  .trait-block {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    margin-top: 2px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .trait-label {
+    padding: 10px 14px 10px 12px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    position: relative;
+  }
+
+  .trait-label .num {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 10px;
+    opacity: 0.7;
+    position: absolute;
+    top: 6px;
+    left: 12px;
+    font-weight: 700;
+  }
+
+  .trait-label .name {
+    margin-top: 4px;
+  }
+
+  .pathways {
+    background: var(--trait-bg);
+    padding: 6px 0;
+  }
+
+  .pathway-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    align-items: center;
+    min-height: 38px;
+    position: relative;
+  }
+
+  .pathway-label {
+    padding: 0 12px;
+    font-style: italic;
+    font-size: 11px;
+    color: rgba(0,0,0,0.7);
+    text-align: right;
+  }
+
+  .pathway-track {
+    position: relative;
+    height: 38px;
+  }
+
+  .pathway-track::before {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 50%;
+    height: 1px;
+    background: rgba(255,255,255,0.6);
+  }
+
+  /* Light vertical level guides inside each row */
+  .level-guides {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 0;
+    pointer-events: none;
+  }
+  .level-guide {
+    position: absolute;
+    top: -3px;
+    width: 1px;
+    height: 6px;
+    background: rgba(255,255,255,0.5);
+  }
+
+  /* ---------- Exercise dot + label ---------- */
+  .exercise {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+    z-index: 2;
+  }
+
+  .exercise:hover {
+    z-index: 10;
+  }
+
+  .exercise .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--ink);
+    border-radius: 50%;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .exercise.anchor .dot {
+    width: 8px;
+    height: 8px;
+    background: var(--anchor);
+  }
+
+  .exercise:hover .dot {
+    transform: scale(1.4);
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.06);
+  }
+
+  .exercise .ex-label {
+    font-size: 10.5px;
+    color: var(--ink);
+    white-space: nowrap;
+    margin-top: 2px;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    transition: font-weight 0.12s ease;
+    pointer-events: none;
+  }
+
+  .exercise.anchor .ex-label {
+    color: var(--anchor);
+    font-weight: 700;
+  }
+
+  .exercise:hover .ex-label {
+    font-weight: 700;
+  }
+
+  /* Position variants for collision avoidance */
+  .exercise.below {
+    flex-direction: column-reverse;
+  }
+  .exercise.below .ex-label {
+    margin-top: 0;
+    margin-bottom: 2px;
+  }
+
+  /* ---------- Detail panel ---------- */
+  #detail-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 360px;
+    background: var(--panel-bg);
+    box-shadow: var(--shadow);
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    padding: 32px 28px 24px;
+    overflow-y: auto;
+    z-index: 100;
+  }
+
+  #detail-panel.open {
+    transform: translateX(0);
+  }
+
+  #detail-panel .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+  }
+
+  #detail-panel .close-btn:hover { color: var(--ink); }
+
+  #detail-panel .pin-hint {
+    position: absolute;
+    top: 18px;
+    right: 50px;
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-style: italic;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #detail-panel.pinned .pin-hint {
+    opacity: 1;
+  }
+
+  #detail-panel .anchor-badge {
+    display: inline-block;
+    background: var(--anchor);
+    color: white;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  #detail-panel h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  #detail-panel .trait-pathway {
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 24px;
+  }
+
+  #detail-panel .level-display {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  #detail-panel .level-display .num {
+    font-size: 42px;
+    font-weight: 700;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  #detail-panel .level-display .scale {
+    font-size: 14px;
+    color: var(--ink-faint);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  }
+
+  #detail-panel .field {
+    margin-bottom: 18px;
+  }
+
+  #detail-panel .field-label {
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  #detail-panel .field-value {
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+
+  #detail-panel .field-value.empty-value {
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  #detail-panel .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  #detail-panel .chip {
+    background: #F0EDE6;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  #detail-panel .chip.linked {
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  #detail-panel .chip.linked:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  #detail-panel a.video {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--ink);
+    text-decoration: underline;
+    font-size: 13px;
+  }
+
+  /* Backdrop is no longer used to dim — kept only as a click target if needed.
+     We avoid pointer-events so it never intercepts hover on the spectrum. */
+  #backdrop {
+    display: none;
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--ink-faint);
+    font-size: 10px;
+    font-style: italic;
+    border-top: 1px solid var(--rule);
+    margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <h1>The Twelve Traits of the Ultimate Mover</h1>
+    <p>Exercise Spectrum  ·  Hover a dot for details</p>
+  </div>
+  <div class="toolbar">
+    <label class="file-btn">
+      Load CSV
+      <input type="file" id="csv-input" accept=".csv,text/csv" />
+    </label>
+    <span class="status" id="status"></span>
+  </div>
+</header>
+
+<main>
+  <div id="empty" class="empty">
+    <h2>No data loaded</h2>
+    <p>Click <strong>Load CSV</strong> above to load your master exercise list.</p>
+    <p>Or drag and drop a CSV file anywhere on this page.</p>
+    <p class="hint">The CSV should have two sections: traits/pathways, then exercises, separated by a blank line.</p>
+  </div>
+
+  <div id="spectrum-container" style="display:none;"></div>
+</main>
+
+<aside id="detail-panel" aria-hidden="true">
+  <button class="close-btn" aria-label="Close" id="close-detail">&times;</button>
+  <span class="pin-hint">Pinned</span>
+  <div id="detail-content"></div>
+</aside>
+
+<div id="backdrop"></div>
+
+<footer>Draft v1</footer>
+
+<script>
+/* =========================================================================
+   Movement Traits Spectrum — Pattern A (local CSV file)
+
+   Loads a two-section CSV: traits/pathways defining the Y-axis, then
+   exercises with their level (1-10), anchor status, and metadata.
+   Renders a spectrum view with hover + click for details.
+   ========================================================================= */
+
+// ---------- CSV parsing (minimal, no dependencies) ----------
+// Handles quoted fields containing commas. Splits on blank lines into sections.
+
+function parseCSV(text) {
+  // Normalise line endings
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+
+  // Split into sections by blank lines
+  const sections = [];
+  let current = [];
+  for (const line of lines) {
+    if (line.trim() === '') {
+      if (current.length > 0) {
+        sections.push(current);
+        current = [];
+      }
+    } else {
+      current.push(line);
+    }
+  }
+  if (current.length > 0) sections.push(current);
+
+  // Parse each section
+  return sections.map(parseSection);
+}
+
+function parseSection(lines) {
+  const rows = lines.map(parseCSVLine);
+  if (rows.length === 0) return { headers: [], data: [] };
+  const headers = rows[0];
+  const data = rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (row[i] || '').trim());
+    return obj;
+  });
+  return { headers, data };
+}
+
+function parseCSVLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i+1] === '"') {       // escaped quote
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += c;
+      }
+    } else {
+      if (c === ',') {
+        fields.push(current);
+        current = '';
+      } else if (c === '"') {
+        inQuotes = true;
+      } else {
+        current += c;
+      }
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
+// ---------- Data structures ----------
+// After parsing, we build:
+//   traits = [{ order, name, colourIndex, pathways: [{ order, name, exercises: [...] }] }]
+//   exercisesByName = Map<name, exerciseObj>   (for cross-linking)
+
+function buildModel(sections) {
+  if (sections.length < 2) {
+    throw new Error('CSV must have two sections separated by a blank line: traits/pathways, then exercises.');
+  }
+
+  const traitSection = sections[0];
+  const exerciseSection = sections[1];
+
+  // Group pathways by trait
+  const traitMap = new Map();
+  for (const row of traitSection.data) {
+    const traitOrder = parseInt(row.trait_order, 10);
+    const traitName = row.trait;
+    const pathwayOrder = parseInt(row.pathway_order, 10);
+    const pathwayName = row.pathway;
+    if (!traitName || !pathwayName) continue;
+
+    if (!traitMap.has(traitName)) {
+      traitMap.set(traitName, { order: traitOrder, name: traitName, pathways: [] });
+    }
+    traitMap.get(traitName).pathways.push({ order: pathwayOrder, name: pathwayName, exercises: [] });
+  }
+
+  // Sort traits by order, pathways by order
+  const traits = Array.from(traitMap.values()).sort((a, b) => a.order - b.order);
+  traits.forEach((t, i) => {
+    t.colourIndex = i + 1;  // 1..12 used to pick CSS vars
+    t.pathways.sort((a, b) => a.order - b.order);
+  });
+
+  // Build a quick lookup: traitName -> { trait, pathwayMap }
+  const lookup = new Map();
+  for (const t of traits) {
+    const pwMap = new Map();
+    for (const p of t.pathways) pwMap.set(p.name, p);
+    lookup.set(t.name, { trait: t, pathwayMap: pwMap });
+  }
+
+  // Insert exercises
+  const exercisesByName = new Map();
+  for (const row of exerciseSection.data) {
+    if (!row.name) continue;
+    const traitName = row.trait;
+    const pathwayName = row.pathway;
+    const traitEntry = lookup.get(traitName);
+    if (!traitEntry) {
+      console.warn(`Skipping exercise "${row.name}" — unknown trait "${traitName}"`);
+      continue;
+    }
+    const pathway = traitEntry.pathwayMap.get(pathwayName);
+    if (!pathway) {
+      console.warn(`Skipping exercise "${row.name}" — unknown pathway "${pathwayName}" under trait "${traitName}"`);
+      continue;
+    }
+
+    const ex = {
+      name: row.name,
+      trait: traitName,
+      pathway: pathwayName,
+      level: parseFloat(row.level),
+      isAnchor: (row.is_anchor || '').toUpperCase() === 'TRUE',
+      classTypes: parseList(row.class_types),
+      regressesFrom: parseList(row.regresses_from),
+      progressesTo: parseList(row.progresses_to),
+      equipment: row.equipment || '',
+      notes: row.notes || '',
+      videoUrl: row.video_url || ''
+    };
+
+    pathway.exercises.push(ex);
+    // For duplicate exercise names across pathways (e.g. "Frog Stand" appears in
+    // multiple pathways), keep the first one in the lookup but allow all to render.
+    if (!exercisesByName.has(ex.name)) exercisesByName.set(ex.name, ex);
+  }
+
+  return { traits, exercisesByName };
+}
+
+function parseList(s) {
+  if (!s) return [];
+  return s.split(',').map(x => x.trim()).filter(x => x.length > 0);
+}
+
+// ---------- Rendering ----------
+
+const container = document.getElementById('spectrum-container');
+const emptyState = document.getElementById('empty');
+const statusEl = document.getElementById('status');
+
+function render(model) {
+  emptyState.style.display = 'none';
+  container.style.display = 'block';
+  container.innerHTML = '';
+
+  // Axis strip at top
+  const axisStrip = document.createElement('div');
+  axisStrip.className = 'axis-strip';
+
+  const axisSpacer = document.createElement('div');
+  axisSpacer.className = 'axis-spacer';
+  axisSpacer.textContent = 'Trait  /  Pathway';
+
+  const axisNumbers = document.createElement('div');
+  axisNumbers.className = 'axis-numbers';
+
+  // Endpoint labels
+  const leftEnd = document.createElement('span');
+  leftEnd.className = 'axis-endpoint left';
+  leftEnd.textContent = '← Foundational';
+  const rightEnd = document.createElement('span');
+  rightEnd.className = 'axis-endpoint right';
+  rightEnd.textContent = 'Elite →';
+  axisNumbers.appendChild(leftEnd);
+  axisNumbers.appendChild(rightEnd);
+
+  // Tick numbers 1-10
+  for (let lvl = 1; lvl <= 10; lvl++) {
+    const tick = document.createElement('span');
+    tick.className = 'axis-tick';
+    tick.style.left = levelToPercent(lvl) + '%';
+    tick.textContent = lvl;
+    axisNumbers.appendChild(tick);
+  }
+
+  axisStrip.appendChild(axisSpacer);
+  axisStrip.appendChild(axisNumbers);
+  container.appendChild(axisStrip);
+
+  // Trait blocks
+  for (const trait of model.traits) {
+    const block = document.createElement('div');
+    block.className = 'trait-block';
+
+    // Label
+    const labelEl = document.createElement('div');
+    labelEl.className = 'trait-label';
+    labelEl.style.background = `var(--l-${pad2(trait.colourIndex)})`;
+    const numEl = document.createElement('span');
+    numEl.className = 'num';
+    numEl.textContent = pad2(trait.colourIndex);
+    labelEl.appendChild(numEl);
+    const nameEl = document.createElement('span');
+    nameEl.className = 'name';
+    nameEl.textContent = trait.name;
+    labelEl.appendChild(nameEl);
+
+    // Pathways container with trait pastel background
+    const pathwaysEl = document.createElement('div');
+    pathwaysEl.className = 'pathways';
+    pathwaysEl.style.setProperty('--trait-bg', `var(--c-${pad2(trait.colourIndex)})`);
+    pathwaysEl.style.background = `var(--c-${pad2(trait.colourIndex)})`;
+
+    for (const pathway of trait.pathways) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'pathway-row';
+
+      const pwLabelEl = document.createElement('div');
+      pwLabelEl.className = 'pathway-label';
+      pwLabelEl.textContent = pathway.name;
+
+      const trackEl = document.createElement('div');
+      trackEl.className = 'pathway-track';
+
+      // Level guides
+      for (let lvl = 1; lvl <= 10; lvl++) {
+        const guide = document.createElement('span');
+        guide.className = 'level-guide';
+        guide.style.left = levelToPercent(lvl) + '%';
+        trackEl.appendChild(guide);
+      }
+
+      // Place exercises with simple collision avoidance
+      const placed = []; // {left, right, position}
+      const sortedExs = pathway.exercises.slice().sort((a, b) => a.level - b.level);
+
+      for (const ex of sortedExs) {
+        const exEl = document.createElement('div');
+        exEl.className = 'exercise' + (ex.isAnchor ? ' anchor' : '');
+        exEl.style.left = levelToPercent(ex.level) + '%';
+
+        const dotEl = document.createElement('div');
+        dotEl.className = 'dot';
+        const labelTextEl = document.createElement('div');
+        labelTextEl.className = 'ex-label';
+        labelTextEl.textContent = ex.name;
+
+        exEl.appendChild(dotEl);
+        exEl.appendChild(labelTextEl);
+
+        // Track exercise model on element for hover/click
+        exEl._ex = ex;
+        exEl.addEventListener('click', () => showDetail(ex, model, { fromClick: true }));
+        exEl.addEventListener('mouseenter', () => showDetail(ex, model));
+
+        trackEl.appendChild(exEl);
+
+        // Estimate width for collision avoidance.
+        // We can't measure until inserted, so do it now using offsetWidth.
+        // To get accurate measurement, we read after appending.
+        const w = labelTextEl.offsetWidth;
+        const exLeftPct = levelToPercent(ex.level);
+        const trackWidth = trackEl.offsetWidth || 800;
+        const halfWidthPct = (w / 2 / trackWidth) * 100;
+        let position = 'above'; // default: label below dot in DOM, but visually above (flex-col)
+        // We start with default flex direction; check collision against existing.
+        for (const p of placed) {
+          if (p.position === position) {
+            const overlap = !(exLeftPct + halfWidthPct + 0.5 < p.left || exLeftPct - halfWidthPct - 0.5 > p.right);
+            if (overlap) {
+              position = 'below';
+              break;
+            }
+          }
+        }
+        // If still collision in 'below', try 'above' again as last resort
+        if (position === 'below') {
+          for (const p of placed) {
+            if (p.position === 'below') {
+              const overlap = !(exLeftPct + halfWidthPct + 0.5 < p.left || exLeftPct - halfWidthPct - 0.5 > p.right);
+              if (overlap) {
+                position = 'above'; // accept overlap on default position
+                break;
+              }
+            }
+          }
+        }
+
+        if (position === 'below') exEl.classList.add('below');
+        placed.push({
+          left: exLeftPct - halfWidthPct,
+          right: exLeftPct + halfWidthPct,
+          position
+        });
+      }
+
+      rowEl.appendChild(pwLabelEl);
+      rowEl.appendChild(trackEl);
+      pathwaysEl.appendChild(rowEl);
+    }
+
+    block.appendChild(labelEl);
+    block.appendChild(pathwaysEl);
+    container.appendChild(block);
+  }
+}
+
+function levelToPercent(level) {
+  // Pad 6% on each side so labels at level 1 and 10 don't run off
+  const pad = 6;
+  return pad + ((level - 1) / 9) * (100 - 2 * pad);
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+// ---------- Detail panel ----------
+
+const panel = document.getElementById('detail-panel');
+const panelContent = document.getElementById('detail-content');
+
+let isPinned = false;  // true after a click — hover won't change panel contents while pinned
+
+function showDetail(ex, model, options = {}) {
+  // If pinned and this isn't a click, don't update the panel
+  if (isPinned && !options.fromClick) return;
+
+  const html = renderDetail(ex, model);
+  panelContent.innerHTML = html;
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+
+  if (options.fromClick) {
+    isPinned = true;
+    panel.classList.add('pinned');
+  } else if (!isPinned) {
+    panel.classList.remove('pinned');
+  }
+
+  // Hook up cross-link clicks
+  panelContent.querySelectorAll('.chip.linked').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const targetName = chip.dataset.name;
+      const target = model.exercisesByName.get(targetName);
+      if (target) showDetail(target, model, { fromClick: true });
+    });
+  });
+}
+
+function renderDetail(ex, model) {
+  const anchorBadge = ex.isAnchor ? '<div class="anchor-badge">Anchor Exercise</div>' : '';
+  const classTypes = ex.classTypes.length
+    ? `<div class="chips">${ex.classTypes.map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('')}</div>`
+    : `<div class="field-value empty-value">Not specified</div>`;
+
+  const regresses = renderLinkChips(ex.regressesFrom, model, 'No regression listed');
+  const progresses = renderLinkChips(ex.progressesTo, model, 'Endpoint — no further progression');
+
+  const equipment = ex.equipment
+    ? `<div class="field-value">${escapeHtml(ex.equipment)}</div>`
+    : `<div class="field-value empty-value">None</div>`;
+
+  const notes = ex.notes
+    ? `<div class="field-value">${escapeHtml(ex.notes)}</div>`
+    : `<div class="field-value empty-value">No notes</div>`;
+
+  const video = ex.videoUrl
+    ? `<a class="video" href="${escapeAttr(ex.videoUrl)}" target="_blank" rel="noopener">Watch demo →</a>`
+    : '';
+
+  return `
+    ${anchorBadge}
+    <h2>${escapeHtml(ex.name)}</h2>
+    <div class="trait-pathway">${escapeHtml(ex.trait)}  ·  ${escapeHtml(ex.pathway)}</div>
+
+    <div class="level-display">
+      <span class="num">${ex.level}</span>
+      <span class="scale">/ 10</span>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Class Types</div>
+      ${classTypes}
+    </div>
+
+    <div class="field">
+      <div class="field-label">Regresses From</div>
+      ${regresses}
+    </div>
+
+    <div class="field">
+      <div class="field-label">Progresses To</div>
+      ${progresses}
+    </div>
+
+    <div class="field">
+      <div class="field-label">Equipment</div>
+      ${equipment}
+    </div>
+
+    <div class="field">
+      <div class="field-label">Notes</div>
+      ${notes}
+      ${video}
+    </div>
+  `;
+}
+
+function renderLinkChips(names, model, emptyText) {
+  if (!names || names.length === 0) {
+    return `<div class="field-value empty-value">${emptyText}</div>`;
+  }
+  return `<div class="chips">${
+    names.map(n => {
+      const exists = model.exercisesByName.has(n);
+      const cls = exists ? 'chip linked' : 'chip';
+      return `<span class="${cls}" data-name="${escapeAttr(n)}">${escapeHtml(n)}</span>`;
+    }).join('')
+  }</div>`;
+}
+
+function closeDetail() {
+  panel.classList.remove('open');
+  panel.classList.remove('pinned');
+  panel.setAttribute('aria-hidden', 'true');
+  isPinned = false;
+}
+
+document.getElementById('close-detail').addEventListener('click', closeDetail);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+});
+
+// ---------- Utilities ----------
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(s) { return escapeHtml(s); }
+
+// ---------- File loading (Pattern A) ----------
+
+const fileInput = document.getElementById('csv-input');
+let currentModel = null;
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const text = e.target.result;
+      const sections = parseCSV(text);
+      const model = buildModel(sections);
+      currentModel = model;
+      render(model);
+      const exCount = Array.from(model.exercisesByName.values()).length;
+      statusEl.textContent = `Loaded ${exCount} exercises across ${model.traits.length} traits`;
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Error: ' + err.message;
+      statusEl.style.color = '#a82828';
+    }
+  };
+  reader.onerror = () => {
+    statusEl.textContent = 'Error reading file';
+    statusEl.style.color = '#a82828';
+  };
+  reader.readAsText(file);
+}
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length > 0) handleFile(e.target.files[0]);
+});
+
+// Drag and drop on the whole page
+document.addEventListener('dragover', e => {
+  e.preventDefault();
+});
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length > 0) {
+    const file = e.dataTransfer.files[0];
+    if (file.name.endsWith('.csv') || file.type === 'text/csv') {
+      handleFile(file);
+    } else {
+      statusEl.textContent = 'Please drop a .csv file';
+      statusEl.style.color = '#a82828';
+    }
+  }
+});
+
+// Re-render on window resize so collision avoidance recomputes
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  if (!currentModel) return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => render(currentModel), 150);
+});
+
+</script>
+</body>
+</html>
