@@ -13,22 +13,27 @@
     --ink-faint: #9A9A9A;
     --rule: #E0DBD2;
     --anchor: #3B2438;
+    --selected-ring: #3B2438;
     --panel-bg: #FFFFFF;
     --shadow: 0 8px 32px rgba(0,0,0,0.08);
 
+    /* Layout constants - pathway label column outside the spectrum */
+    --trait-label-w: 220px;
+    --pathway-label-w: 160px;
+
     /* Pastel palette - one per trait, matching the PDF */
-    --c-01: #C9D8E8;  /* Hanging */
-    --c-02: #B8CCDA;  /* Lever */
-    --c-03: #BFD6CE;  /* Pressing */
-    --c-04: #C8D8C0;  /* Hand Balancing */
-    --c-05: #DCD2BE;  /* Loaded Lower */
-    --c-06: #E8CDB8;  /* Bounciness */
-    --c-07: #E0D4B8;  /* Foundational */
-    --c-08: #D8C8DC;  /* Spinal */
-    --c-09: #E0C8D2;  /* Inverted */
-    --c-10: #CFC8DC;  /* Ground */
-    --c-11: #E0D4B0;  /* Hand-Eye */
-    --c-12: #E0BEC0;  /* Rhythm */
+    --c-01: #C9D8E8;
+    --c-02: #B8CCDA;
+    --c-03: #BFD6CE;
+    --c-04: #C8D8C0;
+    --c-05: #DCD2BE;
+    --c-06: #E8CDB8;
+    --c-07: #E0D4B8;
+    --c-08: #D8C8DC;
+    --c-09: #E0C8D2;
+    --c-10: #CFC8DC;
+    --c-11: #E0D4B0;
+    --c-12: #E0BEC0;
 
     /* Darker label colours */
     --l-01: #5A7090;
@@ -63,9 +68,15 @@
     border-bottom: 1px solid var(--rule);
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 24px;
     flex-wrap: wrap;
+  }
+  .title-block {
+    flex: 0 0 auto;
+  }
+  .tabs {
+    flex: 1 1 auto;
   }
 
   .title-block h1 {
@@ -115,6 +126,798 @@
     font-style: italic;
   }
 
+  /* ---------- Tab navigation ---------- */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin: 0 16px;
+  }
+  .tab {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--ink-soft); }
+  .tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ---------- Builder view ---------- */
+  #builder-container {
+    padding: 20px 28px 60px;
+  }
+
+  .builder-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .builder-section:last-child {
+    border-bottom: none;
+  }
+
+  .section-header {
+    margin-bottom: 14px;
+  }
+  .section-header h2 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .section-hint {
+    margin: 0;
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  /* ---------- Trait chips (governing-trait selector) ---------- */
+  .trait-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .trait-chip {
+    --tc-bg: #F0EDE6;
+    --tc-fg: var(--ink-soft);
+    background: var(--tc-bg);
+    color: var(--tc-fg);
+    border: 1px solid transparent;
+    border-radius: 16px;
+    padding: 6px 14px 6px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .trait-chip .num {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    opacity: 0.7;
+  }
+  .trait-chip:hover {
+    background: #E5E0D5;
+  }
+  .trait-chip.active {
+    background: var(--tc-active-bg);
+    color: white;
+    border-color: var(--tc-active-bg);
+  }
+  .trait-chip.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ---------- Filters ---------- */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: center;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .filter-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+  }
+  .filter-chips {
+    display: flex;
+    gap: 4px;
+  }
+  .filter-chip {
+    background: none;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 4px 12px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-chip:hover {
+    border-color: var(--ink-faint);
+    color: var(--ink);
+  }
+  .filter-chip.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  /* ---------- Exercise picker ---------- */
+  .picker-empty {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--ink-faint);
+    font-style: italic;
+    font-size: 13px;
+  }
+
+  .picker-trait {
+    margin-bottom: 24px;
+  }
+  .picker-trait-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 6px 12px;
+    background: var(--pt-bg);
+    border-radius: 3px;
+    color: white;
+  }
+  .picker-trait-header .num {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+  .picker-trait-header .name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .picker-pathway {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 12px;
+    padding: 8px 0;
+    align-items: start;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .picker-pathway:last-child {
+    border-bottom: none;
+  }
+  .picker-pathway-name {
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-soft);
+    padding-top: 6px;
+    text-align: right;
+    padding-right: 12px;
+  }
+  .picker-exercise-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .picker-ex {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 4px 10px 4px 8px;
+    font-family: inherit;
+    font-size: 11.5px;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.12s;
+  }
+  .picker-ex:hover {
+    border-color: var(--ink);
+    background: #FAFAFA;
+  }
+  .picker-ex.in-timeline {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+  }
+  .picker-ex .lvl {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    opacity: 0.6;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 4px;
+    border-radius: 6px;
+    min-width: 14px;
+    text-align: center;
+  }
+  .picker-ex.in-timeline .lvl {
+    background: rgba(255,255,255,0.18);
+    opacity: 0.9;
+  }
+  .picker-ex.anchor-ex .lvl {
+    background: var(--anchor);
+    color: white;
+    opacity: 1;
+  }
+
+  /* ---------- Timeline ---------- */
+  #timeline {
+    --timeline-skill-w: 66.66%;
+    --timeline-strength-w: 33.33%;
+    --lane-h: 64px;
+    --slot-gap: 4px;
+    position: relative;
+    border: 1px solid var(--rule);
+    background: white;
+    border-radius: 4px;
+    padding: 28px 0 12px;
+    overflow: hidden;
+  }
+
+  /* Skill / Strength backgrounds */
+  #timeline::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--timeline-skill-w);
+    height: 100%;
+    background: linear-gradient(180deg, rgba(184, 204, 218, 0.15), rgba(184, 204, 218, 0.08));
+    pointer-events: none;
+  }
+  #timeline::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: var(--timeline-strength-w);
+    height: 100%;
+    background: linear-gradient(180deg, rgba(232, 205, 184, 0.18), rgba(232, 205, 184, 0.08));
+    border-left: 1px dashed var(--rule);
+    pointer-events: none;
+  }
+
+  /* Zone labels at top */
+  .timeline-zone-label {
+    position: absolute;
+    top: 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .timeline-zone-label.skill { left: 12px; }
+  .timeline-zone-label.strength { left: calc(var(--timeline-skill-w) + 12px); }
+
+  /* Time axis ticks at bottom */
+  .timeline-axis {
+    position: relative;
+    height: 18px;
+    margin-top: 6px;
+    pointer-events: none;
+  }
+  .timeline-tick {
+    position: absolute;
+    font-size: 9px;
+    color: var(--ink-faint);
+    transform: translateX(-50%);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  }
+  .timeline-tick::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    width: 1px;
+    height: 4px;
+    background: var(--rule);
+    margin-left: -0.5px;
+  }
+
+  /* Lanes container */
+  .lanes {
+    position: relative;
+    z-index: 2;
+  }
+  .lane {
+    position: relative;
+    height: var(--lane-h);
+    border-bottom: 1px dotted rgba(0,0,0,0.06);
+  }
+  .lane:last-child {
+    border-bottom: none;
+  }
+
+  /* Slot markers (faint vertical lines at 20-min intervals) */
+  .slot-divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(0,0,0,0.08);
+    pointer-events: none;
+  }
+
+  /* Timeline blocks */
+  .tl-block {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 4px;
+    padding: 6px 22px 6px 10px;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    overflow: hidden;
+    transition: box-shadow 0.15s, transform 0.15s;
+    background: var(--block-bg, var(--ink));
+    color: white;
+  }
+  .tl-block:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .tl-block.dragging {
+    opacity: 0.6;
+    cursor: grabbing;
+    z-index: 100;
+  }
+  .tl-block .tl-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .tl-block .tl-meta {
+    font-size: 9px;
+    opacity: 0.75;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .tl-block.anchor-block .tl-name::before {
+    content: "★ ";
+    color: white;
+  }
+  .tl-block .tl-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border: none;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    padding: 0;
+  }
+  .tl-block .tl-remove:hover {
+    background: rgba(255,255,255,0.32);
+  }
+
+  /* Drop zone highlight when dragging over an empty slot */
+  .slot-target.drag-over {
+    background: rgba(0,0,0,0.04);
+    outline: 2px dashed rgba(0,0,0,0.2);
+    outline-offset: -4px;
+  }
+  .slot-target {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  /* Timeline action buttons */
+  .timeline-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    justify-content: flex-end;
+  }
+  .action-btn {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .action-btn:hover {
+    border-color: var(--ink);
+  }
+  .action-btn.primary {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .action-btn.primary:hover { opacity: 0.85; }
+
+  /* Inline legend swatches */
+  .legend-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-right: 3px;
+  }
+  .legend-swatch.skill { background: rgba(184, 204, 218, 0.5); border: 1px solid rgba(184, 204, 218, 0.9); }
+  .legend-swatch.strength { background: rgba(232, 205, 184, 0.5); border: 1px solid rgba(232, 205, 184, 0.9); }
+
+  /* ---------- Anchors view ---------- */
+  #anchors-container {
+    padding: 20px 28px 60px;
+  }
+
+  .anchor-selector-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .anchor-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .anchor-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 8px 14px 8px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .anchor-card:hover {
+    border-color: var(--anchor);
+    background: #FAFAFA;
+  }
+  .anchor-card.active {
+    background: var(--anchor);
+    color: white;
+    border-color: var(--anchor);
+  }
+  .anchor-card .star {
+    color: var(--anchor);
+    font-size: 13px;
+  }
+  .anchor-card.active .star { color: white; }
+  .anchor-card .lvl {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 9px;
+    opacity: 0.7;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 6px;
+  }
+  .anchor-card.active .lvl {
+    background: rgba(255,255,255,0.2);
+    opacity: 1;
+  }
+  .anchor-card.empty {
+    opacity: 0.5;
+    border-style: dashed;
+  }
+
+  /* The breakdown layout: 3-column tree with connector lines. */
+  .breakdown {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 28px 24px 20px;
+    overflow: hidden;
+  }
+
+  .breakdown-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .breakdown-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--anchor);
+  }
+  .breakdown-header h3::before {
+    content: "★ ";
+  }
+  .breakdown-meta {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .breakdown-traits {
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 24px;
+  }
+
+  /* The tree: 3-column grid (anchor | components | exercises),
+     with SVG lines drawn between them. */
+  .tree {
+    position: relative;
+    display: grid;
+    grid-template-columns: 220px 1fr 1fr;
+    gap: 0;
+    align-items: stretch;
+    margin-top: 12px;
+  }
+
+  /* SVG overlay for connector lines, behind the content */
+  .tree-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+  }
+  .tree-line {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 1.5;
+  }
+
+  .tree-anchor {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    padding: 8px 16px 8px 0;
+  }
+  .tree-anchor-card {
+    background: var(--anchor);
+    color: white;
+    border-radius: 6px;
+    padding: 20px 18px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(59, 36, 56, 0.18);
+    min-width: 160px;
+  }
+  .tree-anchor-card .star {
+    font-size: 22px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .tree-anchor-card .name {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .tree-anchor-card .lvl-line {
+    font-size: 9px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  }
+
+  .tree-components {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 18px;
+    position: relative;
+    z-index: 1;
+    padding: 8px 0;
+  }
+
+  .component-block {
+    background: #F7F4EE;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 10px 14px;
+    position: relative;
+  }
+  .component-block .component-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+  .component-block .component-count {
+    font-size: 9px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  }
+
+  .tree-exercises {
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 18px;
+    position: relative;
+    z-index: 1;
+    padding: 8px 0 8px 24px;
+  }
+  .exercise-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: flex-start;
+    align-content: flex-start;
+    padding: 6px 0;
+    min-height: 24px;
+  }
+  .br-ex {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 3px 9px 3px 7px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.12s;
+  }
+  .br-ex:hover {
+    border-color: var(--ink);
+    background: #FAFAFA;
+  }
+  .br-ex.anchor-ex {
+    border-color: var(--anchor);
+  }
+  .br-ex .lvl {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    opacity: 0.6;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 4px;
+    border-radius: 5px;
+    min-width: 12px;
+    text-align: center;
+  }
+  .br-ex.anchor-ex .lvl {
+    background: var(--anchor);
+    color: white;
+    opacity: 1;
+  }
+  .br-ex.undefined-ex {
+    opacity: 0.5;
+    cursor: default;
+    border-style: dashed;
+    font-style: italic;
+  }
+  .br-ex.undefined-ex:hover {
+    border-color: var(--rule);
+    background: white;
+  }
+
+  /* Progression chain section at the bottom */
+  .progression-chain {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+  }
+  .progression-chain h4 {
+    margin: 0 0 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+  .chain-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chain-step {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 4px 10px 4px 8px;
+    font-size: 11px;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .chain-step:hover { border-color: var(--ink); }
+  .chain-step.current {
+    background: var(--anchor);
+    color: white;
+    border-color: var(--anchor);
+    font-weight: 600;
+  }
+  .chain-step.current .lvl { background: rgba(255,255,255,0.2); color: white; opacity: 1; }
+  .chain-step .lvl {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    opacity: 0.6;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 4px;
+    border-radius: 5px;
+  }
+  .chain-arrow {
+    color: var(--ink-faint);
+    font-size: 12px;
+  }
+  .breakdown-empty {
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-style: italic;
+    font-size: 12px;
+  }
+
   /* ---------- Empty state ---------- */
   .empty {
     text-align: center;
@@ -140,7 +943,12 @@
     font-style: italic;
   }
 
-  /* ---------- Spectrum container ---------- */
+  /* ---------- Spectrum container ----------
+     Layout key: every row uses a single grid template
+     [ trait-label | pathway-label | spectrum-track ]
+     so axis ticks above the spectrum-track line up exactly with dots
+     inside each pathway row.
+  */
   #spectrum-container {
     padding: 16px 28px 60px;
     position: relative;
@@ -148,7 +956,7 @@
 
   .axis-strip {
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: var(--trait-label-w) var(--pathway-label-w) 1fr;
     align-items: end;
     margin-bottom: 4px;
     padding-bottom: 6px;
@@ -160,11 +968,15 @@
     padding-top: 10px;
   }
 
-  .axis-spacer { font-size: 10px; color: var(--ink-faint); font-style: italic; }
+  .axis-corner {
+    font-size: 10px;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
 
-  .axis-numbers {
+  .axis-track-region {
     position: relative;
-    height: 22px;
+    height: 24px;
   }
 
   .axis-tick {
@@ -174,6 +986,7 @@
     font-weight: 700;
     color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    bottom: 0;
   }
 
   .axis-tick::before {
@@ -190,7 +1003,7 @@
     font-size: 10px;
     color: var(--ink-faint);
     font-style: italic;
-    top: -2px;
+    top: 0;
   }
 
   .axis-endpoint.left { left: 0; }
@@ -198,272 +1011,373 @@
 
   /* ---------- Trait block ---------- */
   .trait-block {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    margin-top: 2px;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .trait-label {
-    padding: 10px 14px 10px 12px;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    position: relative;
-  }
-
-  .trait-label .num {
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-    font-size: 10px;
-    opacity: 0.7;
-    position: absolute;
-    top: 6px;
-    left: 12px;
-    font-weight: 700;
-  }
-
-  .trait-label .name {
-    margin-top: 4px;
-  }
-
-  .pathways {
-    background: var(--trait-bg);
-    padding: 6px 0;
+    display: contents;
   }
 
   .pathway-row {
     display: grid;
-    grid-template-columns: 140px 1fr;
+    grid-template-columns: var(--trait-label-w) var(--pathway-label-w) 1fr;
+    align-items: stretch;
+    min-height: 72px;
+  }
+
+  /* Thin white spacer row between trait blocks for visual separation */
+  .trait-spacer {
+    grid-column: 1 / -1;
+    height: 8px;
+    background: var(--bg);
+  }
+
+  /* Trait label cell - spans multiple rows visually via background continuation.
+     We render it on every row but only show text on the first row of the trait. */
+  .trait-label-cell {
+    background: var(--label-colour);
+    color: white;
+    padding: 0 14px;
+    display: flex;
     align-items: center;
-    min-height: 38px;
     position: relative;
   }
 
-  .pathway-label {
+  .trait-label-cell.first {
+    padding-top: 10px;
+  }
+
+  .trait-label-cell.last {
+    padding-bottom: 10px;
+  }
+
+  .trait-label-cell .num {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    font-size: 10px;
+    opacity: 0.7;
+    position: absolute;
+    top: 8px;
+    left: 14px;
+    font-weight: 700;
+  }
+
+  .trait-label-cell .name {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* When trait has multiple pathways, only show name on middle row;
+     simpler: show on first row with adjusted top padding */
+  .trait-label-cell:not(.first) .num,
+  .trait-label-cell:not(.first) .name { display: none; }
+
+  .pathway-label-cell {
+    background: var(--trait-bg);
     padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     font-style: italic;
     font-size: 11px;
     color: rgba(0,0,0,0.7);
     text-align: right;
+    border-right: 1px solid rgba(255,255,255,0.4);
   }
 
   .pathway-track {
+    background: var(--trait-bg);
     position: relative;
-    height: 38px;
+    height: 72px;
   }
 
+  /* Subtle horizontal centre line on each track */
   .pathway-track::before {
     content: "";
     position: absolute;
-    left: 16px;
-    right: 16px;
+    left: 8px;
+    right: 8px;
     top: 50%;
     height: 1px;
     background: rgba(255,255,255,0.6);
   }
 
-  /* Light vertical level guides inside each row */
-  .level-guides {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 0;
-    pointer-events: none;
-  }
+  /* Light vertical level guides */
   .level-guide {
     position: absolute;
-    top: -3px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 1px;
-    height: 6px;
+    height: 8px;
     background: rgba(255,255,255,0.5);
+    pointer-events: none;
   }
 
-  /* ---------- Exercise dot + label ---------- */
+  /* ---------- Exercise dot + label ----------
+     .exercise is a transparent 28×28 hit-target, centered on its
+     percentage-based position. The dot is at its centre, the label
+     positioned above or below absolutely. Multiple dots at the same
+     level overlap in the hit area but the dots themselves stay visually
+     aligned on the row's centre line. */
   .exercise {
     position: absolute;
     top: 50%;
     transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    width: 28px;
+    height: 28px;
     cursor: pointer;
-    transition: transform 0.12s ease;
     z-index: 2;
   }
 
-  .exercise:hover {
-    z-index: 10;
-  }
+  .exercise:hover { z-index: 10; }
 
   .exercise .dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     width: 6px;
     height: 6px;
     background: var(--ink);
     border-radius: 50%;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
   }
 
   .exercise.anchor .dot {
-    width: 8px;
-    height: 8px;
-    background: var(--anchor);
+    width: 13px;
+    height: 13px;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .exercise.anchor .dot svg {
+    width: 100%;
+    height: 100%;
+    fill: var(--anchor);
+    transition: transform 0.12s ease;
   }
 
   .exercise:hover .dot {
-    transform: scale(1.4);
-    box-shadow: 0 0 0 4px rgba(0,0,0,0.06);
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+
+  .exercise.selected .dot {
+    transform: translate(-50%, -50%) scale(1.5);
+    box-shadow: 0 0 0 3px var(--selected-ring), 0 0 0 5px rgba(255,255,255,0.8);
+  }
+
+  .exercise.selected.anchor .dot {
+    transform: translate(-50%, -50%) scale(1.35);
+    box-shadow: none;
+    filter: drop-shadow(0 0 0 var(--anchor))
+            drop-shadow(0 0 4px rgba(59, 36, 56, 0.45));
   }
 
   .exercise .ex-label {
+    position: absolute;
+    /* Label below dot by default: positioned just below the bottom of the
+       28×28 hit-area box. Since dot is at exercise centre, this gives a
+       small natural gap of ~11px between dot edge and label top. */
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: -8px;  /* tighten gap a bit */
     font-size: 10.5px;
     color: var(--ink);
-    white-space: nowrap;
-    margin-top: 2px;
+    width: max-content;
+    max-width: 96px;
+    text-align: center;
+    line-height: 1.2;
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     transition: font-weight 0.12s ease;
     pointer-events: none;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   .exercise.anchor .ex-label {
     color: var(--anchor);
     font-weight: 700;
+    margin-top: -5px;     /* a little more clearance below the larger star */
   }
 
-  .exercise:hover .ex-label {
+  /* Hover and selected both bold the label */
+  .exercise:hover .ex-label,
+  .exercise.selected .ex-label {
     font-weight: 700;
   }
 
-  /* Position variants for collision avoidance */
-  .exercise.below {
-    flex-direction: column-reverse;
-  }
+  /* Label-above-dot variant: anchored to the top of the box and offset
+     up by the label's own height. */
   .exercise.below .ex-label {
+    top: auto;
+    bottom: 100%;
     margin-top: 0;
-    margin-bottom: 2px;
+    margin-bottom: -8px;
+  }
+  .exercise.below.anchor .ex-label {
+    margin-bottom: -5px;
   }
 
-  /* ---------- Detail panel ---------- */
+  /* Slot offsets - when 2+ labels stack on the same side of the dot. */
+  .exercise.slot-1 .ex-label {
+    margin-top: 18px;  /* push down further below dot */
+  }
+  .exercise.below.slot-1 .ex-label {
+    margin-top: 0;
+    margin-bottom: 18px;  /* push up further above dot */
+  }
+  .exercise.slot-2 .ex-label {
+    margin-top: 44px;
+  }
+  .exercise.below.slot-2 .ex-label {
+    margin-top: 0;
+    margin-bottom: 44px;
+  }
+
+  /* ---------- Floating detail popover ----------
+     Positioned absolutely in the page (so it scrolls with content).
+     JS computes left/top based on the clicked dot, flipping side and
+     clamping to viewport edges.                                    */
   #detail-panel {
-    position: fixed;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 360px;
+    position: absolute;
+    width: 280px;
     background: var(--panel-bg);
-    box-shadow: var(--shadow);
-    transform: translateX(100%);
-    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-    padding: 32px 28px 24px;
-    overflow-y: auto;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+    border-radius: 4px;
+    padding: 16px 18px 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
     z-index: 100;
+    /* Default placement: to the right of the dot. JS overrides as needed. */
   }
 
   #detail-panel.open {
-    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* The little arrow pointing at the dot */
+  #detail-panel::before {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--panel-bg);
+    transform: rotate(45deg);
+    box-shadow: -2px -2px 4px rgba(0,0,0,0.04);
+  }
+  #detail-panel.arrow-left::before {
+    left: -5px;
+    top: var(--arrow-y, 50%);
+    margin-top: -5px;
+  }
+  #detail-panel.arrow-right::before {
+    right: -5px;
+    top: var(--arrow-y, 50%);
+    margin-top: -5px;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.04);
+  }
+  #detail-panel.arrow-top::before {
+    top: -5px;
+    left: var(--arrow-x, 50%);
+    margin-left: -5px;
+  }
+  #detail-panel.arrow-bottom::before {
+    bottom: -5px;
+    left: var(--arrow-x, 50%);
+    margin-left: -5px;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.04);
   }
 
   #detail-panel .close-btn {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 8px;
+    right: 8px;
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 16px;
     color: var(--ink-faint);
     cursor: pointer;
     line-height: 1;
-    padding: 4px 8px;
+    padding: 2px 6px;
   }
-
   #detail-panel .close-btn:hover { color: var(--ink); }
-
-  #detail-panel .pin-hint {
-    position: absolute;
-    top: 18px;
-    right: 50px;
-    font-size: 9px;
-    color: var(--ink-faint);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-style: italic;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  #detail-panel.pinned .pin-hint {
-    opacity: 1;
-  }
 
   #detail-panel .anchor-badge {
     display: inline-block;
     background: var(--anchor);
     color: white;
-    font-size: 9px;
+    font-size: 8px;
     letter-spacing: 0.1em;
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-radius: 2px;
     text-transform: uppercase;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
 
   #detail-panel h2 {
-    margin: 0 0 4px;
-    font-size: 22px;
+    margin: 0 0 2px;
+    padding-right: 20px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.01em;
+    line-height: 1.25;
   }
 
-  #detail-panel .trait-pathway {
-    font-size: 11px;
+  #detail-panel .trait-pathway-list {
+    font-size: 9px;
     color: var(--ink-soft);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-bottom: 24px;
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  #detail-panel .trait-pathway-list .tp-line {
+    display: block;
   }
 
   #detail-panel .level-display {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 24px;
+    gap: 4px;
+    margin-bottom: 12px;
   }
 
   #detail-panel .level-display .num {
-    font-size: 42px;
+    font-size: 26px;
     font-weight: 700;
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.03em;
     color: var(--ink);
     line-height: 1;
   }
 
   #detail-panel .level-display .scale {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--ink-faint);
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
   }
 
   #detail-panel .field {
-    margin-bottom: 18px;
+    margin-bottom: 9px;
   }
+  #detail-panel .field:last-child { margin-bottom: 0; }
 
   #detail-panel .field-label {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--ink-faint);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
 
   #detail-panel .field-value {
-    font-size: 13px;
+    font-size: 11.5px;
     color: var(--ink);
-    line-height: 1.55;
+    line-height: 1.5;
   }
 
   #detail-panel .field-value.empty-value {
@@ -474,38 +1388,37 @@
   #detail-panel .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
   }
 
   #detail-panel .chip {
     background: #F0EDE6;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 10px;
     color: var(--ink);
   }
 
   #detail-panel .chip.linked {
     cursor: pointer;
-    transition: background 0.12s ease;
+    transition: background 0.12s ease, color 0.12s ease;
   }
   #detail-panel .chip.linked:hover {
     background: var(--ink);
     color: var(--bg);
   }
 
+  /* Style chip variants for split values */
+  #detail-panel .chip.split-legs { background: #E0DCC6; }
+  #detail-panel .chip.split-bent-arm { background: #DDD0D8; }
+  #detail-panel .chip.split-straight-arm { background: #CFD8DC; }
+
   #detail-panel a.video {
     display: inline-block;
-    margin-top: 8px;
+    margin-top: 4px;
     color: var(--ink);
     text-decoration: underline;
-    font-size: 13px;
-  }
-
-  /* Backdrop is no longer used to dim — kept only as a click target if needed.
-     We avoid pointer-events so it never intercepts hover on the spectrum. */
-  #backdrop {
-    display: none;
+    font-size: 11px;
   }
 
   footer {
@@ -524,8 +1437,13 @@
 <header>
   <div class="title-block">
     <h1>The Twelve Traits of the Ultimate Mover</h1>
-    <p>Exercise Spectrum  ·  Hover a dot for details</p>
+    <p class="subtitle" id="subtitle">Exercise Spectrum  ·  Click a dot for details</p>
   </div>
+  <nav class="tabs">
+    <button class="tab active" data-view="spectrum">Spectrum</button>
+    <button class="tab" data-view="builder">Class Builder</button>
+    <button class="tab" data-view="anchors">Anchors</button>
+  </nav>
   <div class="toolbar">
     <label class="file-btn">
       Load CSV
@@ -540,19 +1458,89 @@
     <h2>No data loaded</h2>
     <p>Click <strong>Load CSV</strong> above to load your master exercise list.</p>
     <p>Or drag and drop a CSV file anywhere on this page.</p>
-    <p class="hint">The CSV should have two sections: traits/pathways, then exercises, separated by a blank line.</p>
+    <p class="hint">The CSV should have two sections — traits/pathways, then exercises — separated by a blank line.</p>
   </div>
 
-  <div id="spectrum-container" style="display:none;"></div>
+  <!-- View 1: Spectrum -->
+  <div id="spectrum-container" class="view" style="display:none;"></div>
+
+  <!-- View 2: Class Builder -->
+  <div id="builder-container" class="view" style="display:none;">
+    <section class="builder-section trait-picker">
+      <div class="section-header">
+        <h2>Governing traits</h2>
+        <p class="section-hint">Select 2-3 traits to anchor the class theme.</p>
+      </div>
+      <div id="trait-chips" class="trait-chips"></div>
+    </section>
+
+    <section class="builder-section filters" id="filters-section" style="display:none;">
+      <div class="filter-group">
+        <span class="filter-label">Class type</span>
+        <div class="filter-chips" data-filter="classType">
+          <button class="filter-chip active" data-value="">All</button>
+          <button class="filter-chip" data-value="Lower">Lower</button>
+          <button class="filter-chip" data-value="Upper">Upper</button>
+          <button class="filter-chip" data-value="Full">Full</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Split</span>
+        <div class="filter-chips" data-filter="split">
+          <button class="filter-chip active" data-value="">All</button>
+          <button class="filter-chip" data-value="legs">Legs</button>
+          <button class="filter-chip" data-value="bent arm">Bent arm</button>
+          <button class="filter-chip" data-value="straight arm">Straight arm</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="builder-section picker" id="picker-section">
+      <div class="picker-empty">
+        Select 1-3 governing traits above to see exercises.
+      </div>
+      <div id="picker-pathways"></div>
+    </section>
+
+    <section class="builder-section timeline-section">
+      <div class="section-header">
+        <h2>Class timeline</h2>
+        <p class="section-hint">
+          <span class="legend-swatch skill"></span> Skill &amp; Mobility (40 min)
+          &nbsp;·&nbsp;
+          <span class="legend-swatch strength"></span> Strength (20 min)
+          &nbsp;·&nbsp;
+          Drag a block to reorder.
+        </p>
+      </div>
+      <div id="timeline"></div>
+      <div class="timeline-actions">
+        <button class="action-btn" id="clear-timeline">Clear timeline</button>
+        <button class="action-btn primary" id="export-timeline">Copy as text</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- View 3: Anchors -->
+  <div id="anchors-container" class="view" style="display:none;">
+    <section class="anchor-selector-section">
+      <div class="section-header">
+        <h2>Anchor exercise</h2>
+        <p class="section-hint">Pick an anchor to see the components that make it up and the exercises that train each one.</p>
+      </div>
+      <div id="anchor-selector" class="anchor-selector"></div>
+    </section>
+
+    <section id="anchor-detail-section" class="anchor-detail-section" style="display:none;">
+      <!-- The actual breakdown view is rendered into here. -->
+    </section>
+  </div>
 </main>
 
 <aside id="detail-panel" aria-hidden="true">
   <button class="close-btn" aria-label="Close" id="close-detail">&times;</button>
-  <span class="pin-hint">Pinned</span>
   <div id="detail-content"></div>
 </aside>
-
-<div id="backdrop"></div>
 
 <footer>Draft v1</footer>
 
@@ -560,34 +1548,25 @@
 /* =========================================================================
    Movement Traits Spectrum — Pattern A (local CSV file)
 
-   Loads a two-section CSV: traits/pathways defining the Y-axis, then
-   exercises with their level (1-10), anchor status, and metadata.
-   Renders a spectrum view with hover + click for details.
+   New CSV structure: each exercise appears once in the data, but its
+   traits_pathways column may list multiple "Trait :: Pathway" entries
+   separated by semicolons. Each entry creates a visual placement on the
+   spectrum (so one exercise can show up in multiple rows).
    ========================================================================= */
 
-// ---------- CSV parsing (minimal, no dependencies) ----------
-// Handles quoted fields containing commas. Splits on blank lines into sections.
-
+// ---------- CSV parsing ----------
 function parseCSV(text) {
-  // Normalise line endings
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-
-  // Split into sections by blank lines
   const sections = [];
   let current = [];
   for (const line of lines) {
     if (line.trim() === '') {
-      if (current.length > 0) {
-        sections.push(current);
-        current = [];
-      }
+      if (current.length > 0) { sections.push(current); current = []; }
     } else {
       current.push(line);
     }
   }
   if (current.length > 0) sections.push(current);
-
-  // Parse each section
   return sections.map(parseSection);
 }
 
@@ -611,44 +1590,28 @@ function parseCSVLine(line) {
     const c = line[i];
     if (inQuotes) {
       if (c === '"') {
-        if (line[i+1] === '"') {       // escaped quote
-          current += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += c;
-      }
+        if (line[i+1] === '"') { current += '"'; i++; }
+        else { inQuotes = false; }
+      } else { current += c; }
     } else {
-      if (c === ',') {
-        fields.push(current);
-        current = '';
-      } else if (c === '"') {
-        inQuotes = true;
-      } else {
-        current += c;
-      }
+      if (c === ',') { fields.push(current); current = ''; }
+      else if (c === '"') { inQuotes = true; }
+      else { current += c; }
     }
   }
   fields.push(current);
   return fields;
 }
 
-// ---------- Data structures ----------
-// After parsing, we build:
-//   traits = [{ order, name, colourIndex, pathways: [{ order, name, exercises: [...] }] }]
-//   exercisesByName = Map<name, exerciseObj>   (for cross-linking)
-
+// ---------- Model ----------
 function buildModel(sections) {
   if (sections.length < 2) {
-    throw new Error('CSV must have two sections separated by a blank line: traits/pathways, then exercises.');
+    throw new Error('CSV must have two sections separated by a blank line.');
   }
-
   const traitSection = sections[0];
   const exerciseSection = sections[1];
 
-  // Group pathways by trait
+  // Build trait/pathway scaffold
   const traitMap = new Map();
   for (const row of traitSection.data) {
     const traitOrder = parseInt(row.trait_order, 10);
@@ -656,21 +1619,18 @@ function buildModel(sections) {
     const pathwayOrder = parseInt(row.pathway_order, 10);
     const pathwayName = row.pathway;
     if (!traitName || !pathwayName) continue;
-
     if (!traitMap.has(traitName)) {
       traitMap.set(traitName, { order: traitOrder, name: traitName, pathways: [] });
     }
     traitMap.get(traitName).pathways.push({ order: pathwayOrder, name: pathwayName, exercises: [] });
   }
-
-  // Sort traits by order, pathways by order
   const traits = Array.from(traitMap.values()).sort((a, b) => a.order - b.order);
   traits.forEach((t, i) => {
-    t.colourIndex = i + 1;  // 1..12 used to pick CSS vars
+    t.colourIndex = i + 1;
     t.pathways.sort((a, b) => a.order - b.order);
   });
 
-  // Build a quick lookup: traitName -> { trait, pathwayMap }
+  // Quick lookup
   const lookup = new Map();
   for (const t of traits) {
     const pwMap = new Map();
@@ -678,30 +1638,24 @@ function buildModel(sections) {
     lookup.set(t.name, { trait: t, pathwayMap: pwMap });
   }
 
-  // Insert exercises
+  // Parse exercises
   const exercisesByName = new Map();
   for (const row of exerciseSection.data) {
     if (!row.name) continue;
-    const traitName = row.trait;
-    const pathwayName = row.pathway;
-    const traitEntry = lookup.get(traitName);
-    if (!traitEntry) {
-      console.warn(`Skipping exercise "${row.name}" — unknown trait "${traitName}"`);
-      continue;
-    }
-    const pathway = traitEntry.pathwayMap.get(pathwayName);
-    if (!pathway) {
-      console.warn(`Skipping exercise "${row.name}" — unknown pathway "${pathwayName}" under trait "${traitName}"`);
+
+    const tpPairs = parseTraitPathways(row.traits_pathways);
+    if (tpPairs.length === 0) {
+      console.warn(`Skipping "${row.name}" — no valid traits_pathways`);
       continue;
     }
 
     const ex = {
       name: row.name,
-      trait: traitName,
-      pathway: pathwayName,
+      traitPathways: tpPairs,  // [{trait, pathway}, ...]
       level: parseFloat(row.level),
       isAnchor: (row.is_anchor || '').toUpperCase() === 'TRUE',
       classTypes: parseList(row.class_types),
+      split: parseList(row.split),  // legs / bent arm / straight arm
       regressesFrom: parseList(row.regresses_from),
       progressesTo: parseList(row.progresses_to),
       equipment: row.equipment || '',
@@ -709,13 +1663,56 @@ function buildModel(sections) {
       videoUrl: row.video_url || ''
     };
 
-    pathway.exercises.push(ex);
-    // For duplicate exercise names across pathways (e.g. "Frog Stand" appears in
-    // multiple pathways), keep the first one in the lookup but allow all to render.
-    if (!exercisesByName.has(ex.name)) exercisesByName.set(ex.name, ex);
+    // Insert into each (trait, pathway) it belongs to
+    let inserted = 0;
+    for (const tp of tpPairs) {
+      const traitEntry = lookup.get(tp.trait);
+      if (!traitEntry) {
+        console.warn(`"${row.name}" references unknown trait "${tp.trait}"`);
+        continue;
+      }
+      const pathway = traitEntry.pathwayMap.get(tp.pathway);
+      if (!pathway) {
+        console.warn(`"${row.name}" references unknown pathway "${tp.pathway}" under trait "${tp.trait}"`);
+        continue;
+      }
+      pathway.exercises.push(ex);
+      inserted++;
+    }
+
+    if (inserted > 0) {
+      exercisesByName.set(ex.name, ex);
+    }
   }
 
-  return { traits, exercisesByName };
+  // ----- Section 3 (optional): anchor breakdowns -----
+  // Format: anchor, component, component_exercises
+  // Returns a Map<anchorName, Array<{component: string, exercises: string[]}>>
+  const anchorBreakdowns = new Map();
+  if (sections.length >= 3) {
+    for (const row of sections[2].data) {
+      if (!row.anchor || !row.component) continue;
+      const exercises = parseList(row.component_exercises);
+      if (!anchorBreakdowns.has(row.anchor)) {
+        anchorBreakdowns.set(row.anchor, []);
+      }
+      anchorBreakdowns.get(row.anchor).push({
+        component: row.component,
+        exercises,
+      });
+    }
+  }
+
+  return { traits, exercisesByName, anchorBreakdowns };
+}
+
+function parseTraitPathways(s) {
+  if (!s) return [];
+  return s.split(';').map(piece => {
+    const parts = piece.split('::');
+    if (parts.length !== 2) return null;
+    return { trait: parts[0].trim(), pathway: parts[1].trim() };
+  }).filter(x => x !== null);
 }
 
 function parseList(s) {
@@ -724,26 +1721,36 @@ function parseList(s) {
 }
 
 // ---------- Rendering ----------
-
 const container = document.getElementById('spectrum-container');
 const emptyState = document.getElementById('empty');
 const statusEl = document.getElementById('status');
+
+// Track DOM elements per exercise so we can highlight all instances when selected.
+// Map<exerciseName, Array<HTMLElement>>
+const exerciseElements = new Map();
+let selectedExerciseName = null;
 
 function render(model) {
   emptyState.style.display = 'none';
   container.style.display = 'block';
   container.innerHTML = '';
+  exerciseElements.clear();
 
-  // Axis strip at top
+  // Axis strip
   const axisStrip = document.createElement('div');
   axisStrip.className = 'axis-strip';
 
-  const axisSpacer = document.createElement('div');
-  axisSpacer.className = 'axis-spacer';
-  axisSpacer.textContent = 'Trait  /  Pathway';
+  const corner1 = document.createElement('div');
+  corner1.className = 'axis-corner';
+  corner1.textContent = 'Trait';
+  const corner2 = document.createElement('div');
+  corner2.className = 'axis-corner';
+  corner2.style.textAlign = 'right';
+  corner2.style.paddingRight = '12px';
+  corner2.textContent = 'Pathway';
 
-  const axisNumbers = document.createElement('div');
-  axisNumbers.className = 'axis-numbers';
+  const trackRegion = document.createElement('div');
+  trackRegion.className = 'axis-track-region';
 
   // Endpoint labels
   const leftEnd = document.createElement('span');
@@ -752,8 +1759,8 @@ function render(model) {
   const rightEnd = document.createElement('span');
   rightEnd.className = 'axis-endpoint right';
   rightEnd.textContent = 'Elite →';
-  axisNumbers.appendChild(leftEnd);
-  axisNumbers.appendChild(rightEnd);
+  trackRegion.appendChild(leftEnd);
+  trackRegion.appendChild(rightEnd);
 
   // Tick numbers 1-10
   for (let lvl = 1; lvl <= 10; lvl++) {
@@ -761,47 +1768,59 @@ function render(model) {
     tick.className = 'axis-tick';
     tick.style.left = levelToPercent(lvl) + '%';
     tick.textContent = lvl;
-    axisNumbers.appendChild(tick);
+    trackRegion.appendChild(tick);
   }
 
-  axisStrip.appendChild(axisSpacer);
-  axisStrip.appendChild(axisNumbers);
+  axisStrip.appendChild(corner1);
+  axisStrip.appendChild(corner2);
+  axisStrip.appendChild(trackRegion);
   container.appendChild(axisStrip);
 
-  // Trait blocks
-  for (const trait of model.traits) {
-    const block = document.createElement('div');
-    block.className = 'trait-block';
+  // Trait blocks (rendered as flat list of pathway-rows; trait label cell repeats)
+  model.traits.forEach((trait, traitIdx) => {
+    const colourIdx = pad2(trait.colourIndex);
+    const labelColour = `var(--l-${colourIdx})`;
+    const traitBg = `var(--c-${colourIdx})`;
 
-    // Label
-    const labelEl = document.createElement('div');
-    labelEl.className = 'trait-label';
-    labelEl.style.background = `var(--l-${pad2(trait.colourIndex)})`;
-    const numEl = document.createElement('span');
-    numEl.className = 'num';
-    numEl.textContent = pad2(trait.colourIndex);
-    labelEl.appendChild(numEl);
-    const nameEl = document.createElement('span');
-    nameEl.className = 'name';
-    nameEl.textContent = trait.name;
-    labelEl.appendChild(nameEl);
+    // Spacer row between trait blocks (not before the first one)
+    if (traitIdx > 0) {
+      const spacer = document.createElement('div');
+      spacer.className = 'trait-spacer';
+      container.appendChild(spacer);
+    }
 
-    // Pathways container with trait pastel background
-    const pathwaysEl = document.createElement('div');
-    pathwaysEl.className = 'pathways';
-    pathwaysEl.style.setProperty('--trait-bg', `var(--c-${pad2(trait.colourIndex)})`);
-    pathwaysEl.style.background = `var(--c-${pad2(trait.colourIndex)})`;
+    trait.pathways.forEach((pathway, pwIdx) => {
+      const isFirst = pwIdx === 0;
+      const isLast = pwIdx === trait.pathways.length - 1;
 
-    for (const pathway of trait.pathways) {
       const rowEl = document.createElement('div');
       rowEl.className = 'pathway-row';
 
-      const pwLabelEl = document.createElement('div');
-      pwLabelEl.className = 'pathway-label';
-      pwLabelEl.textContent = pathway.name;
+      // Trait label cell - same colour every row, text only on first
+      const traitCell = document.createElement('div');
+      traitCell.className = 'trait-label-cell' + (isFirst ? ' first' : '') + (isLast ? ' last' : '');
+      traitCell.style.setProperty('--label-colour', labelColour);
+      if (isFirst) {
+        const numEl = document.createElement('span');
+        numEl.className = 'num';
+        numEl.textContent = pad2(trait.colourIndex);
+        traitCell.appendChild(numEl);
+        const nameEl = document.createElement('span');
+        nameEl.className = 'name';
+        nameEl.textContent = trait.name;
+        traitCell.appendChild(nameEl);
+      }
 
+      // Pathway label cell
+      const pwCell = document.createElement('div');
+      pwCell.className = 'pathway-label-cell';
+      pwCell.style.setProperty('--trait-bg', traitBg);
+      pwCell.textContent = pathway.name;
+
+      // Spectrum track
       const trackEl = document.createElement('div');
       trackEl.className = 'pathway-track';
+      trackEl.style.setProperty('--trait-bg', traitBg);
 
       // Level guides
       for (let lvl = 1; lvl <= 10; lvl++) {
@@ -811,17 +1830,22 @@ function render(model) {
         trackEl.appendChild(guide);
       }
 
-      // Place exercises with simple collision avoidance
-      const placed = []; // {left, right, position}
+      // Exercises (sorted by level for collision detection)
+      const placed = [];
       const sortedExs = pathway.exercises.slice().sort((a, b) => a.level - b.level);
 
       for (const ex of sortedExs) {
         const exEl = document.createElement('div');
         exEl.className = 'exercise' + (ex.isAnchor ? ' anchor' : '');
         exEl.style.left = levelToPercent(ex.level) + '%';
+        exEl.dataset.name = ex.name;
 
         const dotEl = document.createElement('div');
         dotEl.className = 'dot';
+        if (ex.isAnchor) {
+          // 5-pointed star, filled with anchor colour
+          dotEl.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polygon points="12,2 14.9,8.6 22,9.3 16.5,14 18.2,21 12,17.3 5.8,21 7.5,14 2,9.3 9.1,8.6"/></svg>`;
+        }
         const labelTextEl = document.createElement('div');
         labelTextEl.className = 'ex-label';
         labelTextEl.textContent = ex.name;
@@ -829,109 +1853,240 @@ function render(model) {
         exEl.appendChild(dotEl);
         exEl.appendChild(labelTextEl);
 
-        // Track exercise model on element for hover/click
-        exEl._ex = ex;
-        exEl.addEventListener('click', () => showDetail(ex, model, { fromClick: true }));
-        exEl.addEventListener('mouseenter', () => showDetail(ex, model));
+        // Click only - hover does nothing for the panel
+        exEl.addEventListener('click', (e) => {
+          e.stopPropagation();  // prevent the document-level click from closing the panel
+          selectExercise(ex.name, model, { anchorEl: exEl });
+        });
 
         trackEl.appendChild(exEl);
 
-        // Estimate width for collision avoidance.
-        // We can't measure until inserted, so do it now using offsetWidth.
-        // To get accurate measurement, we read after appending.
+        // Register element for highlight management
+        if (!exerciseElements.has(ex.name)) exerciseElements.set(ex.name, []);
+        exerciseElements.get(ex.name).push(exEl);
+
+        // Collision avoidance with vertical stacking
+        // The first try is above-slot-0. If it collides with any other label
+        // in the same slot, try below-slot-0; then above-slot-1, below-slot-1,
+        // etc. This handles dense clusters of labels at similar levels.
         const w = labelTextEl.offsetWidth;
         const exLeftPct = levelToPercent(ex.level);
         const trackWidth = trackEl.offsetWidth || 800;
         const halfWidthPct = (w / 2 / trackWidth) * 100;
-        let position = 'above'; // default: label below dot in DOM, but visually above (flex-col)
-        // We start with default flex direction; check collision against existing.
-        for (const p of placed) {
-          if (p.position === position) {
-            const overlap = !(exLeftPct + halfWidthPct + 0.5 < p.left || exLeftPct - halfWidthPct - 0.5 > p.right);
-            if (overlap) {
-              position = 'below';
-              break;
-            }
-          }
-        }
-        // If still collision in 'below', try 'above' again as last resort
-        if (position === 'below') {
-          for (const p of placed) {
-            if (p.position === 'below') {
-              const overlap = !(exLeftPct + halfWidthPct + 0.5 < p.left || exLeftPct - halfWidthPct - 0.5 > p.right);
-              if (overlap) {
-                position = 'above'; // accept overlap on default position
-                break;
-              }
-            }
-          }
+
+        const collides = (otherSlot) =>
+          !(exLeftPct + halfWidthPct + 0.4 < otherSlot.left ||
+            exLeftPct - halfWidthPct - 0.4 > otherSlot.right);
+
+        let side = 'above';
+        let slot = 0;
+        // Try slots in alternating sides: above-0, below-0, above-1, below-1, ...
+        // Cap at 3 slots per side (i.e. 6 slot tries) to avoid runaway loops.
+        let found = false;
+        for (let attempt = 0; attempt < 6 && !found; attempt++) {
+          side = (attempt % 2 === 0) ? 'above' : 'below';
+          slot = Math.floor(attempt / 2);
+          const conflicts = placed.filter(p => p.side === side && p.slot === slot && collides(p));
+          if (conflicts.length === 0) { found = true; break; }
         }
 
-        if (position === 'below') exEl.classList.add('below');
+        if (side !== 'above' || slot !== 0) {
+          exEl.classList.add(side === 'below' ? 'below' : 'above');
+          if (slot > 0) exEl.classList.add('slot-' + slot);
+        }
         placed.push({
           left: exLeftPct - halfWidthPct,
           right: exLeftPct + halfWidthPct,
-          position
+          side, slot
         });
       }
 
-      rowEl.appendChild(pwLabelEl);
+      rowEl.appendChild(traitCell);
+      rowEl.appendChild(pwCell);
       rowEl.appendChild(trackEl);
-      pathwaysEl.appendChild(rowEl);
-    }
+      container.appendChild(rowEl);
+    });
+  });
 
-    block.appendChild(labelEl);
-    block.appendChild(pathwaysEl);
-    container.appendChild(block);
+  // Re-apply selection highlight if one was active before re-render
+  if (selectedExerciseName) {
+    applySelectionHighlight(selectedExerciseName);
+    // If the popover is open, repoint it to a fresh DOM element from the new render
+    if (panel.classList.contains('open')) {
+      const fresh = exerciseElements.get(selectedExerciseName);
+      if (fresh && fresh.length > 0) {
+        currentAnchorEl = fresh[0];
+        positionPanel(currentAnchorEl);
+      } else {
+        closeDetail();
+      }
+    }
   }
 }
 
 function levelToPercent(level) {
-  // Pad 6% on each side so labels at level 1 and 10 don't run off
-  const pad = 6;
+  const pad = 4;
   return pad + ((level - 1) / 9) * (100 - 2 * pad);
 }
 
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
-// ---------- Detail panel ----------
+// ---------- Selection (Points 3 & 4) ----------
+function selectExercise(name, model, options = {}) {
+  const ex = model.exercisesByName.get(name);
+  if (!ex) return;
 
+  selectedExerciseName = name;
+  applySelectionHighlight(name);
+
+  // Determine which dot to anchor the popover to:
+  // - If anchorEl provided (direct click), use it
+  // - Otherwise use the first instance of this exercise
+  let anchorEl = options.anchorEl;
+  if (!anchorEl) {
+    const elements = exerciseElements.get(name);
+    if (elements && elements.length > 0) anchorEl = elements[0];
+  }
+
+  if (options.scrollIntoView && anchorEl) {
+    // Scroll first; position the popover after the smooth-scroll has had time to settle.
+    anchorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Show panel content immediately but reposition once scroll completes
+    showDetail(ex, model, anchorEl);
+    setTimeout(() => positionPanel(anchorEl), 350);
+  } else {
+    showDetail(ex, model, anchorEl);
+  }
+}
+
+function applySelectionHighlight(name) {
+  // Clear all existing selected classes
+  document.querySelectorAll('.exercise.selected').forEach(el => el.classList.remove('selected'));
+  // Apply to all instances of the selected exercise
+  const elements = exerciseElements.get(name);
+  if (elements) {
+    elements.forEach(el => el.classList.add('selected'));
+  }
+}
+
+// ---------- Detail popover ----------
 const panel = document.getElementById('detail-panel');
 const panelContent = document.getElementById('detail-content');
+let currentAnchorEl = null;  // tracked so scroll/resize can reposition
 
-let isPinned = false;  // true after a click — hover won't change panel contents while pinned
-
-function showDetail(ex, model, options = {}) {
-  // If pinned and this isn't a click, don't update the panel
-  if (isPinned && !options.fromClick) return;
-
-  const html = renderDetail(ex, model);
-  panelContent.innerHTML = html;
+function showDetail(ex, model, anchorEl) {
+  panelContent.innerHTML = renderDetail(ex, model);
   panel.classList.add('open');
   panel.setAttribute('aria-hidden', 'false');
+  currentAnchorEl = anchorEl || null;
 
-  if (options.fromClick) {
-    isPinned = true;
-    panel.classList.add('pinned');
-  } else if (!isPinned) {
-    panel.classList.remove('pinned');
-  }
+  if (currentAnchorEl) positionPanel(currentAnchorEl);
 
   // Hook up cross-link clicks
   panelContent.querySelectorAll('.chip.linked').forEach(chip => {
-    chip.addEventListener('click', () => {
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();  // don't bubble to the document click-outside handler
       const targetName = chip.dataset.name;
-      const target = model.exercisesByName.get(targetName);
-      if (target) showDetail(target, model, { fromClick: true });
+      if (model.exercisesByName.has(targetName)) {
+        // Point 4: scrolling to centre the newly-selected exercise
+        selectExercise(targetName, model, { scrollIntoView: true });
+      }
     });
   });
 }
 
+/* Position the floating popover next to its anchor dot.
+   Prefer right side; flip to left if it would overflow; clamp vertically. */
+function positionPanel(anchorEl) {
+  if (!anchorEl) return;
+
+  // Reset arrow classes
+  panel.classList.remove('arrow-left', 'arrow-right', 'arrow-top', 'arrow-bottom');
+
+  const anchorRect = anchorEl.getBoundingClientRect();
+  // We want absolute (document) coordinates so the popover scrolls with the page.
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+
+  const anchorCentreX = anchorRect.left + anchorRect.width / 2 + scrollX;
+  const anchorCentreY = anchorRect.top + anchorRect.height / 2 + scrollY;
+
+  // Force layout so we get accurate panel dimensions
+  panel.style.left = '0px';
+  panel.style.top = '0px';
+  const panelW = panel.offsetWidth;
+  const panelH = panel.offsetHeight;
+
+  const gap = 16;  // distance from dot to popover edge
+  const margin = 12;  // min distance from viewport edge
+
+  // Viewport bounds in document coords
+  const vpLeft = scrollX + margin;
+  const vpRight = scrollX + window.innerWidth - margin;
+  const vpTop = scrollY + margin;
+  const vpBottom = scrollY + window.innerHeight - margin;
+
+  // Default: place to the right of the dot
+  let left = anchorCentreX + gap;
+  let arrowSide = 'left';  // arrow on left of panel pointing at dot to its left
+
+  // If overflows right, flip to left
+  if (left + panelW > vpRight) {
+    left = anchorCentreX - gap - panelW;
+    arrowSide = 'right';
+  }
+
+  // If still off-screen (very narrow viewport), place below the dot instead
+  let useVerticalPlacement = false;
+  if (left < vpLeft) {
+    useVerticalPlacement = true;
+  }
+
+  let top, arrowX = null, arrowY = null;
+  if (useVerticalPlacement) {
+    // Centre horizontally on the dot; place below the dot (or above if no room)
+    left = anchorCentreX - panelW / 2;
+    left = Math.max(vpLeft, Math.min(left, vpRight - panelW));
+    top = anchorCentreY + gap;
+    arrowSide = 'top';
+    if (top + panelH > vpBottom) {
+      top = anchorCentreY - gap - panelH;
+      arrowSide = 'bottom';
+    }
+    arrowX = anchorCentreX - left;  // x position of arrow relative to panel
+  } else {
+    // Vertically centre on the dot, then clamp
+    top = anchorCentreY - panelH / 2;
+    top = Math.max(vpTop, Math.min(top, vpBottom - panelH));
+    arrowY = anchorCentreY - top;  // y position of arrow relative to panel
+  }
+
+  panel.style.left = left + 'px';
+  panel.style.top = top + 'px';
+
+  panel.classList.add('arrow-' + arrowSide);
+  if (arrowX !== null) panel.style.setProperty('--arrow-x', arrowX + 'px');
+  if (arrowY !== null) panel.style.setProperty('--arrow-y', arrowY + 'px');
+}
+
 function renderDetail(ex, model) {
   const anchorBadge = ex.isAnchor ? '<div class="anchor-badge">Anchor Exercise</div>' : '';
+
+  const tpLines = ex.traitPathways.map(tp =>
+    `<span class="tp-line">${escapeHtml(tp.trait)}  ·  ${escapeHtml(tp.pathway)}</span>`
+  ).join('');
+
   const classTypes = ex.classTypes.length
     ? `<div class="chips">${ex.classTypes.map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('')}</div>`
     : `<div class="field-value empty-value">Not specified</div>`;
+
+  // Split: legs / bent arm / straight arm - tinted chips
+  const split = ex.split.length
+    ? `<div class="chips">${ex.split.map(s => {
+        const cls = 'split-' + s.toLowerCase().replace(/\s+/g, '-');
+        return `<span class="chip ${cls}">${escapeHtml(s)}</span>`;
+      }).join('')}</div>`
+    : `<div class="field-value empty-value">—</div>`;
 
   const regresses = renderLinkChips(ex.regressesFrom, model, 'No regression listed');
   const progresses = renderLinkChips(ex.progressesTo, model, 'Endpoint — no further progression');
@@ -951,7 +2106,7 @@ function renderDetail(ex, model) {
   return `
     ${anchorBadge}
     <h2>${escapeHtml(ex.name)}</h2>
-    <div class="trait-pathway">${escapeHtml(ex.trait)}  ·  ${escapeHtml(ex.pathway)}</div>
+    <div class="trait-pathway-list">${tpLines}</div>
 
     <div class="level-display">
       <span class="num">${ex.level}</span>
@@ -961,6 +2116,11 @@ function renderDetail(ex, model) {
     <div class="field">
       <div class="field-label">Class Types</div>
       ${classTypes}
+    </div>
+
+    <div class="field">
+      <div class="field-label">Split</div>
+      ${split}
     </div>
 
     <div class="field">
@@ -1001,9 +2161,11 @@ function renderLinkChips(names, model, emptyText) {
 
 function closeDetail() {
   panel.classList.remove('open');
-  panel.classList.remove('pinned');
+  panel.classList.remove('arrow-left', 'arrow-right', 'arrow-top', 'arrow-bottom');
   panel.setAttribute('aria-hidden', 'true');
-  isPinned = false;
+  selectedExerciseName = null;
+  currentAnchorEl = null;
+  document.querySelectorAll('.exercise.selected').forEach(el => el.classList.remove('selected'));
 }
 
 document.getElementById('close-detail').addEventListener('click', closeDetail);
@@ -1011,23 +2173,749 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeDetail();
 });
 
-// ---------- Utilities ----------
+// Click outside the popover closes it.
+// Ignore clicks on elements that themselves open the popover (spectrum dots,
+// breakdown chips, chain steps, picker chips, cross-link chips).
+document.addEventListener('click', e => {
+  if (!panel.classList.contains('open')) return;
+  if (panel.contains(e.target)) return;
+  if (e.target.closest('.exercise')) return;
+  if (e.target.closest('.br-ex')) return;
+  if (e.target.closest('.chain-step')) return;
+  if (e.target.closest('.picker-ex')) return;
+  closeDetail();
+});
 
+// Reposition the popover on scroll / resize so it tracks its anchor dot.
+// rAF-throttled to keep it smooth on big pages.
+let _repositionScheduled = false;
+function scheduleReposition() {
+  if (!currentAnchorEl || !panel.classList.contains('open')) return;
+  if (_repositionScheduled) return;
+  _repositionScheduled = true;
+  requestAnimationFrame(() => {
+    _repositionScheduled = false;
+    positionPanel(currentAnchorEl);
+  });
+}
+window.addEventListener('scroll', scheduleReposition, { passive: true });
+window.addEventListener('resize', scheduleReposition);
+
+// ---------- Utilities ----------
 function escapeHtml(s) {
   return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-
 function escapeAttr(s) { return escapeHtml(s); }
 
-// ---------- File loading (Pattern A) ----------
+/* =========================================================================
+   ANCHORS VIEW
+   =========================================================================
+   Shows the 10 anchor exercises as cards. Click one to see its breakdown:
+   a 3-column tree of (anchor → components → training exercises) with
+   connector lines drawn in SVG. Also shows the progression chain.
+   ========================================================================= */
 
+const anchorState = {
+  selectedAnchor: null,
+};
+
+function renderAnchors(model) {
+  renderAnchorSelector(model);
+  if (anchorState.selectedAnchor && model.exercisesByName.has(anchorState.selectedAnchor)) {
+    renderAnchorBreakdown(model, anchorState.selectedAnchor);
+    document.getElementById('anchor-detail-section').style.display = 'block';
+  } else {
+    document.getElementById('anchor-detail-section').style.display = 'none';
+  }
+}
+
+function renderAnchorSelector(model) {
+  const wrap = document.getElementById('anchor-selector');
+  wrap.innerHTML = '';
+  // Collect all anchors from model in trait order
+  const anchors = [];
+  for (const [name, ex] of model.exercisesByName) {
+    if (ex.isAnchor) anchors.push(ex);
+  }
+  // Sort by first trait's order, then level
+  anchors.sort((a, b) => {
+    const ta = a.traitPathways[0], tb = b.traitPathways[0];
+    const traitOrderA = model.traits.findIndex(t => t.name === ta.trait);
+    const traitOrderB = model.traits.findIndex(t => t.name === tb.trait);
+    if (traitOrderA !== traitOrderB) return traitOrderA - traitOrderB;
+    return a.level - b.level;
+  });
+
+  for (const ex of anchors) {
+    const hasBreakdown = model.anchorBreakdowns.has(ex.name);
+    const card = document.createElement('button');
+    card.className = 'anchor-card' + (hasBreakdown ? '' : ' empty');
+    if (anchorState.selectedAnchor === ex.name) card.classList.add('active');
+    card.innerHTML = `
+      <span class="star">★</span>
+      <span class="name">${escapeHtml(ex.name)}</span>
+      <span class="lvl">${ex.level}</span>
+    `;
+    if (!hasBreakdown) {
+      card.title = 'No breakdown defined yet';
+    }
+    card.addEventListener('click', () => {
+      anchorState.selectedAnchor = ex.name;
+      renderAnchors(model);
+    });
+    wrap.appendChild(card);
+  }
+}
+
+function renderAnchorBreakdown(model, anchorName) {
+  const ex = model.exercisesByName.get(anchorName);
+  const breakdown = model.anchorBreakdowns.get(anchorName) || [];
+  const detailSection = document.getElementById('anchor-detail-section');
+  detailSection.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'breakdown';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'breakdown-header';
+  header.innerHTML = `
+    <h3>${escapeHtml(ex.name)}</h3>
+    <span class="breakdown-meta">Level ${ex.level} · ${ex.classTypes.join(', ') || 'no class types'}${ex.split.length ? ' · ' + ex.split.join(', ') : ''}</span>
+  `;
+  wrap.appendChild(header);
+
+  // Trait/pathway lines
+  const traitsLine = document.createElement('div');
+  traitsLine.className = 'breakdown-traits';
+  traitsLine.innerHTML = ex.traitPathways.map(tp =>
+    `${escapeHtml(tp.trait)} · ${escapeHtml(tp.pathway)}`
+  ).join('  &nbsp;|&nbsp;  ');
+  wrap.appendChild(traitsLine);
+
+  if (breakdown.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'breakdown-empty';
+    empty.textContent = `${ex.name} hasn't been broken down into components yet. Add rows to the third section of the CSV with this anchor name and its components.`;
+    wrap.appendChild(empty);
+  } else {
+    // Build the 3-column tree
+    const tree = document.createElement('div');
+    tree.className = 'tree';
+
+    // SVG overlay for connector lines - drawn AFTER the columns are laid out
+    const linesSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    linesSvg.classList.add('tree-lines');
+    tree.appendChild(linesSvg);
+
+    // Column 1: anchor card (spans full height visually via flex centering)
+    const anchorCol = document.createElement('div');
+    anchorCol.className = 'tree-anchor';
+    const anchorCard = document.createElement('div');
+    anchorCard.className = 'tree-anchor-card';
+    anchorCard.innerHTML = `
+      <div class="star">★</div>
+      <div class="name">${escapeHtml(ex.name)}</div>
+      <div class="lvl-line">Level ${ex.level}</div>
+    `;
+    anchorCol.appendChild(anchorCard);
+    tree.appendChild(anchorCol);
+
+    // Column 2: components
+    const componentsCol = document.createElement('div');
+    componentsCol.className = 'tree-components';
+
+    // Column 3: exercises (one row per component)
+    const exercisesCol = document.createElement('div');
+    exercisesCol.className = 'tree-exercises';
+
+    breakdown.forEach((entry, idx) => {
+      // Component card
+      const comp = document.createElement('div');
+      comp.className = 'component-block';
+      comp.dataset.idx = idx;
+      comp.innerHTML = `
+        <div class="component-count">Component ${idx + 1}</div>
+        <div class="component-name">${escapeHtml(entry.component)}</div>
+      `;
+      componentsCol.appendChild(comp);
+
+      // Exercise group for this component
+      const exGroup = document.createElement('div');
+      exGroup.className = 'exercise-group';
+      exGroup.dataset.idx = idx;
+      for (const exName of entry.exercises) {
+        const known = model.exercisesByName.get(exName);
+        const chip = document.createElement('button');
+        if (known) {
+          chip.className = 'br-ex' + (known.isAnchor ? ' anchor-ex' : '');
+          chip.innerHTML = `<span class="lvl">${known.level}</span><span>${escapeHtml(exName)}</span>`;
+          chip.addEventListener('click', () => {
+            // Open the exercise's detail using the existing popover system
+            // We pass `chip` as the anchor element so the popover floats next to it
+            selectExercise(exName, model, { anchorEl: chip });
+          });
+        } else {
+          chip.className = 'br-ex undefined-ex';
+          chip.disabled = true;
+          chip.innerHTML = `<span>${escapeHtml(exName)}</span>`;
+          chip.title = 'Not yet in the master list';
+        }
+        exGroup.appendChild(chip);
+      }
+      exercisesCol.appendChild(exGroup);
+    });
+
+    tree.appendChild(componentsCol);
+    tree.appendChild(exercisesCol);
+    wrap.appendChild(tree);
+
+    // Defer line drawing until layout is done
+    requestAnimationFrame(() => drawTreeLines(tree, linesSvg, breakdown.length));
+  }
+
+  // Progression chain
+  const chainSection = renderProgressionChain(model, ex);
+  if (chainSection) wrap.appendChild(chainSection);
+
+  detailSection.appendChild(wrap);
+}
+
+function drawTreeLines(tree, svg, count) {
+  // Clear previous lines
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const treeRect = tree.getBoundingClientRect();
+  svg.setAttribute('width', treeRect.width);
+  svg.setAttribute('height', treeRect.height);
+  svg.setAttribute('viewBox', `0 0 ${treeRect.width} ${treeRect.height}`);
+
+  const anchorCard = tree.querySelector('.tree-anchor-card');
+  if (!anchorCard) return;
+  const anchorRect = anchorCard.getBoundingClientRect();
+  const anchorRightX = anchorRect.right - treeRect.left;
+  const anchorCentreY = anchorRect.top + anchorRect.height / 2 - treeRect.top;
+
+  const components = tree.querySelectorAll('.component-block');
+  const exGroups = tree.querySelectorAll('.exercise-group');
+
+  components.forEach((comp, i) => {
+    const compRect = comp.getBoundingClientRect();
+    const compLeftX = compRect.left - treeRect.left;
+    const compRightX = compRect.right - treeRect.left;
+    const compCentreY = compRect.top + compRect.height / 2 - treeRect.top;
+
+    // Curved line from anchor right edge to component left edge
+    const midX1 = (anchorRightX + compLeftX) / 2;
+    const path1 = `M ${anchorRightX} ${anchorCentreY} C ${midX1} ${anchorCentreY}, ${midX1} ${compCentreY}, ${compLeftX} ${compCentreY}`;
+    const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    line1.setAttribute('class', 'tree-line');
+    line1.setAttribute('d', path1);
+    svg.appendChild(line1);
+
+    // Line from component right edge to exercise group left edge
+    if (exGroups[i]) {
+      const exRect = exGroups[i].getBoundingClientRect();
+      const exLeftX = exRect.left - treeRect.left;
+      const exCentreY = exRect.top + exRect.height / 2 - treeRect.top;
+      const midX2 = (compRightX + exLeftX) / 2;
+      const path2 = `M ${compRightX} ${compCentreY} C ${midX2} ${compCentreY}, ${midX2} ${exCentreY}, ${exLeftX} ${exCentreY}`;
+      const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      line2.setAttribute('class', 'tree-line');
+      line2.setAttribute('d', path2);
+      svg.appendChild(line2);
+    }
+  });
+}
+
+function renderProgressionChain(model, anchorEx) {
+  // Walk backwards via regressesFrom and forwards via progressesTo, up to a few steps.
+  // Return null if there's nothing meaningful to show.
+  const chain = [];
+
+  // Walk back
+  let cursor = anchorEx;
+  const seenBack = new Set([anchorEx.name]);
+  while (cursor.regressesFrom.length > 0 && chain.length < 6) {
+    const prevName = cursor.regressesFrom[0];
+    if (seenBack.has(prevName)) break;
+    seenBack.add(prevName);
+    const prev = model.exercisesByName.get(prevName);
+    if (!prev) break;
+    chain.unshift(prev);
+    cursor = prev;
+  }
+
+  chain.push(anchorEx);
+
+  // Walk forward
+  cursor = anchorEx;
+  const seenFwd = new Set([anchorEx.name]);
+  while (cursor.progressesTo.length > 0 && chain.length < 12) {
+    const nextName = cursor.progressesTo[0];
+    if (seenFwd.has(nextName)) break;
+    seenFwd.add(nextName);
+    const next = model.exercisesByName.get(nextName);
+    if (!next) break;
+    chain.push(next);
+    cursor = next;
+  }
+
+  if (chain.length === 1) return null;
+
+  const section = document.createElement('div');
+  section.className = 'progression-chain';
+  section.innerHTML = `<h4>Progression chain in this pathway</h4>`;
+  const row = document.createElement('div');
+  row.className = 'chain-row';
+  chain.forEach((step, i) => {
+    if (i > 0) {
+      const arrow = document.createElement('span');
+      arrow.className = 'chain-arrow';
+      arrow.textContent = '→';
+      row.appendChild(arrow);
+    }
+    const stepEl = document.createElement('button');
+    stepEl.className = 'chain-step' + (step.name === anchorEx.name ? ' current' : '');
+    stepEl.innerHTML = `<span class="lvl">${step.level}</span><span>${escapeHtml(step.name)}</span>`;
+    stepEl.addEventListener('click', () => {
+      if (step.isAnchor) {
+        anchorState.selectedAnchor = step.name;
+        renderAnchors(model);
+      } else {
+        selectExercise(step.name, model, { anchorEl: stepEl });
+      }
+    });
+    row.appendChild(stepEl);
+  });
+  section.appendChild(row);
+  return section;
+}
+
+// ---------- File loading ----------
 const fileInput = document.getElementById('csv-input');
 let currentModel = null;
+
+/* =========================================================================
+   CLASS BUILDER VIEW
+   =========================================================================
+   State:
+     selectedTraits: Set<string>  - the 1-3 governing traits chosen
+     filters: { classType: string, split: string }
+     timeline: Array<TimelineBlock>
+       TimelineBlock = { name, zone: 'skill'|'strength', slot: 0..1 (skill) or 0 (strength), lane: 0..2 }
+
+   Time math:
+     Skill zone:    0-40 min, divided into slots of 20 min each (2 slots)
+     Strength zone: 40-60 min, divided into slots of 20 min each (1 slot)
+     3 lanes, each lane is a row that can hold one block per slot
+     Total capacity: 3 lanes × (2 skill slots + 1 strength slot) = 9 blocks
+   ========================================================================= */
+
+const SKILL_SLOTS = 2;     // 0-20, 20-40 min
+const STRENGTH_SLOTS = 1;  // 40-60 min
+const NUM_LANES = 3;
+const MAX_TRAITS = 3;
+
+const builderState = {
+  selectedTraits: new Set(),
+  filters: { classType: '', split: '' },
+  timeline: [],   // [{name, zone, slot, lane}]
+};
+
+function renderBuilder(model) {
+  renderTraitChips(model);
+  renderFilters();
+  renderPicker(model);
+  renderTimeline(model);
+}
+
+// ---------- Trait selection chips ----------
+function renderTraitChips(model) {
+  const container = document.getElementById('trait-chips');
+  container.innerHTML = '';
+  for (const trait of model.traits) {
+    const chip = document.createElement('button');
+    chip.className = 'trait-chip';
+    const colour = `var(--l-${pad2(trait.colourIndex)})`;
+    chip.style.setProperty('--tc-active-bg', colour);
+    chip.innerHTML = `<span class="num">${pad2(trait.colourIndex)}</span><span>${escapeHtml(trait.name)}</span>`;
+    const isActive = builderState.selectedTraits.has(trait.name);
+    if (isActive) chip.classList.add('active');
+    // If 3 traits are already chosen and this one isn't among them, disable it
+    if (!isActive && builderState.selectedTraits.size >= MAX_TRAITS) {
+      chip.classList.add('disabled');
+    }
+    chip.addEventListener('click', () => {
+      if (builderState.selectedTraits.has(trait.name)) {
+        builderState.selectedTraits.delete(trait.name);
+      } else {
+        if (builderState.selectedTraits.size >= MAX_TRAITS) return;
+        builderState.selectedTraits.add(trait.name);
+      }
+      renderTraitChips(model);
+      renderPicker(model);
+      document.getElementById('filters-section').style.display =
+        builderState.selectedTraits.size > 0 ? 'flex' : 'none';
+    });
+    container.appendChild(chip);
+  }
+}
+
+// ---------- Filter chips ----------
+function renderFilters() {
+  document.querySelectorAll('.filter-chips').forEach(group => {
+    const filterKey = group.dataset.filter;
+    group.querySelectorAll('.filter-chip').forEach(chip => {
+      const value = chip.dataset.value;
+      chip.classList.toggle('active', builderState.filters[filterKey] === value);
+      chip.onclick = () => {
+        builderState.filters[filterKey] = value;
+        renderFilters();
+        renderPicker(currentModel);
+      };
+    });
+  });
+  document.getElementById('filters-section').style.display =
+    builderState.selectedTraits.size > 0 ? 'flex' : 'none';
+}
+
+// ---------- Exercise picker ----------
+function renderPicker(model) {
+  const wrap = document.getElementById('picker-pathways');
+  const empty = document.querySelector('.picker-empty');
+  wrap.innerHTML = '';
+  if (builderState.selectedTraits.size === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const onTimeline = new Set(builderState.timeline.map(b => b.name));
+
+  for (const trait of model.traits) {
+    if (!builderState.selectedTraits.has(trait.name)) continue;
+
+    const traitDiv = document.createElement('div');
+    traitDiv.className = 'picker-trait';
+
+    const header = document.createElement('div');
+    header.className = 'picker-trait-header';
+    header.style.setProperty('--pt-bg', `var(--l-${pad2(trait.colourIndex)})`);
+    header.innerHTML = `<span class="num">${pad2(trait.colourIndex)}</span><span class="name">${escapeHtml(trait.name)}</span>`;
+    traitDiv.appendChild(header);
+
+    for (const pathway of trait.pathways) {
+      const filtered = pathway.exercises.filter(ex => filterMatches(ex));
+      if (filtered.length === 0) continue;
+
+      const row = document.createElement('div');
+      row.className = 'picker-pathway';
+
+      const pwName = document.createElement('div');
+      pwName.className = 'picker-pathway-name';
+      pwName.textContent = pathway.name;
+      row.appendChild(pwName);
+
+      const list = document.createElement('div');
+      list.className = 'picker-exercise-list';
+      filtered.sort((a, b) => a.level - b.level);
+      for (const ex of filtered) {
+        const btn = document.createElement('button');
+        btn.className = 'picker-ex' + (ex.isAnchor ? ' anchor-ex' : '') + (onTimeline.has(ex.name) ? ' in-timeline' : '');
+        btn.innerHTML = `<span class="lvl">${ex.level}</span><span>${escapeHtml(ex.name)}</span>`;
+        btn.addEventListener('click', () => toggleExerciseOnTimeline(ex.name));
+        list.appendChild(btn);
+      }
+      row.appendChild(list);
+      traitDiv.appendChild(row);
+    }
+
+    wrap.appendChild(traitDiv);
+  }
+}
+
+function filterMatches(ex) {
+  const ct = builderState.filters.classType;
+  const sp = builderState.filters.split;
+  if (ct && !ex.classTypes.includes(ct)) return false;
+  if (sp && !ex.split.includes(sp)) return false;
+  return true;
+}
+
+// ---------- Timeline state operations ----------
+function toggleExerciseOnTimeline(name) {
+  const existing = builderState.timeline.findIndex(b => b.name === name);
+  if (existing >= 0) {
+    builderState.timeline.splice(existing, 1);
+  } else {
+    const placed = placeAtFirstFreeSlot(name);
+    if (!placed) {
+      const status = document.getElementById('status');
+      const prev = status.textContent;
+      status.textContent = 'Timeline is full (max 9 exercises)';
+      status.style.color = '#a82828';
+      setTimeout(() => {
+        status.textContent = prev;
+        status.style.color = '';
+      }, 1800);
+      return;
+    }
+  }
+  renderPicker(currentModel);
+  renderTimeline(currentModel);
+}
+
+function placeAtFirstFreeSlot(name) {
+  const order = [];
+  for (let s = 0; s < SKILL_SLOTS; s++) {
+    for (let l = 0; l < NUM_LANES; l++) order.push({ zone: 'skill', slot: s, lane: l });
+  }
+  for (let s = 0; s < STRENGTH_SLOTS; s++) {
+    for (let l = 0; l < NUM_LANES; l++) order.push({ zone: 'strength', slot: s, lane: l });
+  }
+  for (const pos of order) {
+    if (!isSlotOccupied(pos.zone, pos.slot, pos.lane)) {
+      builderState.timeline.push({ name, ...pos });
+      return true;
+    }
+  }
+  return false;
+}
+
+function isSlotOccupied(zone, slot, lane) {
+  return builderState.timeline.some(b => b.zone === zone && b.slot === slot && b.lane === lane);
+}
+
+// ---------- Timeline render + drag ----------
+function renderTimeline(model) {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+
+  const skillLbl = document.createElement('div');
+  skillLbl.className = 'timeline-zone-label skill';
+  skillLbl.textContent = 'Skill & Mobility';
+  const strengthLbl = document.createElement('div');
+  strengthLbl.className = 'timeline-zone-label strength';
+  strengthLbl.textContent = 'Strength';
+  tl.appendChild(skillLbl);
+  tl.appendChild(strengthLbl);
+
+  const lanesWrap = document.createElement('div');
+  lanesWrap.className = 'lanes';
+
+  for (let laneIdx = 0; laneIdx < NUM_LANES; laneIdx++) {
+    const lane = document.createElement('div');
+    lane.className = 'lane';
+    lane.dataset.lane = laneIdx;
+
+    for (let s = 0; s < SKILL_SLOTS; s++) {
+      lane.appendChild(makeSlotTarget('skill', s, laneIdx));
+    }
+    for (let s = 0; s < STRENGTH_SLOTS; s++) {
+      lane.appendChild(makeSlotTarget('strength', s, laneIdx));
+    }
+
+    const dividers = [
+      { pct: slotToPercent('skill', 1) },
+      { pct: slotToPercent('strength', 0) },
+    ];
+    for (const d of dividers) {
+      const div = document.createElement('div');
+      div.className = 'slot-divider';
+      div.style.left = d.pct + '%';
+      lane.appendChild(div);
+    }
+
+    lanesWrap.appendChild(lane);
+  }
+
+  for (const block of builderState.timeline) {
+    const ex = model.exercisesByName.get(block.name);
+    if (!ex) continue;
+    const laneEl = lanesWrap.querySelector(`.lane[data-lane="${block.lane}"]`);
+    laneEl.appendChild(makeBlock(block, ex));
+  }
+
+  tl.appendChild(lanesWrap);
+
+  const axis = document.createElement('div');
+  axis.className = 'timeline-axis';
+  [0, 20, 40, 60].forEach(min => {
+    const tick = document.createElement('span');
+    tick.className = 'timeline-tick';
+    tick.style.left = minToPercent(min) + '%';
+    tick.textContent = min + 'm';
+    axis.appendChild(tick);
+  });
+  tl.appendChild(axis);
+}
+
+function minToPercent(min) {
+  return (min / 60) * 100;
+}
+function slotToPercent(zone, slot) {
+  if (zone === 'skill') return minToPercent(slot * 20);
+  return minToPercent(40 + slot * 20);
+}
+function slotWidthPercent() {
+  return (20 / 60) * 100;
+}
+
+function makeBlock(block, ex) {
+  const el = document.createElement('div');
+  el.className = 'tl-block' + (ex.isAnchor ? ' anchor-block' : '');
+  el.dataset.name = ex.name;
+  el.style.left = slotToPercent(block.zone, block.slot) + '%';
+  el.style.width = `calc(${slotWidthPercent()}% - var(--slot-gap))`;
+  const isSkill = block.zone === 'skill';
+  el.style.setProperty('--block-bg', isSkill ? 'var(--l-02)' : 'var(--l-06)');
+  el.draggable = true;
+
+  const name = document.createElement('div');
+  name.className = 'tl-name';
+  name.textContent = ex.name;
+  el.appendChild(name);
+
+  const meta = document.createElement('div');
+  meta.className = 'tl-meta';
+  meta.textContent = `Lvl ${ex.level}  ·  20 min`;
+  el.appendChild(meta);
+
+  const remove = document.createElement('button');
+  remove.className = 'tl-remove';
+  remove.innerHTML = '&times;';
+  remove.title = 'Remove from timeline';
+  remove.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const idx = builderState.timeline.findIndex(b => b.name === ex.name);
+    if (idx >= 0) builderState.timeline.splice(idx, 1);
+    renderPicker(currentModel);
+    renderTimeline(currentModel);
+  });
+  el.appendChild(remove);
+
+  el.addEventListener('dragstart', (e) => {
+    el.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', ex.name);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    document.querySelectorAll('.slot-target.drag-over').forEach(s => s.classList.remove('drag-over'));
+  });
+
+  return el;
+}
+
+function makeSlotTarget(zone, slot, lane) {
+  const target = document.createElement('div');
+  target.className = 'slot-target';
+  target.dataset.zone = zone;
+  target.dataset.slot = slot;
+  target.dataset.lane = lane;
+  target.style.left = slotToPercent(zone, slot) + '%';
+  target.style.width = `calc(${slotWidthPercent()}% - var(--slot-gap))`;
+
+  target.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    target.classList.add('drag-over');
+  });
+  target.addEventListener('dragleave', () => {
+    target.classList.remove('drag-over');
+  });
+  target.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    target.classList.remove('drag-over');
+    const name = e.dataTransfer.getData('text/plain');
+    moveBlockTo(name, zone, slot, lane);
+  });
+  return target;
+}
+
+function moveBlockTo(name, zone, slot, lane) {
+  const block = builderState.timeline.find(b => b.name === name);
+  if (!block) return;
+  const occupant = builderState.timeline.find(b =>
+    b.zone === zone && b.slot === slot && b.lane === lane && b.name !== name);
+  if (occupant) {
+    const origin = { zone: block.zone, slot: block.slot, lane: block.lane };
+    block.zone = zone; block.slot = slot; block.lane = lane;
+    occupant.zone = origin.zone; occupant.slot = origin.slot; occupant.lane = origin.lane;
+  } else {
+    block.zone = zone; block.slot = slot; block.lane = lane;
+  }
+  renderTimeline(currentModel);
+}
+
+// ---------- Timeline actions ----------
+document.getElementById('clear-timeline').addEventListener('click', () => {
+  if (builderState.timeline.length === 0) return;
+  if (!confirm('Clear all blocks from the timeline?')) return;
+  builderState.timeline = [];
+  renderPicker(currentModel);
+  renderTimeline(currentModel);
+});
+
+document.getElementById('export-timeline').addEventListener('click', () => {
+  const text = buildExportText(currentModel);
+  navigator.clipboard.writeText(text).then(() => {
+    const status = document.getElementById('status');
+    const prev = status.textContent;
+    const prevColour = status.style.color;
+    status.textContent = 'Class copied to clipboard';
+    status.style.color = '';
+    setTimeout(() => {
+      status.textContent = prev;
+      status.style.color = prevColour;
+    }, 1800);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+});
+
+function buildExportText(model) {
+  if (builderState.timeline.length === 0) return 'Empty class.';
+  const lines = [];
+  lines.push('CLASS PLAN');
+  lines.push('==========');
+  const traits = Array.from(builderState.selectedTraits);
+  if (traits.length) lines.push('Governing traits: ' + traits.join(', '));
+  lines.push('');
+
+  for (const zone of ['skill', 'strength']) {
+    const slotCount = zone === 'skill' ? SKILL_SLOTS : STRENGTH_SLOTS;
+    const zoneLabel = zone === 'skill' ? 'SKILL & MOBILITY (40 min)' : 'STRENGTH (20 min)';
+    lines.push(zoneLabel);
+    lines.push('-'.repeat(zoneLabel.length));
+    for (let s = 0; s < slotCount; s++) {
+      const startMin = zone === 'skill' ? s * 20 : 40 + s * 20;
+      const endMin = startMin + 20;
+      const blocks = builderState.timeline
+        .filter(b => b.zone === zone && b.slot === s)
+        .sort((a, b) => a.lane - b.lane);
+      if (blocks.length === 0) continue;
+      lines.push(`  ${startMin}-${endMin} min:`);
+      for (const b of blocks) {
+        const ex = model.exercisesByName.get(b.name);
+        const star = ex && ex.isAnchor ? '★ ' : '';
+        const lvl = ex ? ` (lvl ${ex.level})` : '';
+        lines.push(`    Lane ${b.lane + 1}: ${star}${b.name}${lvl}`);
+      }
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+}
 
 function handleFile(file) {
   if (!file) return;
@@ -1038,9 +2926,9 @@ function handleFile(file) {
       const sections = parseCSV(text);
       const model = buildModel(sections);
       currentModel = model;
-      render(model);
-      const exCount = Array.from(model.exercisesByName.values()).length;
-      statusEl.textContent = `Loaded ${exCount} exercises across ${model.traits.length} traits`;
+      renderActiveView();
+      statusEl.style.color = '';
+      statusEl.textContent = `Loaded ${model.exercisesByName.size} exercises across ${model.traits.length} traits`;
     } catch (err) {
       console.error(err);
       statusEl.textContent = 'Error: ' + err.message;
@@ -1054,14 +2942,50 @@ function handleFile(file) {
   reader.readAsText(file);
 }
 
+// ---------- View switching ----------
+let activeView = 'spectrum';   // 'spectrum' | 'builder'
+const subtitleEl = document.getElementById('subtitle');
+
+function setActiveView(name) {
+  activeView = name;
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.view === name);
+  });
+  document.getElementById('spectrum-container').style.display = (name === 'spectrum' && currentModel) ? 'block' : 'none';
+  document.getElementById('builder-container').style.display = (name === 'builder' && currentModel) ? 'block' : 'none';
+  document.getElementById('anchors-container').style.display = (name === 'anchors' && currentModel) ? 'block' : 'none';
+  if (subtitleEl) {
+    if (name === 'spectrum') subtitleEl.textContent = 'Exercise Spectrum  ·  Click a dot for details';
+    else if (name === 'builder') subtitleEl.textContent = 'Class Builder  ·  Pick traits, then drag exercises to the timeline';
+    else if (name === 'anchors') subtitleEl.textContent = 'Anchors  ·  Each anchor broken down into the components it requires';
+  }
+  renderActiveView();
+}
+
+function renderActiveView() {
+  if (!currentModel) return;
+  document.getElementById('empty').style.display = 'none';
+  if (activeView === 'spectrum') {
+    document.getElementById('spectrum-container').style.display = 'block';
+    render(currentModel);
+  } else if (activeView === 'builder') {
+    document.getElementById('builder-container').style.display = 'block';
+    renderBuilder(currentModel);
+  } else if (activeView === 'anchors') {
+    document.getElementById('anchors-container').style.display = 'block';
+    renderAnchors(currentModel);
+  }
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => setActiveView(t.dataset.view));
+});
+
 fileInput.addEventListener('change', e => {
   if (e.target.files.length > 0) handleFile(e.target.files[0]);
 });
 
-// Drag and drop on the whole page
-document.addEventListener('dragover', e => {
-  e.preventDefault();
-});
+document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', e => {
   e.preventDefault();
   if (e.dataTransfer.files.length > 0) {
@@ -1075,12 +2999,15 @@ document.addEventListener('drop', e => {
   }
 });
 
-// Re-render on window resize so collision avoidance recomputes
 let resizeTimer = null;
 window.addEventListener('resize', () => {
   if (!currentModel) return;
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => render(currentModel), 150);
+  resizeTimer = setTimeout(() => {
+    if (activeView === 'spectrum') render(currentModel);
+    else if (activeView === 'builder') renderBuilder(currentModel);
+    else if (activeView === 'anchors') renderAnchors(currentModel);
+  }, 150);
 });
 
 </script>
