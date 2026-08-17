@@ -23,7 +23,7 @@ Three components:
 
 | # | Component | Status | Purpose |
 |---|---|---|---|
-| 1 | **Movement Library** (Google Sheet) | ~400 exercises, actively being filled | Single source of truth. Exercises + metadata + relationships. Powers everything else. |
+| 1 | **Movement Library** (Google Sheet) | **3 tabs**; 473 exercises, actively being filled | Single source of truth. Exercises + taxonomy + component edges. Powers everything else. See `data/SHEET.md`. |
 | 2 | **Movement Wheel** (static site) | Working, needs rework | Radial constellation of every exercise. Shows breadth and interconnection. Audience-facing: inspire and impress, remind people of exercises, subtly teach structure. |
 | 3 | **Program Builder** (static site) | Working, hard-coded data | The real tool. Heat map → goal selection → drag-and-drop program construction → scoring → export. |
 
@@ -44,8 +44,11 @@ directly. See §3 for the constraint this imposes.
 ├── PROGRESS.md            task state / next actions
 ├── README.md              human-facing intro
 ├── data/
-│   ├── movement-library.csv     committed snapshot (deterministic tests)
-│   └── SHEET.md                 published CSV URL + column contract
+│   ├── exercises.csv            committed snapshot of the Exercises tab
+│   ├── lists.csv                Lists tab — the authoritative taxonomy
+│   ├── breakdowns.csv           Breakdowns tab — component edges
+│   ├── examples/                dated manual exports, kept as fixtures
+│   └── SHEET.md                 THE verified column contract, all 3 tabs
 ├── shared/                      used by BOTH sites — no duplication
 │   ├── csv.js                   tolerant CSV parsing
 │   ├── library.js               row → exercise model + validation
@@ -67,8 +70,7 @@ directly. See §3 for the constraint this imposes.
 │   ├── blocks.js                named prebuilt combos
 │   └── score.js                 goal metric
 ├── archive/                     kept, not maintained
-│   ├── movement_pillars.html
-│   └── movement_columns.html
+│   └── columns/index.html       A3 landscape columns view
 └── tools/serve.sh               local dev server
 ```
 
@@ -90,10 +92,21 @@ rather than the tool.
 current `movement_wheel.html` is a single self-contained file, so it opens fine
 by double-clicking. The moment it is split into modules, that stops working.
 
-- **Local dev:** `python3 -m http.server 8000` from the repo root, then
-  `http://localhost:8000/wheel/`. That is what `tools/serve.sh` does.
+- **Local dev:** `python -m http.server 8000` from the repo root, then
+  `http://localhost:8000/wheel/`. That is what `tools/serve.ps1` (primary — the
+  dev box runs PowerShell) and `tools/serve.sh` do. **Note `python`, not
+  `python3`: `python3` is not on PATH on the dev machine.**
 - **Playwright tests must use `http://localhost:...`, not `file://`.**
   This is a change from how the wheel was previously tested.
+- ⚠️ **There is currently no automated test path at all.** `node`, `npm` and
+  `npx` are **not installed** on the dev machine, and Playwright is an npm
+  package — so §9's documented test pattern cannot run locally. It only ever ran
+  in the chat sandbox. This is an unresolved tension with "no npm, deliberately"
+  below. **Settle it before Phase 2 touches the force model**, because that is
+  where the "all node coordinates finite" assertion caught the `NaN` cascade.
+  A defensible reading: dev-only npm never enters the deploy path or Pages, so
+  it does not violate the no-build-step decision. Interim measure: drive a
+  browser manually and assert against the live DOM.
 - GitHub Pages serves `.js` with the correct MIME type, so modules work in
   production with no configuration.
 
@@ -112,17 +125,56 @@ deploy workflow — but do not introduce it pre-emptively.
 
 ## 4. The data contract
 
+> **The authoritative, verified contract now lives in `data/SHEET.md`.** This
+> section is the summary; that file is the reference. If they disagree, believe
+> `data/SHEET.md` — it is checked against real snapshots.
+
+### The sheet has THREE tabs, not one
+
+| Tab | Snapshot | Role |
+|---|---|---|
+| `Exercises` | `data/exercises.csv` | the library, 473 rows |
+| `Lists` | `data/lists.csv` | **authoritative taxonomy** — 61 declared LineKeys — plus enum vocabularies |
+| `Breakdowns` | `data/breakdowns.csv` | **the `component` edge table of §7.1, already built** |
+
+Two consequences that were missed for a long time:
+
+1. **`Lists` declares the taxonomy top-down.** The valid `Discipline - Line`
+   pairs are the ones listed there — *not* the ones that happen to appear on
+   exercise rows. **23 of 61 declared LineKeys have zero exercises.** A loader
+   that infers the taxonomy from exercise rows cannot see those, and will
+   wrongly report references to them as broken. See §6.4.
+2. **`Breakdowns` already is the `component` edge table**, populated for 3
+   keystones, in exactly the shape the old builder parses. §7.1's
+   "columns-on-the-row, not a separate tab" recommendation should be revisited
+   for `component` specifically.
+
+`Lists` also declares `Session Types` (`Warm Up` / `Skill` / `Strength` /
+`Game`), which substantially pre-empts §7.2's planned `Session Role` — reconcile
+with it rather than inventing a parallel vocabulary.
+
+### Multi-value delimiter is `;`, never `,`
+
+Commas cannot be the delimiter because real values contain them: the discipline
+**`Rhythm, Flow & Expression`** (34 exercises, 5 LineKeys) and the exercise
+**`Foot Taps, Handslaps`**. A comma-split shreds both silently. `splitList()`
+splits on `;` only and logs a loud error on any comma found. Full rationale in
+`data/SHEET.md` §3.
+
 ### Source of truth
 
-The Google Sheet, published to web as CSV:
+The Google Sheet, published to web as CSV. Only the `Exercises` tab is
+published so far — `Lists` and `Breakdowns` still need publishing before they
+can be fetched live:
 
 ```
 https://docs.google.com/spreadsheets/d/e/2PACX-1vQDrwHw-jGM7r3ZO_i8orZWvJ_wxmMdfnUy3lvdsqwZeJGv_EyEvsiB1HxG1qrXIyzgtMrlZMhirtcI/pub?gid=955669041&single=true&output=csv
 ```
 
 The published endpoint sends permissive CORS headers, so browser fetch works.
-**Also keep a committed snapshot at `data/movement-library.csv`** so tests are
-deterministic and work offline.
+**Committed snapshots live at `data/exercises.csv`, `data/lists.csv` and
+`data/breakdowns.csv`** so tests are deterministic and work offline. Local
+exports in `data/examples/` are kept as fixtures.
 
 ### Parsing rules (preserve these)
 
@@ -143,14 +195,12 @@ deterministic and work offline.
 `Status` is read (a row matching `/^retired$/i` is filtered out) but is not
 present in the current sheet.
 
-### Columns confirmed NOT read — safe to delete
+### Columns confirmed NOT read — ✅ ALREADY DELETED
 
-`Loadable`, `Session Type`, `Class Types`, `Movement Split`, `Equipment`,
-`Video URL`, `Notes`
-
-Fill rates when checked: Video URL 0, Movement Split 1, Notes 5, Equipment 18,
-Session Type 19, Class Types 19, Loadable 368 (all `FALSE`). Only the 5 Notes
-entries hold real content.
+`Loadable`, `Session Type`, `Class Types`, `Movement Split`, `Equipment` and
+`Video URL` are **gone from the sheet.** Only `Notes` survives (9 entries, not
+the 5 recorded earlier); it is read into the model but not rendered. Task 5.7 is
+done.
 
 ### Field semantics
 
@@ -200,10 +250,26 @@ Until then it is coloured orange: `{ h: 25, s: 62, l: 54 }`.
 "Games":                { h: 25,  s: 62, l: 54 }   // orange (temporary)
 ```
 
-Legacy aliases `Strength/Capacity`, `Handstands/Balance`, `Acro/Flow` are also
-mapped so old demo CSVs still colour correctly. **See §6 for the trap here.**
+Legacy aliases `Strength/Capacity`, `Handstands/Balance`, `Acro/Flow` were
+previously mapped so old demo CSVs still coloured correctly. **They have since
+been removed** — old fixtures now render grey. See §6.3.
 
-### Taxonomy v2 — designed, delivered, NOT YET ADOPTED
+`Games` is a pillar *and* a discipline, with 5 lines (`Ball Games`,
+`Floor & Flow Games`, `Rough Housing`, `Stick Games`,
+`Team Work & Connection`) and **51 exercises — 11% of the library.** Dissolving
+it into `Session Role` is therefore not a small stopgap removal; it means
+re-homing 51 rows, and `Rough Housing` / `Team Work & Connection` have no
+obvious movement home. Note also that §7.2's proposed `Session Role` values have
+**no partner/connection value**, while 4.13 wants to score "partner work" —
+settle that before closing the field.
+
+### Taxonomy v2 — designed, delivered, NOT ADOPTED, and PARTLY SUPERSEDED
+
+> ⚠️ **Read this whole subsection before acting on v2.** Two of its four
+> headline findings are wrong, because they were derived without knowledge of
+> the `Lists` tab. The v2 source files (`library_v2.csv`, `TAXONOMY_V2.md`,
+> `REVIEW_NOTES.md`, `moves.txt`, `changes.txt`, `library_clean.csv`) are **not
+> in this repo and not on the dev machine** — they may be lost.
 
 A full restructure was worked out and shipped as `library_v2.csv` +
 `TAXONOMY_V2.md`. **The live sheet does not use it.** The live sheet has the
@@ -212,29 +278,47 @@ cleaned *names* but the *old* taxonomy, plus the new Games pillar.
 v2 goes from 11 disciplines / 22 lines → **13 disciplines / 32 lines**, and
 gives all 370 exercises a home with zero orphans. Its key findings:
 
-1. **The sheet already referenced a line that did not exist.** Four rows had
-   `Also Appears In = "Lever & Straight-Arm Body Control - Front Lever Line"`,
-   but the Front Lever family was filed under Horizontal Pull. Somebody
-   intended that line. v2 creates it, plus Back Lever Line, Planche Line and
-   Straight-Arm Rotation.
+1. ❌ **WRONG — "the sheet referenced a line that did not exist."** Four rows
+   point at `Lever & Straight-Arm Body Control - Front Lever Line`, and that
+   line **is declared in the `Lists` tab**, along with `Planche Line` and
+   `Side Lever Line`. It simply has no exercises filed against it. Nobody
+   *inferred* an intent — the intent is **recorded**. v2 proposing to "create"
+   these lines is proposing to create lines that already exist. See §6.4.
 2. **Back Lever and German Hang were under Pressing Strength → Horizontal
    Press.** They are straight-arm *pulling* holds.
-3. **No lower-body strength existed at all.** Squats and hinges were scattered
-   across Mobility (RDL, Good Mornings, Split Squat), Ground Locomotion
-   (Walking Lunge), and nowhere (Kettlebell Swing had no Line). v2 adds a
-   `Squat, Hinge & Single Leg` discipline.
-4. **All 24–26 uncategorised rows were one missing line.** They are the entire
-   frontal-plane hip cluster (pancakes, middle splits, frog, butterfly, 90/90,
-   Copenhagen, horse stance) and the only hip line was "Hip Opening
-   (frontal)". v2 adds `Hip Opening - Lateral`, which lands at exactly 20,
-   balancing the 20 in frontal.
-5. Vertical Pull was doing two jobs — strict pulling next to swinging/kipping.
-   v2 splits out `Swinging & Brachiation`.
-6. Arm isolation (curls, tricep extensions) was inside Horizontal Pull, making
-   that line 28 items of unrelated work. v2 adds `Arms & Accessory`.
+3. ❌ **WRONG — "no lower-body strength existed at all."** A
+   `Loaded Lower Body Strength` discipline **is declared in `Lists`** with six
+   lines: `Bilateral Squat`, `Single-Leg Squat`, `Lateral / Mobility Squat`,
+   `Hip Hinge`, `Posterior Chain (knee)`, `Anterior Chain (knee)`. All six are
+   empty. The observation that squats and hinges are *scattered* is correct;
+   the conclusion that no home exists is not. Adding v2's
+   `Squat, Hinge & Single Leg` would **duplicate an already-declared discipline
+   under a different name.** The work is filing exercises into the declared
+   lines, not creating new ones.
+4. ⚠️ **PARTLY STALE — "all 24–26 uncategorised rows were one missing line."**
+   The count is now **57 rows with a blank `Line`** and **16 with a blank
+   `Discipline`**, so this has grown, not been solved. The frontal-plane hip
+   reading may still be right, but `Foundational Resting Positions` has four
+   *declared and empty* lines (`Squat Position`, `Stance Positions`,
+   `Hip Opening (sagittal)`, `Spinal Extension`) which are the obvious homes for
+   most of them. Check those before adding `Hip Opening - Lateral`.
+5. ✅ **Plausible and not contradicted.** Vertical Pull doing two jobs — strict
+   pulling next to swinging/kipping. v2 splits out `Swinging & Brachiation`.
+   `Lists` declares no such line, so this is a genuine v2 addition.
+6. ✅ **Plausible and not contradicted.** Arm isolation (curls, tricep
+   extensions) inside Horizontal Pull. v2 adds `Arms & Accessory`. Again not
+   declared in `Lists`, so genuinely new.
 
-Adopting v2 is a **decision, not a mechanical step** — reconcile it against
-whatever the owner has changed since, and against the Games dissolution.
+**Revised position on adoption.** v2 was designed against an older snapshot
+*and without sight of the `Lists` tab*, which is why two of its findings
+re-derive structure that already exists. It is not a wholesale-adopt candidate.
+The cheap, low-risk work it points at is:
+
+- file exercises into the **23 declared-but-empty LineKeys** (findings 1 and 3
+  collapse into this);
+- then consider findings 5 and 6, which are real additions.
+
+Treat "adopt v2" as **superseded by "populate `Lists`."** See PROGRESS 1.6.
 
 ---
 
@@ -289,31 +373,54 @@ Three pillars silently rendered **grey for an entire session** because
 `pillarBase()` falls through to `PILLAR_FALLBACK` (a dull grey-brown) on a
 miss — silently. When adding a pillar, add its colour.
 
-### 6.3 `PILLAR_ORDER` is stale — outstanding issue
+### 6.3 `PILLAR_ORDER` — ✅ FIXED
 
-`PILLAR_ORDER` still lists the **old demo names**:
+Previously listed the old demo names, so every pillar fell through to "unknown →
+append in Map insertion order" and pillar ordering was arbitrary. Now correct,
+in the recommended adjacency:
 
 ```js
-["Handstands/Balance", "Strength/Capacity", "Mobility", "Acro/Flow", "Object Play"]
+["Handstands & Balance", "Strength & Capacity", "Mobility",
+ "Flocomotion", "Object Play", "Games"]
 ```
 
-For real sheet data none of these match, so every pillar falls through to
-"unknown → append in Map insertion order." **Pillar ordering around the wheel
-is therefore effectively arbitrary.**
+The reason this mattered beyond cosmetics — **boundary-keystone detection
+depends on pillar adjacency** — still holds, but see 6.6: the feature has no
+data to act on either way.
 
-This matters more than cosmetics: **boundary-keystone detection depends on
-pillar adjacency.** A keystone only gets the two-tone split fill and seam
-placement when it bridges to a pillar that happens to sit *next to* its own.
-With arbitrary order, which keystones straddle a seam is luck. In one test only
-3 of 51 keystones rendered as split-fill. Fix `PILLAR_ORDER` to the real names
-and choose an order that puts the heavily-bridged pairs adjacent
-(Strength↔Handstands, Mobility↔Strength).
+Note the legacy aliases (`Strength/Capacity`, `Acro/Flow`,
+`Handstands/Balance`) were **dropped** from `PILLAR_COLOURS` at the same time.
+Any old fixture using those names now renders `PILLAR_FALLBACK` grey. Consistent
+with fail-fast, but worth knowing before `data/examples/` is used for tests.
 
-### 6.4 Broken `Also Appears In` references fail silently
+### 6.4 Unresolvable `Also Appears In` — the diagnosis here was WRONG
 
-The reference must match `"Discipline - Line"` exactly. A miss draws no link
-and reports nothing. Four rows currently point at a non-existent Front Lever
-Line. Consider adding this to `validateRows()` as a warning.
+The reference must match a declared LineKey exactly, and a miss draws no link
+and reports nothing. That part is true, and is still worth adding to
+`validateRows()` as a warning.
+
+But the specific claim that four rows "point at a non-existent Front Lever Line"
+**was wrong, and it propagated into Taxonomy v2's justification.**
+`Lever & Straight-Arm Body Control - Front Lever Line` **is declared** in the
+`Lists` tab. It has zero exercises filed against it. The wheel derives valid
+lines *bottom-up from exercise rows*, so it cannot see a declared-but-empty
+line and reports a perfectly good reference as broken.
+
+The real failure in this area is the delimiter, not the reference: `Bridge
+Circle` points at `"Rhythm, Flow & Expression - Acrobatics"`, which the old
+comma-splitting `splitList()` shredded into two fragments. Fixed — see §4.
+
+**Lesson: validate against `Lists`, not against the set of pairs observed on
+exercise rows.**
+
+### 6.6 The boundary-keystone split-fill has no data to act on
+
+Zero `linearGradient[id^='ksg-']` elements render, and that is *not* the stale
+`PILLAR_ORDER` of 6.3. **None of the 7 flagged keystones has any `Also Appears
+In` value**, so the two-tone fill and seam-snapping machinery is entirely
+unexercised. It cannot be validated until keystone flags and cross-pillar
+references overlap. Relevant to §7.1/2.5: some of what looks like layout tuning
+complexity is dead weight, not tuning.
 
 ### 6.5 Google Fonts 403 in sandboxed test environments
 
@@ -456,7 +563,7 @@ splitting into two.
 
 ## 9. Movement Wheel — current implementation notes
 
-Single file, ~1,656 lines, to be split per §2.
+Single file, ~1,670 lines, to be split per §2.
 
 ### Visual design language
 

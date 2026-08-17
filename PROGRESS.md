@@ -10,47 +10,81 @@ decision from Calum before it can proceed.
 
 ## Current position
 
-Migrating from a Claude chat workflow (single-file downloads, no version
-control) into this repo. Nothing in the new structure has been built yet.
+**Phase 0 is done.** The repo is restructured, the wheel and the columns view
+are imported, snapshots of all three sheet tabs are committed, and
+`data/SHEET.md` holds a verified data contract.
 
-The repo currently contains **only** the old Program Builder as root
-`index.html`, with hard-coded exercise data.
+Auditing the real artifacts against these docs found that several recorded
+"blockers" were already fixed and **two diagnoses were simply wrong** — see the
+decision log and `CLAUDE.md` §6.4 / §5. Corrections are folded in below.
 
-**Immediate next action:** Phase 0, task 0.1 — gather the existing artifacts
-into the repo.
+**Immediate next action:** Phase 1 — the schema decisions. They are all `[?]`
+and all need Calum. 1.6 is now much cheaper than it was (see below), and 3.1 has
+been pulled forward out of Phase 3 because it is urgent and unblocked.
 
 ---
 
-## Phase 0 — Get everything into the repo
+## Phase 0 — Get everything into the repo ✅ DONE
 
-Nothing can be worked on properly until the artifacts are in one place under
-version control. Several exist only as downloaded files on Calum's machine.
+- [x] **0.1 Collect loose artifacts.** `wheel/index.html` and the columns view
+      imported. **Note:** the imported wheel is *newer* than the 1,656-line
+      `movement_wheel.html` the docs described, but the two had **diverged** —
+      it had the correct `PILLAR_ORDER` and Games colour, and had **lost**
+      `validateRows()`. Reconciled: see W1.
+      **`library_v2.csv`, `TAXONOMY_V2.md`, `REVIEW_NOTES.md`, `moves.txt`,
+      `changes.txt`, `library_clean.csv` were not found anywhere on the dev
+      machine and are not in git history — they may be lost.** 1.6 no longer
+      depends on them (see below).
+- [x] **0.2 Move Program Builder** → `builder/index.html`, byte-identical.
+- [x] **0.3 Folder skeleton** created.
+- [x] **0.4 `tools/serve.ps1` + `tools/serve.sh`** — `python`, not `python3`,
+      which is not on PATH. PowerShell script is primary.
+- [x] **0.5 Snapshots** at `data/exercises.csv` (fetched live), `data/lists.csv`,
+      `data/breakdowns.csv`; `data/SHEET.md` written and verified.
+- [x] **0.6 Hub page** at root `index.html`.
+- [ ] **0.7 Verify GitHub Pages** serves the subdirectory pages after the
+      restructure. **Needs a push first.**
+- [x] **0.8 Commit.**
 
-- [ ] **0.1 Collect loose artifacts.** These were produced in chat and exist as
-      local downloads:
-  - `movement_wheel.html` (~1,656 lines — the current, tuned, validated
-    version) → will become `wheel/`
-  - `movement_columns.html` (~895 lines, A3 landscape columns view) →
-    `archive/`
-  - `movement_pillars.html` (if it exists locally) → `archive/`
-  - `library_v2.csv`, `TAXONOMY_V2.md`, `REVIEW_NOTES.md`, `moves.txt`,
-    `changes.txt`, `library_clean.csv` → `docs/taxonomy-v2/`
-      *(reference material for the v2 decision — do not treat as live data)*
-- [ ] **0.2 Move Program Builder** from root `index.html` to
-      `builder/index.html`. Note the URL change; root becomes the hub.
-- [ ] **0.3 Create the folder skeleton** per `CLAUDE.md` §2 (`shared/`,
-      `wheel/`, `builder/`, `data/`, `archive/`, `tools/`).
-- [ ] **0.4 Add `tools/serve.sh`** (`python3 -m http.server 8000`) and confirm
-      `http://localhost:8000/` works. Required before any module split — see
-      `CLAUDE.md` §3.
-- [ ] **0.5 Commit a data snapshot** to `data/movement-library.csv` and write
-      `data/SHEET.md` with the published URL and the column contract.
-- [ ] **0.6 Build the hub page** at root `index.html` — plain links to
-      `/wheel/` and `/builder/`. Keep it minimal.
-- [ ] **0.7 Verify GitHub Pages** still serves correctly after restructuring,
-      including the subdirectory pages.
-- [ ] **0.8 Commit.** From here on, commit before each chunk of work so
-      "revert that" is trivial.
+### Defects found during the Phase 0 code review
+
+- [x] **W1 Restore the duplicate-name fail-fast gate.** `validateRows()`,
+      `showDataError()` and `escapeHTML()` had been **deleted** from the
+      imported wheel — the single most emphatically documented decision in the
+      project (`CLAUDE.md` §6.1). Restored verbatim. It immediately caught a
+      real duplicate: see 5.4.
+- [x] **W2 Fix the multi-value delimiter.** `splitList()` split on `/[;,]/`, but
+      the discipline `Rhythm, Flow & Expression` and the exercise
+      `Foot Taps, Handslaps` both contain commas — so those values were shredded
+      silently. Now `;`-only with a loud error on any comma. See
+      `data/SHEET.md` §3.
+- [ ] **W3 Decide what to do about the boundary-keystone split-fill.** It has
+      **no data to act on** — zero of the 7 keystones has an `Also Appears In`,
+      so the two-tone/seam machinery never fires. Either populate the data or
+      delete the machinery in 2.5. Do not tune it before deciding.
+- [ ] **W4 Legacy pillar aliases were dropped** from `PILLAR_COLOURS`, so old
+      fixtures in `data/examples/` render grey. Fine under fail-fast, but decide
+      before those become test fixtures.
+- [ ] **B1 Fix silent data loss in the builder's drag-and-drop.**
+      `handleDrop` does `occupant.name = name`, deleting the displaced exercise
+      with no undo, while the cross-class branch 30 lines below handles the same
+      case correctly via `addToClass(displacedName, …)`. Part of 4.2.
+- [ ] **B2 Remove dead `dragover` logic.** `e.dataTransfer.getData ? 'copy' :
+      'move'` always yields `'copy'`; `getData()` returns `""` during `dragover`
+      by design. Use `types.includes('application/x-source-class')`. Part of 4.2.
+- [ ] **B3 Introduce a `SECTIONS` array.** The 3×20min / 3-lane structure is
+      hard-coded across ~6 sites. Do this *with* 4.1 rather than making six
+      parallel edits. Section 2 needs a non-droppable flag.
+
+### Open Phase 0 asks for Calum
+
+- [ ] **Publish the `Lists` and `Breakdowns` tabs to web** and paste the CSV
+      URLs into `data/SHEET.md`. Only `Exercises` is published, so the other two
+      snapshots cannot be refreshed automatically.
+- [ ] **Confirm `archive/columns/`.** `pillars/index.html` as committed was
+      **byte-identical to `movement_columns.html`** — the A3 columns view, not
+      the out-of-scope Pillars visualisation — so it was filed under
+      `archive/columns/`. Say if you want it revived as a maintained lens.
 
 ---
 
@@ -66,6 +100,13 @@ spreadsheet, not code. Full specifications in `CLAUDE.md` §7.
 - [?] **1.2 Decide `Session Role`** values and confirm it replaces the Games
       pillar. Proposed: `warm-up/game`, `skill`, `strength`, `mobility`,
       `conditioning`. Multi-value.
+      **Two new constraints.** (a) The `Lists` tab **already declares
+      `Session Types`** = `Warm Up` / `Skill` / `Strength` / `Game` — reconcile
+      with that vocabulary instead of inventing a parallel one. (b) Games is
+      **51 exercises, 11% of the library**, including `Rough Housing` and
+      `Team Work & Connection`, which have no obvious movement home; and the
+      proposed values contain **no partner/connection role** even though 4.13
+      wants to score "partner work". Settle that before closing the field.
 - [?] **1.3 Decide `cook` / `burn`** semantics and defaults.
 - [?] **1.4 Decide Line and Discipline importance** — new columns or a separate
       tab? These are set manually, not derived.
@@ -73,12 +114,31 @@ spreadsheet, not code. Full specifications in `CLAUDE.md` §7.
       channel carries heat, and whether Importance needs splitting into
       display-filter vs cooling-rate. **Both must be settled before the render
       rework in Phase 2.**
-- [?] **1.6 Decide on Taxonomy v2 adoption** — adopt wholesale, adopt in part,
-      or re-derive against the current sheet. It was designed against an older
-      snapshot and the owner has since added the Games pillar. See
-      `CLAUDE.md` §5.
+- [?] **1.6 Taxonomy v2 — LARGELY SUPERSEDED, and much cheaper than it looked.**
+      v2 was designed without sight of the `Lists` tab, and **two of its four
+      headline findings are wrong**: `Front Lever Line` and the whole
+      `Loaded Lower Body Strength` discipline (6 lines) **are already declared**
+      in `Lists` and are simply unpopulated. Adopting v2's
+      `Squat, Hinge & Single Leg` would duplicate a declared discipline under a
+      new name.
+      The v2 source files are also **missing from the machine and from git** —
+      possibly lost. That no longer blocks this decision.
+      **Reframed decision:** the cheap work is filing exercises into the
+      **23 declared-but-empty LineKeys**. Only findings 5 (`Swinging &
+      Brachiation`) and 6 (`Arms & Accessory`) are genuine additions not already
+      declared. See `CLAUDE.md` §5.
 - [ ] **1.7 Write the schema down** in `data/SHEET.md` once decided, so the
-      loader and the sheet cannot drift.
+      loader and the sheet cannot drift. *(The file now exists and is verified —
+      extend it rather than starting it.)*
+- [ ] **1.8 Validate the taxonomy against `Lists`, not against exercise rows.**
+      A `Discipline - Line` pair on an exercise row that is **absent** from
+      `Lists` is an error and should fail loudly. A declared LineKey with no
+      exercises is a **gap to fill**, not an error. Getting this backwards is
+      what produced the wrong v2 findings. Also covers 2.8.
+- [ ] **1.9 Pull 3.1 (lock the program format) forward into this phase.** It is
+      marked urgent, three 6-week blocks of history are waiting, and it depends
+      only on §7.7's section structure — which is already decided. It has no
+      dependency on the wheel rebuild, so it should not sit behind Phase 2.
 
 ---
 
@@ -88,10 +148,10 @@ Do this **before** the Program Builder work: it is the fastest feedback loop
 and it validates the schema visually. Bad edges are obvious on a diagram in a
 way they never are in a spreadsheet.
 
-- [ ] **2.1 Fix `PILLAR_ORDER`.** It still contains old demo names, so pillar
-      order is currently arbitrary — which makes boundary-keystone detection
-      luck-based. See `CLAUDE.md` §6.3. Choose an order putting
-      heavily-bridged pairs adjacent (Strength↔Handstands, Mobility↔Strength).
+- [x] **2.1 Fix `PILLAR_ORDER`.** ✅ Already correct in the imported wheel:
+      `["Handstands & Balance", "Strength & Capacity", "Mobility",
+      "Flocomotion", "Object Play", "Games"]` — the recommended adjacency.
+      The Games colour is present too, so `CLAUDE.md` §6.2's trap is closed.
 - [ ] **2.2 Split the single file** into `wheel/index.html` + `layout.js` +
       `render.js` + `tune.js`, and move parsing/taxonomy into `shared/`.
       Switch Playwright tests to `http://localhost:...`.
@@ -108,8 +168,12 @@ way they never are in a spreadsheet.
       vertical pulls near each other, both near but not mixed.
 - [ ] **2.7 Infer `Level` by topological rank** from progression edges, with
       manual override. Avoids hand-filling ~400 rows.
-- [ ] **2.8 Consider extending `validateRows()`** to warn on unresolvable
-      `Also Appears In` references (currently silent — `CLAUDE.md` §6.4).
+- [ ] **2.8 Extend `validateRows()`** to warn on unresolvable `Also Appears In`
+      references — but **resolve them against `Lists`** (see 1.8), otherwise it
+      will report the 4 declared-but-empty Front Lever references as broken,
+      which is exactly the mistake §6.4 recorded. Also warn on rows with a blank
+      `Discipline`/`Line` — there are 16 and 57 of those respectively, and under
+      fail-fast they should be loud, not silently bucketed as "Uncategorised".
 
 ---
 
@@ -173,22 +237,47 @@ original list for traceability.
 
 Ongoing, in parallel with everything. Data work, not code.
 
-- [ ] **5.1 Fill `Level`** — largely blank. Mostly solved by 2.7's inference.
-- [ ] **5.2 Clean `Importance`** — inconsistent; see the 1.5 split question.
-- [ ] **5.3 Set `Keystone` flags.** The live sheet has **zero**, so the wheel's
-      keystone treatment has nothing to render. Taxonomy v2 proposed 51.
-- [ ] **5.4 Resolve the duplicate** `Bridge Circle` (Flocomotion/Acrobatics +
-      Handstands/Bridge Work). Preferred fix: keep one row, point its
-      `Also Appears In` at the other line. **The wheel currently refuses to
-      render because of this.**
-- [ ] **5.5 Fix the 4 broken `Also Appears In`** references pointing at
-      `"Lever & Straight-Arm Body Control - Front Lever Line"`.
-- [ ] **5.6 Categorise the ~24 uncategorised rows** — the frontal-plane hip
-      cluster. Resolved by adopting v2's `Hip Opening - Lateral`.
-- [ ] **5.7 Delete unused columns** — `Loadable`, `Session Type`,
-      `Class Types`, `Movement Split`, `Equipment`, `Video URL`, `Notes`.
-      Confirmed unread. **Copy out the 5 `Notes` entries first** — the only
-      real content there.
+> Counts below verified against the 2026-08-18 snapshot (473 exercises). They
+> drift as the sheet is filled — re-audit rather than trusting them.
+
+- [ ] **5.1 Fill `Level`** — **364 of 473 blank.** Mostly solved by 2.7's
+      inference.
+- [ ] **5.2 Clean `Importance`** — **33 blank**; see the 1.5 split question.
+- [~] **5.3 Set `Keystone` flags.** **7 are set, not zero.** But **none of them
+      has an `Also Appears In`**, so the boundary-keystone two-tone fill still
+      renders nothing (W3). Taxonomy v2 proposed 51.
+      Also: `Breakdowns` names `Muscle Up` while `Exercises` flags
+      `Muscle Up - Rings` — reconcile.
+- [x] **5.4 Resolve the duplicate** `Bridge Circle`. ✅ Done — fixed exactly as
+      recommended (one row, `Also Appears In` pointing at the other line).
+      **But a new duplicate has appeared:** `Split Squat` exists twice —
+      `Mobility › Foundational Resting Positions › Hip Opening (frontal)` and a
+      second half-entered row with no pillar/discipline/line. Hidden at
+      importance ≤ 2; **raising the slider to 3 stops the wheel drawing.** Fix:
+      delete the blank-taxonomy row or give it a distinct name.
+- [ ] **5.5 The 4 `Also Appears In` refs are NOT broken.** They point at
+      `Lever & Straight-Arm Body Control - Front Lever Line`, which **is declared
+      in `Lists`** and merely unpopulated. Nothing to fix here — the fix is
+      1.8 (validate against `Lists`). **One real cell bug remains:**
+      `Bridge Circle`'s value is `"Rhythm, Flow & Expression - Acrobatics"`
+      *including literal quote characters* — remove them.
+- [ ] **5.6 Categorise the uncategorised rows** — now **57 with a blank `Line`**
+      and **16 with a blank `Discipline`**, up from the recorded ~24. Before
+      adding v2's `Hip Opening - Lateral`, check the four *declared and empty*
+      `Foundational Resting Positions` lines (`Squat Position`,
+      `Stance Positions`, `Hip Opening (sagittal)`, `Spinal Extension`) — they
+      are the obvious homes for most of these.
+- [x] **5.7 Delete unused columns.** ✅ Done — `Loadable`, `Session Type`,
+      `Class Types`, `Movement Split`, `Equipment` and `Video URL` are gone.
+      `Notes` was kept and now holds **9** entries.
+- [ ] **5.10 Fill the 23 declared-but-empty LineKeys.** This is the bulk of what
+      Taxonomy v2 was really pointing at (see 1.6) — including the whole
+      `Loaded Lower Body Strength` discipline and `Front Lever Line`.
+      Highest-leverage data task in this phase.
+- [ ] **5.11 Migrate multi-value cells to `;`.** Cheap today: `Progressions` and
+      `Regressions` are **entirely empty**, and only one cell in the sheet
+      contains a comma. Also rename the `Breakdowns` column
+      `Component Exercises (comma-separated)`.
 - [ ] **5.8 Fill thin lines.** Categories are correct but under-populated:
       Planche Line (1), Straight-Arm Balances (1), Single Leg & Split Stance
       (1), Vertical Jump (1), Squat Pattern (2), Bridge Work (2), Clubs & Rings
@@ -208,7 +297,9 @@ Data-level, from the name-cleanup pass. None blocking.
 - [?] **"Human Flag - Limp"** — is "Limp" intended, or a typo for
       Lever / Limb?
 - [?] **`Helicopter`** (Floor Flow) vs **`Helicóptero`** (Breaking) — two
-      distinct moves, or the same thing to merge?
+      distinct moves, or the same thing to merge? *(Both still present in the
+      live sheet, correctly UTF-8 encoded, so this is a real modelling question
+      rather than an encoding artifact.)*
 - [?] **`Bear Walk - Sexy` / `- Drunk`** — renamed under the variant
       convention, overriding established names. Revert?
 - [?] **`Walking Lunge`** — primary home Bipedal Forward locomotion (current)
@@ -230,3 +321,9 @@ re-litigating settled questions.
 | — | **Games will not remain a pillar.** | It is a role in a class, not a category of movement. Becomes a `Session Role` value. Orange `{h:25,s:62,l:54}` is a stopgap. |
 | — | **Typed edge list replaces line-derived chaining.** | Current links exist because exercises share a Discipline+Line, producing noise and forcing the layout to honour a topology that does not reflect real relationships. |
 | — | **Rebuild the wheel before the builder.** | Fastest feedback loop, and it validates the schema visually. |
+| 2026-08-18 | **`Lists` is the authoritative taxonomy, not the exercise rows.** | The tab declares 61 LineKeys, 23 unpopulated. Inferring the taxonomy bottom-up from exercise rows makes declared-but-empty lines invisible and reports valid references as broken — which is exactly what produced two wrong Taxonomy v2 findings. |
+| 2026-08-18 | **Multi-value fields use `;`, never `,`.** | The discipline `Rhythm, Flow & Expression` and the exercise `Foot Taps, Handslaps` both contain commas, so a comma delimiter shreds real values silently. Free to adopt now: `Progressions`/`Regressions` are empty and only one cell contains a comma. |
+| 2026-08-18 | **`validateRows()` restored verbatim; not rewritten.** | It had been deleted from the imported wheel, against §6.1's explicit decision. Restored unchanged rather than reimplemented, so the documented behaviour and the code stay in step. It caught a real duplicate (`Split Squat`) within minutes. |
+| 2026-08-18 | **Taxonomy v2 is superseded by "populate `Lists`", not adopted.** | Two of four headline findings re-derive structure `Lists` already declares. Its source files are also missing from the machine and from git. The cheap real work is filing exercises into the 23 empty declared LineKeys. |
+| 2026-08-18 | **The columns view is archived at `archive/columns/`, not `pillars/`.** | The committed `pillars/index.html` was byte-identical to `movement_columns.html` — the A3 columns view. `pillars` already names the explicitly out-of-scope artifact, so keeping that name would be actively misleading. |
+| 2026-08-18 | **Snapshots are fetched live, never copied from `Downloads`.** | The live `Exercises` tab was a strict superset of the newest local export (473 vs 449 rows, nothing removed). Picking a download would anchor every deterministic test to a stale baseline. |
