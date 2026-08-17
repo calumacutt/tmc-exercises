@@ -396,7 +396,23 @@ function normaliseRows(objs) {
   for (const o of objs) {
     const name = field(o, ["Name"]);
     if (!name) continue;
-    const splitList = s => (s || "").split(/[;,]/).map(x => x.trim()).filter(Boolean);
+    // Multi-value fields are SEMICOLON-separated, not comma-separated.
+    // Commas cannot be the delimiter: the discipline "Rhythm, Flow & Expression"
+    // contains one, so any "Also Appears In" pointing at one of its lines would
+    // be shredded into fragments — and the exercise "Foot Taps, Handslaps" would
+    // resolve to two names that do not exist. Fail loudly instead of silently.
+    const splitList = (s, fieldName, rowName) => {
+      const raw = (s || "").trim();
+      if (!raw) return [];
+      if (raw.includes(",")) {
+        console.error(
+          `[movement-wheel] ${fieldName} on "${rowName}" contains a comma: ${JSON.stringify(raw)}. ` +
+          `Multi-value fields must be separated with ";" — see data/SHEET.md. ` +
+          `This value will not resolve.`
+        );
+      }
+      return raw.split(";").map(x => x.trim()).filter(Boolean);
+    };
     out.push({
       name,
       pillar: field(o, ["Pillar (auto)", "Pillar"]),
@@ -407,9 +423,9 @@ function normaliseRows(objs) {
       keystone: /^true$/i.test(field(o, ["Keystone?", "Keystone"])),
       variantOf: field(o, ["Variant Of"]),
       status: field(o, ["Status"]),
-      progressions: splitList(field(o, ["Progressions"])),
-      regressions: splitList(field(o, ["Regressions"])),
-      alsoAppearsIn: splitList(field(o, ["Also Appears In"])),
+      progressions: splitList(field(o, ["Progressions"]), "Progressions", name),
+      regressions: splitList(field(o, ["Regressions"]), "Regressions", name),
+      alsoAppearsIn: splitList(field(o, ["Also Appears In"]), "Also Appears In", name),
     });
   }
   return out;
@@ -661,6 +677,16 @@ function sectorPath(cx, cy, rIn, rOut, a0, a1) {
 
 function render() {
   const rows = filtered();
+
+  // Fail fast on data that would silently produce a broken layout. Exercise
+  // names are the primary key: chains, progressions, Also Appears In and the
+  // node index are all keyed by name, so a duplicate makes the graph ambiguous.
+  const problems = validateRows(rows);
+  if (problems.length) {
+    showDataError(problems);
+    return;
+  }
+
   const groups = groupData(rows);
   const totalEx = groups.reduce((s, g) => s + g.count, 0);
 
@@ -1525,6 +1551,62 @@ function showStatus(html) {
   svg.style.display = 'none';
   document.getElementById('btn-png').disabled = true;
   document.getElementById('btn-svg').disabled = true;
+}
+
+// ---- data validation (fail fast) ----------------------------------------
+// The wheel treats the exercise Name as a primary key: the node index, the
+// within-line chains, Progressions/Regressions and Also Appears In all resolve
+// by name. Duplicate names make that ambiguous, so we refuse to draw rather
+// than render something subtly wrong. See CLAUDE.md §6.1 — an earlier tolerant
+// version (per-line node index + NaN guards) was deliberately reverted.
+function validateRows(rows) {
+  const problems = [];
+  const byName = new Map();
+  for (const r of rows) {
+    const n = (r.name || '').trim();
+    if (!n) continue;
+    const key = n.toLowerCase();
+    if (!byName.has(key)) byName.set(key, []);
+    byName.get(key).push(r);
+  }
+  for (const [, group] of byName) {
+    if (group.length < 2) continue;
+    const where = group.map(r =>
+      `${r.pillar || '(no pillar)'} › ${r.discipline || '(no discipline)'} › ${r.line || '(no line)'}`);
+    problems.push({
+      kind: 'Duplicate exercise name',
+      name: group[0].name.trim(),
+      count: group.length,
+      where,
+    });
+  }
+  return problems;
+}
+
+function showDataError(problems) {
+  const items = problems.map(p => `
+    <li style="margin:0 0 12px">
+      <div><strong style="color:var(--ink)">${escapeHTML(p.name)}</strong>
+        <span style="opacity:.7">— appears ${p.count} times</span></div>
+      <ul style="margin:4px 0 0 14px;padding:0;opacity:.8">
+        ${p.where.map(w => `<li>${escapeHTML(w)}</li>`).join('')}
+      </ul>
+    </li>`).join('');
+  showStatus(`
+    <strong style="color:#e8896b">Can't draw the wheel — ${problems.length}
+      duplicate exercise name${problems.length > 1 ? 's' : ''} found.</strong><br>
+    <div style="margin:10px 0 14px;opacity:.8;max-width:60ch">
+      Exercise names have to be unique. Chains, Progressions, Regressions and
+      Also Appears In all reference exercises by name, so a repeated name makes
+      the graph ambiguous. Rename one, or keep a single row and point its
+      <em>Also Appears In</em> at the other line.
+    </div>
+    <ul style="text-align:left;display:inline-block;margin:0;padding:0 0 0 16px">${items}</ul>`);
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 // ============================================================
