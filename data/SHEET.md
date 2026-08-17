@@ -26,13 +26,32 @@ filled — re-run the audit rather than trusting them indefinitely.
 https://docs.google.com/spreadsheets/d/e/2PACX-1vQDrwHw-jGM7r3ZO_i8orZWvJ_wxmMdfnUy3lvdsqwZeJGv_EyEvsiB1HxG1qrXIyzgtMrlZMhirtcI/pub?gid=955669041&single=true&output=csv
 ```
 
-`Lists`: **TODO — not published yet.**
+`Links` / `Lists` (`gid=1547339907`):
 
-`Breakdowns`: **TODO — not published yet.**
+```
+https://docs.google.com/spreadsheets/d/e/2PACX-1vQDrwHw-jGM7r3ZO_i8orZWvJ_wxmMdfnUy3lvdsqwZeJGv_EyEvsiB1HxG1qrXIyzgtMrlZMhirtcI/pub?gid=1547339907&single=true&output=csv
+```
 
-Until those two are published their snapshots come from manual exports and
-cannot be refreshed automatically. Publish both tabs (or set publish scope to
-*Entire document*) and record the URLs here.
+`Breakdowns` (`gid=1095995642`):
+
+```
+https://docs.google.com/spreadsheets/d/e/2PACX-1vQDrwHw-jGM7r3ZO_i8orZWvJ_wxmMdfnUy3lvdsqwZeJGv_EyEvsiB1HxG1qrXIyzgtMrlZMhirtcI/pub?gid=1095995642&single=true&output=csv
+```
+
+All three are one `/pub` endpoint differing only by `gid`. Fetch them for ground
+truth rather than trusting a snapshot.
+
+> ⚠️ **Naming.** Calum refers to `gid=1547339907` as the **Links** tab; the manual
+> export names it **Lists**. Verified byte-identical, so they are the same tab.
+> Beware: CLAUDE.md §7.1 plans a typed **edge** list also called "Links" — a
+> genuinely different concept. Do not conflate them.
+
+### ⛔ The sheet is read-only to tooling
+
+**Never write to the sheet.** Calum applies all edits manually, because the gym
+owner edits it concurrently and an automated write could clobber in-progress
+work. When data needs changing, produce paste-ready values plus explicit
+row/column instructions.
 
 The published endpoint sends permissive CORS headers, so browser `fetch` works.
 Keep the committed snapshots so tests are deterministic and work offline.
@@ -61,13 +80,53 @@ Consequences:
   **is** an error, and should be reported loudly.
 
 `Lists` also declares enum vocabularies, in parallel unrelated columns:
-`Pillars`, `Statuses` (`Active` / `Idea` / `Retired`), `Levels` (1–7),
-`Importance` (1–3), `Class Types`, `Splits`, `Session Types` (`Warm Up` /
-`Skill` / `Strength` / `Game`), `Equipment`.
+
+| Enum | Declared values |
+|---|---|
+| `Statuses` | `Active`, `Idea`, `Retired` |
+| `Levels` | `1`–`10` |
+| `Importance` | `1`, `2`, `3` — **but see the legend below, which defines 1–5** |
+| `Session Types` | `Warm Up`, `Skill`, `Strength`, `Game` |
+| `Class Types` | `Lower`, `Upper`, `Full` |
+| `Splits` | `Legs`, `Bent Arm`, `Straight Arm` |
+| `Equipment` | 24 values, including **`Partner/Spotter`** |
 
 Note that `Session Types` substantially pre-empts the planned `Session Role`
 field (CLAUDE.md §7.2) — reconcile with it rather than inventing a parallel
-vocabulary.
+vocabulary. It has **no `mobility` or `conditioning`** value, and splits
+warm-up from game, so §7.2's proposed list is not a superset.
+
+### ⭐ The Importance legend settles a design question
+
+`Lists` carries an `Importance legend` column:
+
+```
+1 = Core - in every program
+2 = Every second program
+3 = Regular rotation
+4 = Occasional
+5 = Niche / rare
+```
+
+**This is a programming-frequency scale, stated outright.** It resolves
+CLAUDE.md §8.2 / PROGRESS 1.5 — "is `Importance` coherent as both display filter
+and cooling rate?" **Yes.** "Important" here *means* "should be trained often",
+which is exactly what a cooling rate encodes. The field does not need splitting.
+
+Two mismatches this exposes:
+
+1. **The legend defines 1–5; the `Importance` enum column lists only 1–3**, and
+   only 1–3 appear in the data (38 / 258 / 144, plus 33 blank). Either extend the
+   enum or trim the legend — right now they contradict each other.
+2. **The wheel's slider is `min=1 max=3`** with `IMP_SLIDER_MAX = 3`. If 4s and
+   5s ever get used, the slider can never express "show 1–4", and its
+   "1–3 shown" label becomes a lie. Raise the slider to 5 when the enum is
+   settled.
+
+`Equipment` declaring `Partner/Spotter` is also useful: partner work may be
+derivable from equipment rather than needing a new `Session Role` value (relevant
+to 4.13's partner-work scoring). **But the `Equipment` column no longer exists on
+the `Exercises` tab**, so the enum is currently unusable.
 
 ---
 
@@ -106,8 +165,8 @@ cannot match a LineKey. Fix in the sheet: remove the quote characters.
 | `Pillar (auto)` | Formula-derived from `Discipline`. |
 | `Discipline` | Must pair with `Line` to form a declared LineKey. |
 | `Line` | " |
-| `Importance` | 1–3. Display filter **and** planned cooling rate. 33 blank. |
-| `Level` | 1–7. Only 109 of 473 filled — to be inferred by topological rank. |
+| `Importance` | **Declared 1–5** (see below); only 1–3 in use. Display filter **and** cooling rate. 33 blank. |
+| `Level` | **1–10** (`Lists` declares ten; all ten are in use). 364 of 473 blank — to be inferred by topological rank. |
 | `Keystone` | `TRUE`/`FALSE`. 7 currently `TRUE`. |
 | `Variant Of` | Parent exercise name. 119 filled. Variants hidden by default. |
 | `Regressions` | `;`-separated exercise names. **Currently 0 filled.** |
