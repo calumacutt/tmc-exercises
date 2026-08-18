@@ -196,9 +196,21 @@ way they never are in a spreadsheet.
       **Step 2 (blocked): reintroduce links from the typed edge list.** Needs
       `Progressions`/`Regressions` filled — still 0. Spring strength and stroke
       style then vary by edge type.
-- [ ] **2.5 Simplify the force model.** Expect to *remove* machinery, not add
-      it — much of the current tuning compensates for spurious links. Retune
-      the defaults afterwards and record the new values in `CLAUDE.md` §9.
+- [~] **2.5 Simplify the force model.** Well under way, and it did turn out to be
+      removal rather than addition.
+      **Gone with the links:** the link springs, the anti-crossing pass,
+      `linkStiff`, `linkLen`, `crossLen`, `linkCross`.
+      **Gone with all line-awareness:** inter-line repulsion, the per-line arc
+      slots, the angular fan, `lineRepel`, `lineRange`, `angularSpread`. The
+      layout no longer knows lines exist — Discipline and Line still drive colour
+      and grouping elsewhere, they just exert no force.
+      **What is left** is a pure per-pillar scatter: node charge repulsion, an
+      even-density radial fill, a faint level-based radial bias, and clearance
+      from pillar titles and sector seams. `TUNE` 19 → 12 exposed parameters;
+      `layout.js` 712 → 517 lines.
+      **Still to do:** make that scatter actually look right — the spacing has
+      never quite worked — then retune and record the new defaults in
+      `CLAUDE.md` §9.
 - [ ] **2.6 Add discipline/line visual grouping** — shades of the pillar
       colour, plus tighter clustering for exercises sharing a line. This is the
       "subtly educates the viewer" goal: horizontal pulls near each other,

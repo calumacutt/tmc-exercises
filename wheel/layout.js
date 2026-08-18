@@ -1,16 +1,23 @@
 // Force-directed layout for the exercise scatter, plus the pill drawing it
 // drives.
 //
-// LINKS HAVE BEEN REMOVED. Links used to be generated because two exercises
-// shared a Discipline+Line, which produced a lot of meaningless connections and
-// made the force model fight its own data. That whole apparatus is gone: the
-// line chains, the edge list, the link springs, the anti-crossing pass and the
-// link drawing. Task 2.3/2.4 will reintroduce links from a real typed edge list
-// (progressions / regressions / components / related).
+// THE LAYOUT KNOWS NOTHING ABOUT LINES, AND NOTHING ABOUT LINKS.
 //
-// What remains is the spacing machinery that was never link-derived: per-node
-// charge repulsion, line-unit repulsion, radial fill, angular spread, and
-// title/boundary clearance. Spacing is the current focus.
+// Both were removed deliberately. Links used to be generated because two
+// exercises shared a Discipline+Line, which produced a mass of meaningless
+// connections and made the force model fight its own data. The line-derived
+// forces went the same way: inter-line repulsion, the per-line arc slots, and
+// the angular "fan lines across the arc" pull.
+//
+// What remains is a pure scatter within each pillar wedge: per-node charge
+// repulsion, an even-density radial fill, a faint level-based radial bias, and
+// clearance from the pillar titles and sector seams. Getting THAT to look right
+// is the current focus — see PROGRESS 2.5.
+//
+// Task 2.3/2.4 will reintroduce links from a real typed edge list
+// (progressions / regressions / components / related). Discipline and Line still
+// exist in the data and still drive colour and grouping elsewhere; they simply
+// exert no force here.
 //
 // NOTE: buildNetwork() both computes positions and draws. Separating those is
 // task 2.5 work.
@@ -108,7 +115,6 @@ function buildNetwork(sectorJobs, discR) {
       const h = pillHeight(ex.keystone ? fs + 2 : fs) * TUNE.pillScale;
       const node = {
         ex, job, isKey: ex.keystone,
-        lineKey: (ex.discipline || '') + ' - ' + (ex.line || ''),
         x: 0, y: 0, halfW: w / 2, halfH: h / 2, w, h,
         fs: (ex.keystone ? fs + 2 : fs) * TUNE.pillScale,
       };
@@ -117,14 +123,13 @@ function buildNetwork(sectorJobs, discR) {
     }
   }
 
-  // LineKey -> pillar, so a cross-reference can be resolved to a pillar without
-  // building any edges. Derived from the nodes actually on the wheel, so a
-  // reference to a line that is filtered out simply does not resolve.
-  const pillarOfLineKey = new Map();
+  // Discipline -> pillar, so an Also Appears In reference can be resolved to a
+  // pillar. The layout itself knows nothing about lines; this reads only the
+  // discipline half of the reference, which is what determines the pillar.
+  const pillarOfDiscipline = new Map();
   for (const node of nodes) {
-    if (!pillarOfLineKey.has(node.lineKey)) {
-      pillarOfLineKey.set(node.lineKey, node.job.pillar);
-    }
+    const d = (node.ex.discipline || '').trim();
+    if (d && !pillarOfDiscipline.has(d)) pillarOfDiscipline.set(d, node.job.pillar);
   }
 
   // ---- keystone bridge analysis ----
@@ -153,7 +158,9 @@ function buildNetwork(sectorJobs, discR) {
     // collect pillars this keystone cross-references (other than its own)
     const linked = new Set();
     for (const ref of (node.ex.alsoAppearsIn || [])) {
-      const p = pillarOfLineKey.get(ref.trim());
+      // "Discipline - Line" -> take the discipline half
+      const disc = ref.split(' - ')[0].trim();
+      const p = pillarOfDiscipline.get(disc);
       if (p && p !== node.job.pillar) linked.add(p);
     }
     node.bridgePillars = [...linked];
@@ -224,45 +231,11 @@ function buildNetwork(sectorJobs, discR) {
     });
   }
 
-  // group nodes by line within each pillar, for inter-line repulsion. Lines are
-  // treated as units that claim territory, so they spread to fill the wedge
-  // (not just avoid direct pill overlaps, which leaves empty corners).
-  const lineGroups = new Map(); // pillar|lineKey -> [nodes]
-  for (const node of nodes) {
-    const gk = node.job.pillar + '|' + node.lineKey;
-    if (!lineGroups.has(gk)) lineGroups.set(gk, []);
-    lineGroups.get(gk).push(node);
-  }
-  const lineUnits = [...lineGroups.entries()].map(([gk, ns]) => ({
-    gk, nodes: ns, pillar: ns[0].job.pillar, cx: 0, cy: 0,
-  }));
-  // assign each line an arc slot, evenly spread across its pillar's wedge, so a
-  // wide wedge's lines fan out to fill the arc rather than clumping centrally.
-  // Order lines deterministically (by mean level then key) for stable layout.
-  const unitsByPillar = new Map();
-  for (const u of lineUnits) {
-    if (!unitsByPillar.has(u.pillar)) unitsByPillar.set(u.pillar, []);
-    unitsByPillar.get(u.pillar).push(u);
-  }
-  for (const [pillar, us] of unitsByPillar) {
-    const job = jobByPillar.get(pillar);
-    const span = job.a1 - job.a0;
-    us.sort((a, b) => {
-      const ml = arr => arr.reduce((s, n) => s + (n.ex.level || 5), 0) / arr.length;
-      return ml(a.nodes) - ml(b.nodes) || a.gk.localeCompare(b.gk);
-    });
-    const M = us.length;
-    us.forEach((u, i) => {
-      u.targetA = job.a0 + (M === 1 ? span / 2 : 0.08 + (i + 0.5) / M * (span - 0.16));
-    });
-  }
-
   // ---- force-directed relaxation ----
   // Design goals:
   //  • the radial-level bias is only a faint hint, not a hard rail.
   //  • every node carries a repulsive charge so a pillar's nodes spread to fill
   //    the whole wedge (incl. corners) rather than hugging the centre axis.
-  //  • lines repel as units so different lines claim separate territory.
   //  • boundary keystones are drawn toward their shared seam.
   const ITER = TUNE.iterations;
   // per-pillar charge scales with how much room the pillar has per node, so a
@@ -313,50 +286,6 @@ function buildNetwork(sectorJobs, discR) {
       const r = Math.hypot(dx, dy) || 1;
       const pull = (node.fillR - r) * TUNE.radialFill;
       node.x += dx / r * pull; node.y += dy / r * pull;
-    }
-    // angular line spread: pull each LINE's centroid toward its assigned arc
-    // slot so chains fan out across a wide wedge instead of bunching on the
-    // centre axis. Acts on the whole line (keeps chains internally coherent).
-    for (const u of lineUnits) {
-      if (u.targetA == null) continue;
-      let sx = 0, sy = 0;
-      for (const n of u.nodes) { sx += n.x; sy += n.y; }
-      const cx = sx / u.nodes.length, cy = sy / u.nodes.length;
-      const r = Math.hypot(cx - CX, cy - CY) || 1;
-      let cur = Math.atan2(cy - CY, cx - CX);
-      let tgt = u.targetA;
-      while (tgt - cur > Math.PI) tgt -= TWO_PI;
-      while (tgt - cur < -Math.PI) tgt += TWO_PI;
-      const da = (tgt - cur) * TUNE.angularSpread;
-      // rotate each node about the hub by da (rigid rotation of the line)
-      const ca = Math.cos(da), sa = Math.sin(da);
-      for (const n of u.nodes) {
-        const px = n.x - CX, py = n.y - CY;
-        n.x = CX + px * ca - py * sa;
-        n.y = CY + px * sa + py * ca;
-      }
-    }
-    // inter-line repulsion: each line is a unit that claims territory, so lines
-    // spread out to fill the wedge instead of clumping with empty corners.
-    for (const u of lineUnits) {
-      let sx = 0, sy = 0;
-      for (const n of u.nodes) { sx += n.x; sy += n.y; }
-      u.cx = sx / u.nodes.length; u.cy = sy / u.nodes.length;
-    }
-    const SPREAD = TUNE.lineRepel * (0.5 + 0.5 * t);   // cools over time
-    const RANGE = discR * TUNE.lineRange;
-    for (let i = 0; i < lineUnits.length; i++) {
-      for (let k = i + 1; k < lineUnits.length; k++) {
-        const A = lineUnits[i], B = lineUnits[k];
-        if (A.pillar !== B.pillar) continue;   // keep spreading within a pillar
-        let dx = B.cx - A.cx, dy = B.cy - A.cy;
-        let d = Math.hypot(dx, dy) || 1;
-        if (d > RANGE) continue;
-        const mag = Math.min(SPREAD, SPREAD * (RANGE / (d + RANGE)));
-        const ux = dx / d, uy = dy / d;
-        for (const n of A.nodes) { n.x -= ux * mag; n.y -= uy * mag; }
-        for (const n of B.nodes) { n.x += ux * mag; n.y += uy * mag; }
-      }
     }
     // boundary keystones: gentle pull toward their shared seam angle so they
     // settle exactly on the pillar border they bridge.

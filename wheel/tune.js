@@ -7,15 +7,11 @@
 const TUNE = {
   iterations:    600,   // relaxation steps
   pillScale:     1.20,  // exercise pill size multiplier
-  // 1. line-from-line repulsion (whole lines repel as units)
-  lineRepel:     8,     // strength
-  lineRange:     0.60,  // reach (× disc radius)
-  // also: node-from-node area-fill charge (same pillar)
+  // 1. node-from-node area-fill charge (same pillar)
   charge:        2.50,  // strength of all-pairs node repulsion
   chargeRange:   320,   // reach in px
-  // radial + angular area fill (keeps density even, fans lines across the arc)
+  // radial area fill (keeps density even hub->rim)
   radialFill:    0.05,  // pull toward even-area target radius
-  angularSpread: 0.06,  // pull each line toward its arc slot
   // 3. keystone-to-boundary attraction
   keystoneSeam:  0.30,  // how strongly boundary keystones snap to the seam
   // 4. repulsion away from the pillar TITLE text boxes
@@ -31,13 +27,10 @@ const TUNE = {
 
 // Slider definitions: [key, label, min, max, step, decimals]
 const TUNE_DEFS = [
-  ['__g2', 'Line-from-line spreading'],
-  ['lineRepel',    '2a. Repulsion between different lines',    0, 60, 1, 0],
-  ['lineRange',    '2b. Reach of line repulsion',             0.3, 1.6, 0.05, 2],
-  ['charge',       '2c. Node spreading (fill the wedge)',     0, 2.5, 0.05, 2],
-  ['chargeRange',  '2d. Reach of node spreading (px)',        60, 320, 10, 0],
-  ['radialFill',   '2e. Even-density pull (hub→rim)',         0, 0.25, 0.005, 3],
-  ['angularSpread','2f. Fan lines across the arc',            0, 0.2, 0.005, 3],
+  ['__g2', 'Node spreading'],
+  ['charge',       '2a. Node spreading (fill the wedge)',     0, 2.5, 0.05, 2],
+  ['chargeRange',  '2b. Reach of node spreading (px)',        60, 320, 10, 0],
+  ['radialFill',   '2c. Even-density pull (hub→rim)',         0, 0.25, 0.005, 3],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Title clearance'],

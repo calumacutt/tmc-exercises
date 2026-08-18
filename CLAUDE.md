@@ -624,18 +624,18 @@ A live tuning panel (collapsible, "⚙ Layout forces") exposes every parameter
 and re-renders on change, debounced ~180ms, with a Reset button. These values
 were tuned by hand and are the current defaults:
 
-> ⚠️ **The link parameters are gone.** `linkStiff`, `linkLen`, `crossLen` and
-> `linkCross` were removed with the links themselves — see PROGRESS 2.4. What
-> remains is the spacing machinery that was never link-derived.
+> ⚠️ **Both the link and the line parameters are gone.** `linkStiff`, `linkLen`,
+> `crossLen`, `linkCross` went with the links; `lineRepel`, `lineRange` and
+> `angularSpread` went with all line-awareness in the layout — see PROGRESS 2.4
+> and 2.5. The layout is now a pure per-pillar scatter: node charge repulsion, an
+> even-density radial fill, a faint level bias, and title/seam clearance.
+> **`TUNE` is down to 12 exposed parameters from 19.**
 
 | Panel label | Key | Default |
 |---|---|---|
-| 2a Line-from-line repulsion | `lineRepel` | 8 |
-| 2b Line repulsion reach | `lineRange` | 0.6 |
 | 2c Node spreading (fill wedge) | `charge` | 2.5 |
 | 2d Node spreading reach (px) | `chargeRange` | 320 |
 | 2e Even-density pull hub→rim | `radialFill` | 0.05 |
-| 2f Fan lines across arc | `angularSpread` | 0.06 |
 | 3 Keystone→seam attraction | `keystoneSeam` | 0.3 |
 | 4a Title repulsion | `titleRepel` | 16 |
 | 4b Title reach (px) | `titleRange` | 150 |
