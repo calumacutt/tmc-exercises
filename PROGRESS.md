@@ -58,13 +58,24 @@ been pulled forward out of Phase 3 because it is urgent and unblocked.
       `Foot Taps, Handslaps` both contain commas — so those values were shredded
       silently. Now `;`-only with a loud error on any comma. See
       `data/SHEET.md` §3.
-- [ ] **W3 Decide what to do about the boundary-keystone split-fill.** It has
-      **no data to act on** — zero of the 7 keystones has an `Also Appears In`,
-      so the two-tone/seam machinery never fires. Either populate the data or
-      delete the machinery in 2.5. Do not tune it before deciding.
+- [x] **W3 The boundary-keystone split-fill now works.** ✅ Resolved by data, not
+      code: with 10 keystones and cross-pillar `Also Appears In` values in the
+      sheet, **3 boundary gradients now render.** The machinery had never once
+      been exercised before this. Keep it — and note it is now a live constraint
+      on the heat-glow decision below.
 - [ ] **W4 Legacy pillar aliases were dropped** from `PILLAR_COLOURS`, so old
       fixtures in `data/examples/` render grey. Fine under fail-fast, but decide
       before those become test fixtures.
+- [x] **W5 Dead `Games` pillar config removed** from `shared/taxonomy.js`. The
+      pillar no longer exists in the sheet; the library is back to five.
+- [x] **W6 Delimiter reversed to accept commas.** Google Sheets multi-select
+      dropdowns emit comma-delimited values and that is not configurable, so
+      `splitList` takes `,` or `;`. Safe now that no LineKey contains a comma
+      (renaming `Rhythm, Flow & Expression` removed the last one) and
+      `Foot Taps, Handslaps` became `Foot Taps & Handslaps`.
+      `validateRows()` now **fails loudly if any name contains a delimiter** —
+      that is the condition that makes accepting commas safe, so it is guarded
+      rather than assumed.
 - [ ] **B1 Fix silent data loss in the builder's drag-and-drop.**
       `handleDrop` does `occupant.name = name`, deleting the displaced exercise
       with no undo, while the cross-class branch 30 lines below handles the same
@@ -152,9 +163,18 @@ way they never are in a spreadsheet.
       `["Handstands & Balance", "Strength & Capacity", "Mobility",
       "Flocomotion", "Object Play", "Games"]` — the recommended adjacency.
       The Games colour is present too, so `CLAUDE.md` §6.2's trap is closed.
-- [ ] **2.2 Split the single file** into `wheel/index.html` + `layout.js` +
-      `render.js` + `tune.js`, and move parsing/taxonomy into `shared/`.
-      Switch Playwright tests to `http://localhost:...`.
+- [x] **2.2 Split the single file.** ✅ Done. Ten modules; see `CLAUDE.md` §2 for
+      the layout and the three files that were not in the original sketch
+      (`logo.js`, `svg.js`, `state.js`) and why.
+      Code was moved by **line range, not retyped**, so the force model is
+      verbatim. Verified against the live sheet: 491 exercises at max slider,
+      all label coordinates finite, no console errors, exports enabled.
+      **`file://` no longer works** — ES modules need an HTTP origin. Use
+      `tools/serve.ps1`.
+      Dropped as dead on the way through: `discColour`, `exDotColour`, `fitText`,
+      `R_DISC_IN`, `R_DISC_OUT`, `R_EX_IN`, `R_EX_OUT`, `GAP_DISC` — all defined
+      and never called. Note 2.6 will want a `discColour` again; write it against
+      the real need rather than restoring it on spec.
 - [ ] **2.3 Implement `shared/graph.js`** — typed edge list from the sheet.
       Reject contradictory reciprocal edges loudly.
 - [ ] **2.4 Replace line-chaining with the edge list** in the layout. Spring

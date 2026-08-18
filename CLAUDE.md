@@ -23,7 +23,7 @@ Three components:
 
 | # | Component | Status | Purpose |
 |---|---|---|---|
-| 1 | **Movement Library** (Google Sheet) | **3 tabs**; 473 exercises, actively being filled | Single source of truth. Exercises + taxonomy + component edges. Powers everything else. See `data/SHEET.md`. |
+| 1 | **Movement Library** (Google Sheet) | **3 tabs**; ~490 exercises, taxonomy now fully populated | Single source of truth. Exercises + taxonomy + component edges. Powers everything else. See `data/SHEET.md`. |
 | 2 | **Movement Wheel** (static site) | Working, needs rework | Radial constellation of every exercise. Shows breadth and interconnection. Audience-facing: inspire and impress, remind people of exercises, subtly teach structure. |
 | 3 | **Program Builder** (static site) | Working, hard-coded data | The real tool. Heat map → goal selection → drag-and-drop program construction → scoring → export. |
 
@@ -50,17 +50,20 @@ directly. See §3 for the constraint this imposes.
 │   ├── examples/                dated manual exports, kept as fixtures
 │   └── SHEET.md                 THE verified column contract, all 3 tabs
 ├── shared/                      used by BOTH sites — no duplication
-│   ├── csv.js                   tolerant CSV parsing
-│   ├── library.js               row → exercise model + validation
-│   ├── graph.js                 typed edge list → graph
-│   ├── heat.js                  hot / cold / half-baked / burnt engine
-│   ├── taxonomy.js              pillar / discipline / line, colours, order
-│   └── selection.js             cross-view "selected exercise" state
+│   ├── csv.js                   tolerant CSV parsing (parseCSV, field)
+│   ├── library.js               row → model, filterRows, groupData, validateRows
+│   ├── taxonomy.js              pillar order, colours, hsl helpers
+│   ├── graph.js                 typed edge list → graph          (task 2.3, not built)
+│   ├── heat.js                  hot/cold/half-baked/burnt engine (task 3.2, not built)
+│   └── selection.js             cross-view selected exercise    (task 4.10, not built)
 ├── wheel/
-│   ├── index.html
-│   ├── layout.js                force-directed engine
-│   ├── render.js                SVG drawing
-│   └── tune.js                  parameter panel + defaults
+│   ├── index.html               thin shell + boot wiring only
+│   ├── layout.js                force model + pill/link drawing
+│   ├── render.js                sectors, titles, medallion, export
+│   ├── tune.js                  TUNE defaults + live panel
+│   ├── svg.js                   geometry constants + SVG/text primitives
+│   ├── state.js                 mutable view state in one place
+│   └── logo.js                  base64 logo, isolated
 ├── builder/
 │   ├── index.html               (was the root tmc-exercises page)
 │   ├── library-view.js
@@ -73,6 +76,17 @@ directly. See §3 for the constraint this imposes.
 │   └── columns/index.html       A3 landscape columns view
 └── tools/serve.sh               local dev server
 ```
+
+Three modules are not in the original sketch, and are deliberate:
+`logo.js` isolates 82KB of base64 so the real modules stay readable (it stays
+inlined rather than becoming `logo.png`, because the SVG export has to be a
+standalone file); `svg.js` holds geometry constants and SVG/text primitives that
+both `layout.js` and `render.js` need, which would otherwise force a cycle;
+`state.js` keeps mutable view state in one place instead of bare globals.
+
+`layout.js` both computes positions **and draws** the pills and links. That is
+not clean, and splitting it is task 2.4/2.5 work — pulling the draw helpers into
+`render.js` now would make the two mutually dependent for no gain.
 
 **Why `shared/` matters:** the heat engine is consumed by the heat map, the
 goal-selection targets, and the end-of-program score. The graph builder is
@@ -89,8 +103,8 @@ rather than the tool.
 ## 3. Hosting constraints — read before splitting any file
 
 **ES modules do not work over `file://`.** They require an HTTP origin. The
-current `movement_wheel.html` is a single self-contained file, so it opens fine
-by double-clicking. The moment it is split into modules, that stops working.
+wheel **is now split into modules (task 2.2), so double-clicking it no longer
+works.** Serve it. This is the price of the split and it was accepted.
 
 - **Local dev:** `python -m http.server 8000` from the repo root, then
   `http://localhost:8000/wheel/`. That is what `tools/serve.ps1` (primary — the
@@ -133,8 +147,8 @@ deploy workflow — but do not introduce it pre-emptively.
 
 | Tab | Snapshot | Role |
 |---|---|---|
-| `Exercises` | `data/exercises.csv` | the library, 473 rows |
-| `Lists` | `data/lists.csv` | **authoritative taxonomy** — 61 declared LineKeys — plus enum vocabularies |
+| `Exercises` | `data/exercises.csv` | the library, ~490 rows |
+| `Lists` | `data/lists.csv` | **authoritative taxonomy** — 58 declared LineKeys — plus enum vocabularies |
 | `Breakdowns` | `data/breakdowns.csv` | **the `component` edge table of §7.1, already built** |
 
 Two consequences that were missed for a long time:
@@ -153,13 +167,22 @@ Two consequences that were missed for a long time:
 `Game`), which substantially pre-empts §7.2's planned `Session Role` — reconcile
 with it rather than inventing a parallel vocabulary.
 
-### Multi-value delimiter is `;`, never `,`
+### Multi-value delimiter: `,` or `;`
 
-Commas cannot be the delimiter because real values contain them: the discipline
-**`Rhythm, Flow & Expression`** (34 exercises, 5 LineKeys) and the exercise
-**`Foot Taps, Handslaps`**. A comma-split shreds both silently. `splitList()`
-splits on `;` only and logs a loud error on any comma found. Full rationale in
-`data/SHEET.md` §3.
+`splitList()` accepts **both**. Google Sheets multi-select dropdowns emit
+comma-delimited values and that is not configurable, so the loader has to take
+commas.
+
+This was briefly semicolon-only, because two real values used to contain commas:
+the discipline `Rhythm, Flow & Expression` and the exercise
+`Foot Taps, Handslaps`. **Both have since been renamed** (`Rhythm & Flow`,
+`Foot Taps & Handslaps`), so nothing in the taxonomy or the exercise names
+contains a delimiter any more.
+
+That is a *precondition*, not a permanent fact — so it is guarded, not assumed:
+`validateRows()` **refuses to draw** if any name contains `,` or `;`, because at
+that point multi-value parsing is ambiguous and would fail silently. Full
+rationale in `data/SHEET.md` §3.
 
 ### Source of truth
 
