@@ -207,7 +207,7 @@ way they never are in a spreadsheet.
       **What is left** is a pure per-pillar scatter: node charge repulsion, an
       even-density radial fill, a faint level-based radial bias, and clearance
       from pillar titles and sector seams. `TUNE` 19 → 12 exposed parameters;
-      `layout.js` 712 → 517 lines.
+      `layout.js` 712 → 524 lines.
       **Still to do:** make that scatter actually look right — the spacing has
       never quite worked — then retune and record the new defaults in
       `CLAUDE.md` §9.
