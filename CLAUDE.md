@@ -565,15 +565,25 @@ even though this ships last, so it is not retrofitted.
 
 Decide these before rebuilding the render layer.
 
-### 8.1 Colour is oversubscribed
+### 8.1 Colour is oversubscribed — ✅ SETTLED
 
-Three things want the colour channel: **pillar hue**, **discipline/line
-shading**, and **hot/cold**. Something must move.
+Three things wanted the colour channel: **pillar hue**, **discipline/line
+shading**, and **hot/cold**.
 
-Proposal: heat as **glow intensity or opacity** — the keystone glow machinery
-(`#ks-glow`) already does this — leaving hue for pillar and lightness for
-discipline/line. Changing this later means reworking the renderer, so settle it
-first.
+**Decision: heat is carried by GLOW.** Hue stays with the pillar, lightness with
+discipline/line. Hot regions of the wheel glow; cold regions do not.
+
+This required freeing the channel, because **keystones already used the glow**
+(`#ks-glow`) and one channel cannot carry two meanings — a hot keystone would
+have been indistinguishable from a cold one, with the two effects stacking.
+The glow halo has therefore been **removed from keystone pills**. Keystones stay
+distinct through their luminous pillar-colour fill, larger pill and dark ink
+label, which is what actually made them read as hubs.
+
+The `#ks-glow` filter definition is retained in `render.js`, unused, reserved for
+heat. Heat itself needs program history, so the glow cannot be wired up until
+`shared/heat.js` and the locked program format exist (Phase 3). The exact look —
+warm hue vs white, intensity curve — is deliberately still open.
 
 ### 8.2 Importance does double duty
 
@@ -614,10 +624,12 @@ A live tuning panel (collapsible, "⚙ Layout forces") exposes every parameter
 and re-renders on change, debounced ~180ms, with a Reset button. These values
 were tuned by hand and are the current defaults:
 
+> ⚠️ **The link parameters are gone.** `linkStiff`, `linkLen`, `crossLen` and
+> `linkCross` were removed with the links themselves — see PROGRESS 2.4. What
+> remains is the spacing machinery that was never link-derived.
+
 | Panel label | Key | Default |
 |---|---|---|
-| 1a Link stiffness | `linkStiff` | 0.05 |
-| 1b Ideal link spacing | `linkLen` | 3.0 |
 | 2a Line-from-line repulsion | `lineRepel` | 8 |
 | 2b Line repulsion reach | `lineRange` | 0.6 |
 | 2c Node spreading (fill wedge) | `charge` | 2.5 |
@@ -629,12 +641,10 @@ were tuned by hand and are the current defaults:
 | 4b Title reach (px) | `titleRange` | 150 |
 | 5a Sector-boundary repulsion | `boundaryRepel` | 0 |
 | 5b Boundary reach (px) | `boundaryRange` | 60 |
-| 6 Anti-crossing penalty | `linkCross` | 30.0 |
 | Sector arc allocation | `angleExp` | 0.7 |
 | Pillar title size (fixed) | `titleSize` | 30 |
 | Exercise pill size | `pillScale` | 1.2 |
 | Relaxation iterations | `iterations` | 600 |
-| *(not exposed)* cross-link length | `crossLen` | 9.0 |
 
 Notes on specific forces:
 

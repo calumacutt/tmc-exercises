@@ -7,10 +7,7 @@
 const TUNE = {
   iterations:    600,   // relaxation steps
   pillScale:     1.20,  // exercise pill size multiplier
-  // 1. within-line spacing (chain link spring)
-  linkStiff:     0.05,  // how rigidly chain members hold their ideal distance
-  linkLen:       3.0,   // ideal link length (× font size)
-  // 2. line-from-line repulsion (whole chains repel as units)
+  // 1. line-from-line repulsion (whole lines repel as units)
   lineRepel:     8,     // strength
   lineRange:     0.60,  // reach (× disc radius)
   // also: node-from-node area-fill charge (same pillar)
@@ -27,9 +24,6 @@ const TUNE = {
   // 5. repulsion away from sector (pillar) boundary seams
   boundaryRepel: 0,     // strength (0 = off; raise to push exercises off seams)
   boundaryRange: 60,    // reach in px from the seam line
-  crossLen:      9.0,   // cross/hub link ideal length (× font size)
-  // 6. anti-crossing: penalise links that cross over each other
-  linkCross:     30.0,  // strength (0 = off; raise to untangle crossed links)
   // sector sizing
   angleExp:      0.70,  // arc allocation exponent (1=∝count, <1 compresses big pillars)
   titleSize:     30,    // fixed pillar title font size
@@ -37,9 +31,6 @@ const TUNE = {
 
 // Slider definitions: [key, label, min, max, step, decimals]
 const TUNE_DEFS = [
-  ['__g1', 'Within-line spacing'],
-  ['linkStiff',    '1a. Link stiffness (hold chain spacing)', 0, 1.5, 0.01, 2],
-  ['linkLen',      '1b. Ideal spacing between chain links',   2, 14, 0.5, 1],
   ['__g2', 'Line-from-line spreading'],
   ['lineRepel',    '2a. Repulsion between different lines',    0, 60, 1, 0],
   ['lineRange',    '2b. Reach of line repulsion',             0.3, 1.6, 0.05, 2],
@@ -55,8 +46,6 @@ const TUNE_DEFS = [
   ['__g5', 'Sector boundaries'],
   ['boundaryRepel','5a. Push exercises off pillar seams',     0, 40, 1, 0],
   ['boundaryRange','5b. Reach from seam (px)',                10, 160, 5, 0],
-  ['__g6', 'Link crossings'],
-  ['linkCross',    '6. Penalise links that cross over',       0, 30, 0.5, 1],
   ['__g7', 'Sector sizing'],
   ['angleExp',     'Sector arc allocation (1=∝count, <1 evens)', 0.4, 1.6, 0.05, 2],
   ['titleSize',    'Pillar title size (fixed)',               16, 48, 1, 0],

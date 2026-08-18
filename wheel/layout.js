@@ -1,10 +1,19 @@
-// Force-directed layout for the exercise network, plus the pill/link drawing it
+// Force-directed layout for the exercise scatter, plus the pill drawing it
 // drives.
 //
+// LINKS HAVE BEEN REMOVED. Links used to be generated because two exercises
+// shared a Discipline+Line, which produced a lot of meaningless connections and
+// made the force model fight its own data. That whole apparatus is gone: the
+// line chains, the edge list, the link springs, the anti-crossing pass and the
+// link drawing. Task 2.3/2.4 will reintroduce links from a real typed edge list
+// (progressions / regressions / components / related).
+//
+// What remains is the spacing machinery that was never link-derived: per-node
+// charge repulsion, line-unit repulsion, radial fill, angular spread, and
+// title/boundary clearance. Spacing is the current focus.
+//
 // NOTE: buildNetwork() both computes positions and draws. Separating those is
-// task 2.4/2.5 work (replacing line-chaining with the typed edge list), not part
-// of the mechanical split — pulling the draw helpers into render.js now would
-// make layout.js and render.js mutually dependent for no gain.
+// task 2.5 work.
 
 import { TUNE } from './tune.js';
 import { hsl, pillarBase } from '../shared/taxonomy.js';
@@ -108,51 +117,26 @@ function buildNetwork(sectorJobs, discR) {
     }
   }
 
-  // ---- build line chains (per Discipline+Line), ordered low->high ----
-  const lineMap = new Map();  // key -> [ex]
-  for (const job of sectorJobs) {
-    for (const ex of job.exercises) {
-      const key = (ex.discipline || '') + ' - ' + (ex.line || '');
-      if (!lineMap.has(key)) lineMap.set(key, []);
-      lineMap.get(key).push(ex);
-    }
-  }
-  const chains = new Map();    // key -> ordered [ex]
-  for (const [key, exs] of lineMap) chains.set(key, orderChain(exs, nodeByName));
-
-  // ---- edges ----
-  const edges = [];            // {a:node, b:node, cross:bool}
-  // chain edges (consecutive members of a line)
-  for (const [key, ordered] of chains) {
-    for (let i = 0; i + 1 < ordered.length; i++) {
-      const a = nodeByName.get(ordered[i].name), b = nodeByName.get(ordered[i + 1].name);
-      if (a && b) edges.push({ a, b, cross: false });
-    }
-  }
-  // hub edges: keystone connects through to the lines it ALSO belongs to.
+  // LineKey -> pillar, so a cross-reference can be resolved to a pillar without
+  // building any edges. Derived from the nodes actually on the wheel, so a
+  // reference to a line that is filtered out simply does not resolve.
+  const pillarOfLineKey = new Map();
   for (const node of nodes) {
-    if (!node.isKey) continue;
-    const refs = node.ex.alsoAppearsIn || [];
-    for (const ref of refs) {
-      const targetChain = resolveChain(ref, chains);
-      if (!targetChain || !targetChain.length) continue;
-      // connect keystone to the nearest-level member of that line
-      const lvl = node.ex.level || 5;
-      let best = null, bestD = Infinity;
-      for (const e of targetChain) {
-        const d = Math.abs((e.level || 5) - lvl);
-        if (d < bestD) { bestD = d; best = e; }
-      }
-      const b = best && nodeByName.get(best.name);
-      if (b && b !== node) edges.push({ a: node, b, cross: true });
+    if (!pillarOfLineKey.has(node.lineKey)) {
+      pillarOfLineKey.set(node.lineKey, node.job.pillar);
     }
   }
 
   // ---- keystone bridge analysis ----
-  // For each keystone, find which OTHER pillars it bridges to (via its hub
-  // edges / Also Appears In). A keystone that bridges to an ADJACENT pillar is
-  // a "boundary keystone": it should sit on the shared seam and be drawn with a
-  // split two-tone fill. We record the bridged pillar + the seam angle.
+  // For each keystone, find which OTHER pillars it bridges to, read straight
+  // from Also Appears In. A keystone that bridges to an ADJACENT pillar is a
+  // "boundary keystone": it sits on the shared seam and is drawn with a split
+  // two-tone fill. We record the bridged pillar + the seam angle.
+  //
+  // This used to be derived from the cross edges. Reading Also Appears In
+  // directly is both simpler and more honest — that column is where the
+  // information came from all along — and it means removing the links did not
+  // cost the boundary-keystone treatment.
   const adjOf = (pillar) => {
     const idx = sectorJobs.findIndex(j => j.pillar === pillar);
     const n = sectorJobs.length;
@@ -166,13 +150,11 @@ function buildNetwork(sectorJobs, discR) {
     node.seamAngle = null;
     node.bridgePillar = null;
     if (!node.isKey) continue;
-    // collect pillars this keystone links to (other than its own)
+    // collect pillars this keystone cross-references (other than its own)
     const linked = new Set();
-    for (const e of edges) {
-      if (!e.cross) continue;
-      let other = null;
-      if (e.a === node) other = e.b; else if (e.b === node) other = e.a;
-      if (other && other.job.pillar !== node.job.pillar) linked.add(other.job.pillar);
+    for (const ref of (node.ex.alsoAppearsIn || [])) {
+      const p = pillarOfLineKey.get(ref.trim());
+      if (p && p !== node.job.pillar) linked.add(p);
     }
     node.bridgePillars = [...linked];
     // is any linked pillar adjacent to this one? if so it's a boundary keystone.
@@ -277,15 +259,12 @@ function buildNetwork(sectorJobs, discR) {
 
   // ---- force-directed relaxation ----
   // Design goals:
-  //  • chains should flex and curl (NOT lock to rigid radial spokes), so the
-  //    radial-level bias is only a faint hint, not a hard rail.
+  //  • the radial-level bias is only a faint hint, not a hard rail.
   //  • every node carries a repulsive charge so a pillar's nodes spread to fill
   //    the whole wedge (incl. corners) rather than hugging the centre axis.
-  //  • lines still repel as units so different chains claim separate territory.
+  //  • lines repel as units so different lines claim separate territory.
   //  • boundary keystones are drawn toward their shared seam.
   const ITER = TUNE.iterations;
-  const idealLink = fs * TUNE.linkLen;        // desired link length
-  const idealCross = fs * TUNE.crossLen;       // cross/hub links a bit longer
   // per-pillar charge scales with how much room the pillar has per node, so a
   // wide-but-sparse pillar (e.g. Strength) pushes harder to fill its area.
   const pillarArea = new Map();
@@ -298,15 +277,6 @@ function buildNetwork(sectorJobs, discR) {
   }
   for (let it = 0; it < ITER; it++) {
     const t = 1 - it / ITER;       // cooling
-    // link springs (stiff, so chains stay coherent and readable as strands)
-    for (const e of edges) {
-      const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
-      const d = Math.hypot(dx, dy) || 1;
-      const target = e.cross ? idealCross : idealLink;
-      const f = (d - target) / d * TUNE.linkStiff * (e.cross ? 0.55 : 1);
-      const fx = dx * f, fy = dy * f;
-      e.a.x += fx; e.a.y += fy; e.b.x -= fx; e.b.y -= fy;
-    }
     // radial level bias: a FAINT hint only, so chains can curve freely
     // instead of snapping into straight radial spokes. Fades as it cools.
     for (const node of nodes) {
@@ -402,36 +372,6 @@ function buildNetwork(sectorJobs, discR) {
       node.x = CX + r * Math.cos(na);
       node.y = CY + r * Math.sin(na);
     }
-    // 6. anti-crossing: find pairs of links that intersect and push their
-    // endpoints to reduce the crossing. For two crossing segments we shove the
-    // midpoints apart and pull each segment's endpoints slightly toward its own
-    // midpoint — together this tends to untangle the X into parallel strands.
-    // Only checks same-pillar link pairs and skips pairs sharing an endpoint.
-    if (TUNE.linkCross > 0) {
-      for (let i = 0; i < edges.length; i++) {
-        const e1 = edges[i];
-        const p1 = e1.a.job.pillar;
-        for (let k = i + 1; k < edges.length; k++) {
-          const e2 = edges[k];
-          if (e2.a.job.pillar !== p1) continue; // only within a pillar
-          // skip if they share a node
-          if (e1.a === e2.a || e1.a === e2.b || e1.b === e2.a || e1.b === e2.b) continue;
-          if (!segmentsCross(e1.a, e1.b, e2.a, e2.b)) continue;
-          // midpoints
-          const m1x = (e1.a.x + e1.b.x) / 2, m1y = (e1.a.y + e1.b.y) / 2;
-          const m2x = (e2.a.x + e2.b.x) / 2, m2y = (e2.a.y + e2.b.y) / 2;
-          let dx = m1x - m2x, dy = m1y - m2y;
-          let d = Math.hypot(dx, dy) || 1;
-          const ux = dx / d, uy = dy / d;
-          const mag = TUNE.linkCross;
-          // push e1's endpoints one way, e2's the other
-          e1.a.x += ux * mag; e1.a.y += uy * mag;
-          e1.b.x += ux * mag; e1.b.y += uy * mag;
-          e2.a.x -= ux * mag; e2.a.y -= uy * mag;
-          e2.b.x -= ux * mag; e2.b.y -= uy * mag;
-        }
-      }
-    }
     // 4. title repulsion: push exercises out of the pillar TITLE text box so
     // labels stay readable. Soft radial-ish shove away from each title centre.
     if (TUNE.titleRepel > 0) {
@@ -503,11 +443,7 @@ function buildNetwork(sectorJobs, discR) {
   }
   for (const node of nodes) clampNode(node, innerR, discR, 0);
 
-  // ---- draw edges (behind), then pills, then titles on top ----
-  for (const e of edges) {
-    const base = pillarBase((e.a.isKey ? e.a.job.pillar : e.a.job.pillar));
-    drawLink(e.a, e.b, base, e.cross);
-  }
+  // ---- draw pills, then titles on top ----
   for (const node of nodes) {
     drawPillNode(node);
   }
@@ -516,15 +452,6 @@ function buildNetwork(sectorJobs, discR) {
   }
 }
 
-// keep a node inside its wedge (angular) and the disc (radial). Keystones get a
-// softer angular clamp so they can sit right on a boundary to bridge pillars.
-// do segments AB and CD properly intersect? (endpoints as {x,y})
-function segmentsCross(A, B, C, D) {
-  const ccw = (p, q, r) => (r.y - p.y) * (q.x - p.x) - (q.y - p.y) * (r.x - p.x);
-  const d1 = ccw(C, D, A), d2 = ccw(C, D, B);
-  const d3 = ccw(A, B, C), d4 = ccw(A, B, D);
-  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
-}
 
 function clampNode(node, innerR, discR, t) {
   const dx = node.x - CX, dy = node.y - CY;
@@ -547,50 +474,8 @@ function clampNode(node, innerR, discR, t) {
   node.y = CY + r * Math.sin(ang);
 }
 
-// order a line's exercises low->high using prog/reg first, level second
-function orderChain(exs, nodeByName) {
-  if (exs.length <= 1) return exs.slice();
-  const set = new Set(exs.map(e => e.name));
-  const next = new Map(), hasPred = new Set();
-  for (const e of exs) {
-    for (const p of (e.progressions || [])) if (set.has(p)) { next.set(e.name, p); hasPred.add(p); }
-    for (const r of (e.regressions || [])) if (set.has(r)) { next.set(r, e.name); hasPred.add(e.name); }
-  }
-  const used = new Set(), ordered = [];
-  const byName = new Map(exs.map(e => [e.name, e]));
-  const heads = exs.filter(e => !hasPred.has(e.name)).sort((a, b) => (a.level || 5) - (b.level || 5));
-  for (const h of heads) {
-    let cur = h.name, guard = 0;
-    while (cur && !used.has(cur) && guard++ < 100) {
-      used.add(cur);
-      if (byName.get(cur)) ordered.push(byName.get(cur));
-      cur = next.get(cur);
-    }
-  }
-  for (const e of exs.filter(e => !used.has(e.name)).sort((a, b) => (a.level || 5) - (b.level || 5))) ordered.push(e);
-  return ordered;
-}
 
-// resolve an "Also Appears In" ref ("Discipline - Line" or a line) to a chain
-function resolveChain(ref, chains) {
-  const r = ref.toLowerCase().trim();
-  for (const [key, arr] of chains) if (key.toLowerCase() === r) return arr;
-  for (const [key, arr] of chains) if (key.toLowerCase().endsWith('- ' + r)) return arr;
-  for (const [key, arr] of chains) if (key.toLowerCase().split(' - ')[1] === r) return arr;
-  return null;
-}
 
-// link line behind pills; cross/hub links dashed + fainter
-function drawLink(a, b, base, isCross) {
-  el('line', {
-    x1: a.x, y1: a.y, x2: b.x, y2: b.y,
-    stroke: hsl(base.h, base.s, isCross ? 50 : 58),
-    'stroke-width': isCross ? 1.6 : 2.2,
-    'stroke-opacity': isCross ? 0.45 : 0.6,
-    'stroke-dasharray': isCross ? '5 5' : 'none',
-    'stroke-linecap': 'round',
-  }, svg);
-}
 
 // draw a pill for a network node (keystones rendered larger/bolder via drawPill)
 function drawPillNode(node) {
@@ -671,11 +556,9 @@ function drawPill(it, fs, base, pillar) {
     fillRef = hsl(base.h, Math.min(base.s + 10, 82), Math.min(base.l + 4, 60));
   }
 
-  // outer glow halo
-  el('rect', {
-    x, y, width: it.w, height: it.h, rx, ry: rx,
-    fill: fillRef, filter: 'url(#ks-glow)',
-  }, g);
+  // NOTE: no glow halo here any more. Glow now means HEAT (CLAUDE.md §8.1) and
+  // cannot mean two things at once. Keystones stay distinct through the luminous
+  // fill, the larger pill and the dark ink label.
   // solid pill body
   el('rect', {
     x, y, width: it.w, height: it.h, rx, ry: rx,

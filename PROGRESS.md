@@ -121,10 +121,15 @@ spreadsheet, not code. Full specifications in `CLAUDE.md` §7.
 - [?] **1.3 Decide `cook` / `burn`** semantics and defaults.
 - [?] **1.4 Decide Line and Discipline importance** — new columns or a separate
       tab? These are set manually, not derived.
-- [?] **1.5 Resolve the two design tensions** in `CLAUDE.md` §8: what visual
-      channel carries heat, and whether Importance needs splitting into
-      display-filter vs cooling-rate. **Both must be settled before the render
-      rework in Phase 2.**
+- [x] **1.5 Both design tensions resolved.**
+      §8.1 — **heat is carried by glow.** The glow halo has been taken off
+      keystone pills to free the channel; they stay distinct via luminous fill,
+      larger pill and dark ink label. Look still to be refined; wiring needs
+      Phase 3 heat data.
+      §8.2 — **Importance does not need splitting.** The `Importance legend` in
+      the Links tab defines it as a programming-frequency scale
+      (1 = in every program, 2 = every second, 3 = everything else), which is
+      exactly what a cooling rate encodes.
 - [?] **1.6 Taxonomy v2 — LARGELY SUPERSEDED, and much cheaper than it looked.**
       v2 was designed without sight of the `Lists` tab, and **two of its four
       headline findings are wrong**: `Front Lever Line` and the whole
@@ -177,8 +182,20 @@ way they never are in a spreadsheet.
       the real need rather than restoring it on spec.
 - [ ] **2.3 Implement `shared/graph.js`** — typed edge list from the sheet.
       Reject contradictory reciprocal edges loudly.
-- [ ] **2.4 Replace line-chaining with the edge list** in the layout. Spring
-      strength and stroke style vary by edge type.
+- [~] **2.4 Replace line-chaining with the edge list.**
+      **Step 1 done: the old links are entirely removed.** Line-derived links
+      were generated because two exercises shared a Discipline+Line, which
+      produced a mass of meaningless connections and made the force model fight
+      its own data. Gone: the line chains, the edge list, the link springs, the
+      anti-crossing pass, the link drawing, and the four `TUNE` parameters that
+      served them (`linkStiff`, `linkLen`, `crossLen`, `linkCross`).
+      `layout.js` 712 → 595 lines.
+      **Boundary keystones survived**: the bridge analysis used to read the cross
+      edges and now reads `Also Appears In` directly, which is where that
+      information came from anyway.
+      **Step 2 (blocked): reintroduce links from the typed edge list.** Needs
+      `Progressions`/`Regressions` filled — still 0. Spring strength and stroke
+      style then vary by edge type.
 - [ ] **2.5 Simplify the force model.** Expect to *remove* machinery, not add
       it — much of the current tuning compensates for spurious links. Retune
       the defaults afterwards and record the new values in `CLAUDE.md` §9.

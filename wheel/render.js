@@ -43,7 +43,10 @@ function render() {
   // background (so exported PNG/SVG carries the dark canvas)
   const bgRect = el('rect', { x: 0, y: 0, width: SIZE, height: SIZE, fill: getCSS('--bg') }, svg);
 
-  // defs: soft glow used to make keystone pills read as luminous hubs
+  // defs: the soft glow. Reserved for HEAT — see CLAUDE.md §8.1. It used to be
+  // applied to keystone pills, but keystones already read as hubs from their
+  // luminous fill, larger pill and dark ink label, so the glow channel is now
+  // free to mean one thing only: how hot a region of the wheel is.
   const defs = el('defs', {}, svg);
   defs.innerHTML = `
     <filter id="ks-glow" x="-60%" y="-60%" width="220%" height="220%">
