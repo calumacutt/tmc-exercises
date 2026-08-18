@@ -10,8 +10,8 @@ import {
 } from './layout.js';
 import { LOGO_DATA_URI } from './logo.js';
 import {
-  SIZE, CX, CY, R_HUB, GAP_PILLAR, svg, el, polar, sectorPath, setDefs, getCSS,
-  estLabelWidth,
+  SIZE, CX, CY, R_HUB, GAP_PILLAR, svg, SVGNS, el, polar, sectorPath, setDefs,
+  getCSS, estLabelWidth,
 } from './svg.js';
 
 function render() {

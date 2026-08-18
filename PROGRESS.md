@@ -63,6 +63,20 @@ been pulled forward out of Phase 3 because it is urgent and unblocked.
       sheet, **3 boundary gradients now render.** The machinery had never once
       been exercised before this. Keep it — and note it is now a live constraint
       on the heat-glow decision below.
+- [x] **W7 PNG/SVG export was broken by the module split.** `serialisedSVG()`
+      used `SVGNS` and `render.js` never imported it, so both save buttons threw
+      `ReferenceError` on click. Fixed.
+      **The lesson matters more than the bug.** I "verified" the split by loading
+      the page and checking the console — but nothing on initial render touches
+      the export path, so the break was invisible. A static import checker I
+      wrote to cover the gap reported clean twice, because its comment/string
+      stripper ran away on the regex literal `/[&<>"']/g` in `escapeHTML` and
+      silently swallowed the rest of the file.
+      **Do not trust either method alone.** The check that works is exercising
+      every code path in the browser: load, sheet fetch, slider, variants toggle,
+      both export buttons, and the duplicate-name refusal. Relevant to §3's
+      unresolved "no automated test path" tension — that gap is now a bug that
+      reached Calum, not a hypothetical.
 - [ ] **W4 Legacy pillar aliases were dropped** from `PILLAR_COLOURS`, so old
       fixtures in `data/examples/` render grey. Fine under fail-fast, but decide
       before those become test fixtures.
