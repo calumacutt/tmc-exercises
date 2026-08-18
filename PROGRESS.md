@@ -204,10 +204,16 @@ way they never are in a spreadsheet.
       slots, the angular fan, `lineRepel`, `lineRange`, `angularSpread`. The
       layout no longer knows lines exist — Discipline and Line still drive colour
       and grouping elsewhere, they just exert no force.
+      **Also gone: the level-based radial bias.** Level was placing low-level
+      exercises near the hub and high-level ones at the rim, via two routes — an
+      explicit `targetR` spring *and* the fill grid's sort order. Both removed.
+      The fill grid now orders by name, which is neutral; sheet order would have
+      made radius correlate with discipline and quietly reintroduced grouping.
       **What is left** is a pure per-pillar scatter: node charge repulsion, an
-      even-density radial fill, a faint level-based radial bias, and clearance
-      from pillar titles and sector seams. `TUNE` 19 → 12 exposed parameters;
-      `layout.js` 712 → 524 lines.
+      even-density radial fill, and clearance from pillar titles and sector seams.
+      **The only property of an exercise that affects where it lands is its
+      pillar** — not its line, not its level, not its progressions.
+      `TUNE` 19 → 12 exposed parameters; `layout.js` 712 → 513 lines.
       **Still to do:** make that scatter actually look right — the spacing has
       never quite worked — then retune and record the new defaults in
       `CLAUDE.md` §9.

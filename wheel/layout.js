@@ -10,9 +10,10 @@
 // the angular "fan lines across the arc" pull.
 //
 // What remains is a pure scatter within each pillar wedge: per-node charge
-// repulsion, an even-density radial fill, a faint level-based radial bias, and
-// clearance from the pillar titles and sector seams. Getting THAT to look right
-// is the current focus — see PROGRESS 2.5.
+// repulsion, an even-density radial fill, and clearance from the pillar titles
+// and sector seams. Nothing about an exercise other than its pillar affects
+// where it lands. Getting THAT to look right is the current focus — see
+// PROGRESS 2.5.
 //
 // Task 2.3/2.4 will reintroduce links from a real typed edge list
 // (progressions / regressions / components / related). Discipline and Line still
@@ -88,14 +89,16 @@ function inWedge(x, y, a0, a1, innerR, outerR, bleedPx, bleedAng) {
 }
 
 // ============================================================
-// NETWORK ENGINE
+// SCATTER ENGINE
 // ============================================================
-// Builds one connected constellation across all sectors:
-//  • each Line is a chain of its exercises, in series by level
-//  • keystones with multi-line membership act as hubs: the chains of the lines
-//    they belong to connect THROUGH the keystone node
-//  • force-directed relaxation gives an organic layout; every node is anchored
-//    to its pillar wedge, keystones are pulled toward the relevant boundary
+// Places every exercise inside its pillar wedge:
+//  • an even-density areal grid provides the target position
+//  • force-directed relaxation spreads nodes apart from there, keeping them
+//    inside the wedge and clear of the pillar titles and sector seams
+//  • boundary keystones are pulled onto the seam they bridge
+//
+// The ONLY property of an exercise that affects where it lands is its pillar.
+// Not its line, not its level, not its progressions.
 function buildNetwork(sectorJobs, discR) {
   const innerR = R_HUB + 26;
   const TWO_PI = Math.PI * 2;
@@ -198,31 +201,25 @@ function buildNetwork(sectorJobs, discR) {
     }
   }
 
-  // precompute a target radius per node from its level (low=near hub, high=rim)
-  // so chains naturally flow outward as radial strands instead of tangling.
-  const allLevels = nodes.map(n => n.ex.level || 5);
-  const loL = Math.min(...allLevels), hiL = Math.max(...allLevels);
-  for (const node of nodes) {
-    const lv = node.ex.level || 5;
-    const f = hiL === loL ? 0.5 : (lv - loL) / (hiL - loL);
-    node.targetR = innerR + 30 + f * (discR - innerR - 60);
-  }
-
   // even-area fill: within each pillar, place nodes on a low-discrepancy areal
   // grid across the WHOLE wedge (radius by sqrt-area for even density, angle by
   // a golden-ratio sweep across the arc). This is the attractor the relaxation
   // relaxes toward, so the wedge fills uniformly in 2D — radius AND arc — rather
   // than chains bunching on the centre axis of a wide pillar.
   for (const job of sectorJobs) {
+    // Ordered by NAME, not by level and not by sheet order. Any order gives even
+    // density — the order only decides which node lands where — so this is the
+    // neutral deterministic choice. Sheet order would make radius correlate with
+    // discipline, quietly reintroducing grouping.
     const pn = nodes.filter(n => n.job.pillar === job.pillar)
-      .sort((a, b) => ((a.ex.level || 5) - (b.ex.level || 5)) || a.ex.name.localeCompare(b.ex.name));
+      .sort((a, b) => a.ex.name.localeCompare(b.ex.name));
     const N = pn.length;
     const span = job.a1 - job.a0;
     const GOLD = 0.6180339887;
     pn.forEach((n, i) => {
       const frac = (i + 0.5) / Math.max(N, 1);
-      // compress toward a mid annulus (0.12..0.92) so chains stay compact and
-      // don't stretch all the way from hub to rim.
+      // compress toward a mid annulus (0.12..0.92) so the scatter stays compact
+      // and doesn't stretch all the way from hub to rim.
       const cf = 0.12 + frac * 0.80;
       n.fillR = Math.sqrt(innerR * innerR + cf * (discR * discR - innerR * innerR));
       // angular target: golden sweep keeps it even & deterministic across arc
@@ -233,9 +230,9 @@ function buildNetwork(sectorJobs, discR) {
 
   // ---- force-directed relaxation ----
   // Design goals:
-  //  • the radial-level bias is only a faint hint, not a hard rail.
   //  • every node carries a repulsive charge so a pillar's nodes spread to fill
   //    the whole wedge (incl. corners) rather than hugging the centre axis.
+  //  • an even-density radial pull keeps it uniform hub→rim.
   //  • boundary keystones are drawn toward their shared seam.
   const ITER = TUNE.iterations;
   // per-pillar charge scales with how much room the pillar has per node, so a
@@ -250,14 +247,6 @@ function buildNetwork(sectorJobs, discR) {
   }
   for (let it = 0; it < ITER; it++) {
     const t = 1 - it / ITER;       // cooling
-    // radial level bias: a FAINT hint only, so chains can curve freely
-    // instead of snapping into straight radial spokes. Fades as it cools.
-    for (const node of nodes) {
-      const dx = node.x - CX, dy = node.y - CY;
-      const r = Math.hypot(dx, dy) || 1;
-      const pull = (node.targetR - r) * 0.02 * t;
-      node.x += dx / r * pull; node.y += dy / r * pull;
-    }
     // charge repulsion: nearby same-pillar nodes repel so the pillar's nodes
     // spread to fill its wedge. Bounded + medium range so it fills area without
     // flinging everything to the rim (which would hollow out the middle).

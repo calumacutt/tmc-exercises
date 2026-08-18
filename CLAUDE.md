@@ -627,8 +627,9 @@ were tuned by hand and are the current defaults:
 > ⚠️ **Both the link and the line parameters are gone.** `linkStiff`, `linkLen`,
 > `crossLen`, `linkCross` went with the links; `lineRepel`, `lineRange` and
 > `angularSpread` went with all line-awareness in the layout — see PROGRESS 2.4
-> and 2.5. The layout is now a pure per-pillar scatter: node charge repulsion, an
-> even-density radial fill, a faint level bias, and title/seam clearance.
+> and 2.5. The level-based radial bias is gone too. The layout is now a pure
+> per-pillar scatter: node charge repulsion, an even-density radial fill, and
+> title/seam clearance — the only property affecting placement is the pillar.
 > **`TUNE` is down to 12 exposed parameters from 19.**
 
 | Panel label | Key | Default |
