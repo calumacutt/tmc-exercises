@@ -7,6 +7,10 @@
 const SIZE = 1600;             // SVG viewBox is square
 const CX = SIZE / 2, CY = SIZE / 2;
 const R_HUB = 150;             // inner pillar hub radius
+// Inner edge of the exercise field. Was duplicated as R_HUB+26 in the layout and
+// R_HUB+16 in chooseDiscRadius, so the radius calculation reserved slightly
+// different space than the layout actually used. One constant now.
+const R_INNER = R_HUB + 26;
 const GAP_PILLAR = 0.012;      // radians of gap between pillars
 
 const svg = document.getElementById('wheel');
@@ -54,7 +58,7 @@ function getCSS(varName) {
 }
 
 export {
-  SIZE, CX, CY, R_HUB, GAP_PILLAR,
+  SIZE, CX, CY, R_HUB, R_INNER, GAP_PILLAR,
   svg, SVGNS, el, polar, sectorPath,
   setDefs, getDefs, estLabelWidth, getCSS,
 };

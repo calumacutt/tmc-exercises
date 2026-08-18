@@ -26,12 +26,12 @@
 import { TUNE } from './tune.js';
 import { hsl, pillarBase } from '../shared/taxonomy.js';
 import {
-  CX, CY, R_HUB, svg, el, polar, estLabelWidth, getCSS, getDefs,
+  CX, CY, R_HUB, R_INNER, svg, el, polar, estLabelWidth, getCSS, getDefs,
 } from './svg.js';
 
 // Pick a disc radius large enough that the densest sector can hold its pills.
 function chooseDiscRadius(jobs) {
-  const innerR = R_HUB + 16;
+  const innerR = R_INNER;
   let need = 0;
   let totalArea = 0;
   for (const j of jobs) {
@@ -100,7 +100,7 @@ function inWedge(x, y, a0, a1, innerR, outerR, bleedPx, bleedAng) {
 // The ONLY property of an exercise that affects where it lands is its pillar.
 // Not its line, not its level, not its progressions.
 function buildNetwork(sectorJobs, discR) {
-  const innerR = R_HUB + 26;
+  const innerR = R_INNER;
   const TWO_PI = Math.PI * 2;
 
   // ---- collect all exercises with their sector job ----
@@ -154,7 +154,6 @@ function buildNetwork(sectorJobs, discR) {
     };
   };
   for (const node of nodes) {
-    node.bridgePillars = [];
     node.seamAngle = null;
     node.bridgePillar = null;
     if (!node.isKey) continue;
@@ -166,7 +165,6 @@ function buildNetwork(sectorJobs, discR) {
       const p = pillarOfDiscipline.get(disc);
       if (p && p !== node.job.pillar) linked.add(p);
     }
-    node.bridgePillars = [...linked];
     // is any linked pillar adjacent to this one? if so it's a boundary keystone.
     // (read angles from the job — node.a0/a1 aren't seeded until the next block)
     const myJob = jobByPillar.get(node.job.pillar);
@@ -182,7 +180,7 @@ function buildNetwork(sectorJobs, discR) {
   // keystones: seeded near the boundary of their sector that faces the pillar
   // they bridge to (so they settle on the shared edge).
   for (const job of sectorJobs) {
-    const span = job.a1 - job.a0, mid = (job.a0 + job.a1) / 2;
+    const span = job.a1 - job.a0;
     const rng = mulberry32(hashStr(job.pillar));
     const GOLDEN = 2.399963229728653;
     let i = 0;
@@ -196,7 +194,7 @@ function buildNetwork(sectorJobs, discR) {
       if (node.isBoundaryKey && node.seamAngle != null) aa = node.seamAngle;
       node.x = CX + rr * Math.cos(aa);
       node.y = CY + rr * Math.sin(aa);
-      node.homeMid = mid; node.span = span; node.a0 = job.a0; node.a1 = job.a1;
+      node.span = span; node.a0 = job.a0; node.a1 = job.a1;
       i++;
     }
   }
@@ -215,16 +213,12 @@ function buildNetwork(sectorJobs, discR) {
       .sort((a, b) => a.ex.name.localeCompare(b.ex.name));
     const N = pn.length;
     const span = job.a1 - job.a0;
-    const GOLD = 0.6180339887;
     pn.forEach((n, i) => {
       const frac = (i + 0.5) / Math.max(N, 1);
       // compress toward a mid annulus (0.12..0.92) so the scatter stays compact
       // and doesn't stretch all the way from hub to rim.
       const cf = 0.12 + frac * 0.80;
       n.fillR = Math.sqrt(innerR * innerR + cf * (discR * discR - innerR * innerR));
-      // angular target: golden sweep keeps it even & deterministic across arc
-      const af = (i * GOLD) % 1;
-      n.fillA = job.a0 + 0.06 + af * (span - 0.12);
     });
   }
 
@@ -245,24 +239,52 @@ function buildNetwork(sectorJobs, discR) {
   for (const node of nodes) {
     node.charge = Math.sqrt(pillarArea.get(node.job.pillar) || 4000);
   }
+  // Pillar titles are immovable obstacles for the separation pass. The soft
+  // title repulsion alone left pills sitting on titles, because it is a force
+  // and can be outvoted; this makes clearance a hard constraint like pill/pill
+  // overlap already was.
+  const titleBoxes = sectorJobs
+    .filter(j => j._title)
+    .map(j => ({ x: j._title.x, y: j._title.y, halfW: j._title.halfW, halfH: j._title.halfH }));
   for (let it = 0; it < ITER; it++) {
-    const t = 1 - it / ITER;       // cooling
     // charge repulsion: nearby same-pillar nodes repel so the pillar's nodes
     // spread to fill its wedge. Bounded + medium range so it fills area without
     // flinging everything to the rim (which would hollow out the middle).
+    //
+    // BOX-AWARE. This measures the gap between the two pills' bounding boxes,
+    // not the distance between their centres. Centre distance is wrong here
+    // because pill widths vary enormously with name length: two long pills side
+    // by side have far-apart centres and so felt almost no repulsion, even with
+    // their ends nearly touching — which is exactly why long names ran into
+    // their neighbours while empty space sat nearby.
     for (let i = 0; i < nodes.length; i++) {
       const A = nodes[i];
       for (let k = i + 1; k < nodes.length; k++) {
         const B = nodes[k];
         if (A.job.pillar !== B.job.pillar) continue;
-        let dx = B.x - A.x, dy = B.y - A.y;
-        let d2 = dx * dx + dy * dy;
-        const RNG = TUNE.chargeRange;
-        if (d2 > RNG * RNG) continue;
-        let d = Math.sqrt(d2) || 1;
+        const dx = B.x - A.x, dy = B.y - A.y;
+        // per-axis separation between the boxes; 0 on an axis means they overlap
+        // on that axis. hypot of the two is the distance between the closest
+        // points of the two rectangles.
+        const gapX = Math.max(0, Math.abs(dx) - (A.halfW + B.halfW));
+        const gapY = Math.max(0, Math.abs(dy) - (A.halfH + B.halfH));
+        const gap = Math.hypot(gapX, gapY);
+        if (gap > TUNE.chargeRange) continue;
+        // Push along the closest-point vector, so pills that are side by side
+        // separate sideways and pills stacked vertically separate vertically,
+        // instead of everything drifting diagonally. Fall back to the centre
+        // vector when the boxes already overlap and the gap vector is zero.
+        let ux, uy;
+        if (gap > 0.001) {
+          ux = Math.sign(dx) * gapX;
+          uy = Math.sign(dy) * gapY;
+        } else {
+          ux = dx; uy = dy;
+        }
+        const ul = Math.hypot(ux, uy) || 1;
+        ux /= ul; uy /= ul;
         const q = (A.charge + B.charge) * 0.5;
-        const mag = Math.min(7, (q * q) / (d2 + 1200) * TUNE.charge);
-        const ux = dx / d, uy = dy / d;
+        const mag = Math.min(7, (q * q) / (gap * gap + 1200) * TUNE.charge);
         A.x -= ux * mag; A.y -= uy * mag;
         B.x += ux * mag; B.y += uy * mag;
       }
@@ -298,10 +320,12 @@ function buildNetwork(sectorJobs, discR) {
         if (!ttl) continue;
         const RR = TUNE.titleRange;
         for (const node of nodes) {
-          let dx = node.x - ttl.x, dy = node.y - ttl.y;
-          // account for the title's box extent so big titles clear more space
-          const ax = Math.max(0, Math.abs(dx) - ttl.halfW);
-          const ay = Math.max(0, Math.abs(dy) - ttl.halfH);
+          const dx = node.x - ttl.x, dy = node.y - ttl.y;
+          // Both boxes count. This used to subtract only the title's extent, so
+          // a long pill whose CENTRE cleared the title but whose end overlapped
+          // it felt no push at all — the main cause of pills sitting on titles.
+          const ax = Math.max(0, Math.abs(dx) - ttl.halfW - node.halfW);
+          const ay = Math.max(0, Math.abs(dy) - ttl.halfH - node.halfH);
           const d = Math.hypot(ax, ay);
           if (d > RR) continue;
           let ux = dx, uy = dy; const ul = Math.hypot(ux, uy) || 1;
@@ -337,29 +361,21 @@ function buildNetwork(sectorJobs, discR) {
         node.y = CY + r * Math.sin(ang);
       }
     }
-    // node repulsion (box-aware, hard overlap resolution — runs everywhere)
-    for (let i = 0; i < nodes.length; i++) {
-      for (let k = i + 1; k < nodes.length; k++) {
-        const A = nodes[i], B = nodes[k];
-        const dx = B.x - A.x, dy = B.y - A.y;
-        const padX = 12, padY = 8;
-        const ox = (A.halfW + B.halfW + padX) - Math.abs(dx);
-        const oy = (A.halfH + B.halfH + padY) - Math.abs(dy);
-        if (ox > 0 && oy > 0) {
-          if (ox < oy) {
-            const push = ox / 2 * (dx <= 0 ? 1 : -1);
-            A.x += push; B.x -= push;
-          } else {
-            const push = oy / 2 * (dy <= 0 ? 1 : -1);
-            A.y += push; B.y -= push;
-          }
-        }
-      }
-    }
-    // sector anchoring + radial containment
-    for (const node of nodes) clampNode(node, innerR, discR, t);
+    // hard overlap resolution + containment
+    separate(nodes, titleBoxes);
+    for (const node of nodes) clampNode(node, innerR, discR);
   }
-  for (const node of nodes) clampNode(node, innerR, discR, 0);
+
+  // ---- settle pass ----
+  // clampNode is a HARD constraint and used to run last, which meant the final
+  // thing to touch a node could shove it back inside its wedge directly on top
+  // of a neighbour, with nothing left to undo that. Alternating separation and
+  // clamping converges on satisfying both instead of letting the clamp win by
+  // being last.
+  for (let pass = 0; pass < 24; pass++) {
+    separate(nodes, titleBoxes);
+    for (const node of nodes) clampNode(node, innerR, discR);
+  }
 
   // ---- draw pills, then titles on top ----
   for (const node of nodes) {
@@ -371,7 +387,41 @@ function buildNetwork(sectorJobs, discR) {
 }
 
 
-function clampNode(node, innerR, discR, t) {
+// Hard, box-aware separation. Resolves any actual rectangle overlap by pushing
+// along the axis of least penetration — the cheapest way out. Pill/pill pushes
+// both apart; pill/title pushes only the pill, since titles do not move.
+function separate(nodes, titleBoxes) {
+  const padX = 12, padY = 8;
+  for (let i = 0; i < nodes.length; i++) {
+    for (let k = i + 1; k < nodes.length; k++) {
+      const A = nodes[i], B = nodes[k];
+      const dx = B.x - A.x, dy = B.y - A.y;
+      const ox = (A.halfW + B.halfW + padX) - Math.abs(dx);
+      const oy = (A.halfH + B.halfH + padY) - Math.abs(dy);
+      if (ox <= 0 || oy <= 0) continue;
+      if (ox < oy) {
+        const push = ox / 2 * (dx <= 0 ? 1 : -1);
+        A.x += push; B.x -= push;
+      } else {
+        const push = oy / 2 * (dy <= 0 ? 1 : -1);
+        A.y += push; B.y -= push;
+      }
+    }
+  }
+  for (const node of nodes) {
+    for (const t of titleBoxes) {
+      const dx = node.x - t.x, dy = node.y - t.y;
+      const ox = (node.halfW + t.halfW + padX) - Math.abs(dx);
+      const oy = (node.halfH + t.halfH + padY) - Math.abs(dy);
+      if (ox <= 0 || oy <= 0) continue;
+      // whole push goes to the pill
+      if (ox < oy) node.x += ox * (dx <= 0 ? -1 : 1);
+      else         node.y += oy * (dy <= 0 ? -1 : 1);
+    }
+  }
+}
+
+function clampNode(node, innerR, discR) {
   const dx = node.x - CX, dy = node.y - CY;
   let r = Math.hypot(dx, dy);
   let ang = Math.atan2(dy, dx);

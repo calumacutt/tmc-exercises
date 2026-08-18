@@ -214,8 +214,28 @@ way they never are in a spreadsheet.
       **The only property of an exercise that affects where it lands is its
       pillar** — not its line, not its level, not its progressions.
       `TUNE` 19 → 12 exposed parameters; `layout.js` 712 → 513 lines.
-      **Still to do:** make that scatter actually look right — the spacing has
-      never quite worked — then retune and record the new defaults in
+      **Spacing fixes done since:**
+      - `innerR` was `R_HUB + 26` in the layout but `R_HUB + 16` in
+        `chooseDiscRadius`, so the radius calculation reserved different space
+        than the layout used. Now one `R_INNER` constant in `svg.js`.
+      - removed the vestigial `fillA`, `t` (cooling), `homeMid` and
+        `bridgePillars` — all computed every render, never read.
+      - **charge repulsion is box-aware.** It measured centre-to-centre distance,
+        but pill widths vary 5.5× with name length, so two long pills side by
+        side felt almost no repulsion while their ends overlapped. It now uses the
+        gap between bounding boxes and pushes along the closest-point vector.
+      - **title repulsion counts the pill's own box**, not just the title's. A
+        long pill whose centre cleared a title but whose end overlapped it used
+        to feel no push at all.
+      - **pillar titles are now hard obstacles**, and a 24-pass settle loop
+        alternates separation with clamping. `clampNode` is a hard constraint and
+        ran last, so it could shove a node back into its wedge on top of a
+        neighbour with nothing left to fix it.
+      **Measured result: 0 pill/pill overlaps and 0 pill/title overlaps at both
+      194 and 492 visible pills** (was 14 and 3).
+      **Still to do:** the radial distribution is rim-weighted and the innermost
+      band is empty — the hardcoded 0.12 inner floor and the 1.35 disc-radius
+      multiplier are the likely causes. Then retune and record defaults in
       `CLAUDE.md` §9.
 - [ ] **2.6 Add discipline/line visual grouping** — shades of the pillar
       colour, plus tighter clustering for exercises sharing a line. This is the

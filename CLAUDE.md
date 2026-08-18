@@ -647,6 +647,35 @@ were tuned by hand and are the current defaults:
 | Exercise pill size | `pillScale` | 1.2 |
 | Relaxation iterations | `iterations` | 600 |
 
+**Forces with no slider** (they matter more than several that have one):
+
+- **Hard box separation** — resolves any real pill-rectangle overlap along the
+  axis of least penetration. Pads: 12px horizontal, 8px vertical. Pillar titles
+  are immovable obstacles in this pass, so title clearance is a hard constraint,
+  not just the soft `titleRepel` force.
+- **Wedge + radius clamp** (`clampNode`) — absolute. Keystones get 0.06 rad of
+  angular bleed, boundary keystones 0.14, so they can sit on a seam.
+- **A 24-pass settle loop** after the main relaxation, alternating separation and
+  clamping. Necessary because the clamp is hard: when it ran last, the final
+  thing to touch a node could shove it back inside its wedge on top of a
+  neighbour, with nothing left to undo it. Alternating converges on both
+  constraints instead of letting whichever runs last win.
+- **Disc radius** (`chooseDiscRadius`) — area estimate × 1.7 breathing per pill,
+  title reserve × 1.5, floor `R_HUB + 240`, whole thing × 1.35, capped 3200px.
+  The single biggest influence on perceived spacing, and entirely hardcoded.
+- **Font size** — 12/13/14/16px stepped by total exercise count; `pillScale`
+  multiplies it.
+- **Per-node charge** — auto-scaled as `√(wedge area ÷ node count)`, then the
+  pair force is capped at 7px with a `+1200` softening term. So `charge` is a
+  multiplier on an invisible number, and it saturates at close range.
+
+**Distances are measured between bounding boxes, not centres.** Pill widths vary
+5.5× with name length (48–268px), so centre distance badly misjudged how close
+two pills actually were: two long pills side by side have far-apart centres and
+felt almost no repulsion while their ends touched. Charge repulsion uses the gap
+between boxes and pushes along the closest-point vector; title repulsion counts
+the pill's own extent as well as the title's.
+
 Notes on specific forces:
 
 - **`angleExp`** is the arc-allocation exponent. At 1.0 each pillar gets arc
