@@ -30,9 +30,9 @@ V3 = {
     'Hanging & Pulling': ('Strength & Capacity', [
         'Passive / Active Hang', 'Vertical Pull', 'Swinging & Brachiation',
         'Horizontal Pull', 'Pull-to-Press Transition']),
-    'Straight-Arm Strength': ('Strength & Capacity', [
+    'Straight Arm Strength': ('Strength & Capacity', [
         'Front Lever Line', 'Back Lever Line', 'Planche Line', 'Side Lever Line',
-        'Straight-Arm Rotation']),
+        'Straight Arm Rotation']),
     # Core currently exists only as a HANGING line inside a straight-arm
     # discipline, which is why loaded rotation work (kettlebell halo, wood chop)
     # had nowhere to go at all. Give core its own discipline.
@@ -43,7 +43,7 @@ V3 = {
         'Bent-Arm to Straight-Arm Press', 'Arms & Accessory']),
     'Loaded Lower Body Strength': ('Strength & Capacity', [
         'Bilateral Squat', 'Single-Leg Squat & Lunge', 'Lateral / Mobility Squat',
-        'Hip Hinge']),
+        'Hip Hinge', 'Posterior Chain (knee)', 'Anterior Chain (knee)']),
     'Bounciness & Elastic Power': ('Strength & Capacity', [
         'Vertical Jump', 'Horizontal Jump']),
     # ---- Handstands & Balance
@@ -67,12 +67,12 @@ V3 = {
         'Quadrupedal Forward', 'Lateral / Multi-directional', 'Rolling Locomotion',
         'Bipedal Forward']),
     'Inverted & Rotational Locomotion': ('Flocomotion', [
-        'Cartwheel Family', 'Walkovers', 'Flips & Handsprings', 'Capoeira Inversions']),
+        'Cartwheel Family', 'Walkovers', 'Flips & Handsprings']),
     'Rhythm & Flow': ('Flocomotion', [
         'Rhythmic Foundations', 'Floor Flow', 'Kicks', 'Acrobatics',
         'Dance / Musical Movement']),
     'Partner & Connection': ('Flocomotion', [
-        'Rough Housing', 'Partner Connection', 'Flow Games']),
+        'Rough Housing', 'Team Work & Connection', 'Floor & Flow Games']),
     # ---- Object Play
     'Object Play': ('Object Play', ['Juggling', 'Staff', 'Ball Skills']),
 }
@@ -86,9 +86,9 @@ RENAME = {
     'Hanging & Pulling Above the Bar - Vertical Pull':         'Hanging & Pulling - Vertical Pull',
     'Hanging & Pulling Above the Bar - Horizontal Pull':       'Hanging & Pulling - Horizontal Pull',
     'Hanging & Pulling Above the Bar - Pull-to-Press Transition': 'Hanging & Pulling - Pull-to-Press Transition',
-    'Lever & Straight-Arm Body Control - Front Lever Line': 'Straight-Arm Strength - Front Lever Line',
-    'Lever & Straight-Arm Body Control - Planche Line':     'Straight-Arm Strength - Planche Line',
-    'Lever & Straight-Arm Body Control - Side Lever Line':  'Straight-Arm Strength - Side Lever Line',
+    'Lever & Straight-Arm Body Control - Front Lever Line': 'Straight Arm Strength - Front Lever Line',
+    'Lever & Straight-Arm Body Control - Planche Line':     'Straight Arm Strength - Planche Line',
+    'Lever & Straight-Arm Body Control - Side Lever Line':  'Straight Arm Strength - Side Lever Line',
     'Lever & Straight-Arm Body Control - Core':             'Core & Midline - Hanging Core & Compression',
     'Foundational Resting Positions - Hip Opening (frontal)': 'Hip & Leg Mobility - Front Split Line',
     'Foundational Resting Positions - Stance Positions':      'Hip & Leg Mobility - Stance Positions',
@@ -99,15 +99,15 @@ RENAME = {
     'Rhythm, Flow & Expression - Kicks':                'Rhythm & Flow - Kicks',
     'Rhythm, Flow & Expression - Acrobatics':           'Rhythm & Flow - Acrobatics',
     'Games - Rough Housing':          'Partner & Connection - Rough Housing',
-    'Games - Team Work & Connection': 'Partner & Connection - Partner Connection',
-    'Games - Floor & Flow Games':     'Partner & Connection - Flow Games',
+    'Games - Team Work & Connection': 'Partner & Connection - Team Work & Connection',
+    'Games - Floor & Flow Games':     'Partner & Connection - Floor & Flow Games',
     'Games - Ball Games':             'Object Play - Ball Skills',
     'Games - Stick Games':            'Object Play - Staff',
 }
 
 # ============================================================ MOVES (per row)
 HP = 'Hanging & Pulling'
-SA = 'Straight-Arm Strength'
+SA = 'Straight Arm Strength'
 PR = 'Pressing Strength'
 LB = 'Loaded Lower Body Strength'
 BE = 'Bounciness & Elastic Power'
@@ -134,7 +134,7 @@ mv(f'{SA} - Front Lever Line', [
     'Front Lever - Deadlift', 'Ice Cream Maker',
 ], 'front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull')
 
-mv(f'{SA} - Straight-Arm Rotation', [
+mv(f'{SA} - Straight Arm Rotation', [
     'Skin the Cat', 'Skin the Cat - Jumping', 'Skin the Cat - Pike', 'Skin the Cat - Bar',
     '360 Pull', 'Forward Roll - Bar', 'Backward Roll - Bar', 'Ring Roll', 'Ring Roll - Backward',
 ], 'straight-arm rotation through the shoulder - not a horizontal pull')
@@ -172,8 +172,11 @@ mv(f'{LB} - Hip Hinge', [
 ], 'loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility')
 
 mv(f'{LB} - Single-Leg Squat & Lunge', [
-    'Split Squat', 'Lunge', 'Kettlebell walking lunge', 'Sissy Squat', 'Walking Lunge',
+    'Split Squat', 'Lunge', 'Kettlebell Walking Lunge', 'Walking Lunge',
 ], 'single-leg loaded strength')
+
+mv(f'{LB} - Anterior Chain (knee)', ['Sissy Squat'],
+   'knee-extension dominant - not a single-leg squat pattern. Reverse Nordic joins it.')
 
 mv(f'{LB} - Bilateral Squat', [
     'Kettlebell Thruster', 'Thruster',
@@ -184,12 +187,12 @@ mv(f'{LB} - Lateral / Mobility Squat', [
 ], 'loaded squatting in the frontal plane')
 
 mv(f'{CM} - Rotational & Loaded Core', [
-    'Kettlebell Halo', 'Kettlebell Around the world', 'Kettlebell ATW to Lunge',
+    'Kettlebell Halo', 'Kettlebell Around the World', 'Kettlebell ATW to Lunge',
     'Kettlebell Wood Chop',
 ], 'loaded rotation - had no Discipline or Line at all, and no line in the library fitted')
 
 mv(f'{BE} - Vertical Jump', ['Box Jump', 'High Jump'], 'vertical jumping')
-mv(f'{BE} - Horizontal Jump', ['Gather Step jump'], 'travelling jump')
+mv(f'{BE} - Horizontal Jump', ['Gather Step Jump'], 'travelling jump')
 
 # --- The frontal-plane hip cluster (currently no Line at all) ------------
 mv(f'{HL} - Middle Split Line', [
@@ -246,7 +249,7 @@ mv(f'{SP} - Spinal Waves', ['Spinal Waves and Joint Rotations'], 'spinal waves (
 # --- Inverted & rotational: cartwheels were absorbing everything --------
 mv(f'{IR} - Walkovers', ['Front Walkover', 'Back Walkover', 'Gumby'], 'walkovers are not cartwheels')
 mv(f'{IR} - Flips & Handsprings', ['Aerial', 'Butterfly Twist'], 'no-hands rotation')
-mv(f'{IR} - Capoeira Inversions', ['Rolê'], 'capoeira')
+mv(f'{RF} - Floor Flow', ['Rolê'], 'flowing ground transition')
 
 # --- Balance: fold the 1-exercise line away -----------------------------
 mv(f'{HB} - Bent-Arm Balances', ['Crow - Straight Arm'],
@@ -311,6 +314,10 @@ AAI = {
     'Forward Roll - Bar':       [f'{GL} - Rolling Locomotion'],
     'Backward Roll - Bar':      [f'{GL} - Rolling Locomotion'],
     'Skin the Cat':             [f'{SA} - Front Lever Line'],
+    'Skin the Cat - Jumping':   [f'{SA} - Front Lever Line'],
+    'Skin the Cat - Pike':      [f'{SA} - Front Lever Line'],
+    '360 Pull':                 [f'{SA} - Front Lever Line'],
+    'Shoulder Roll':            [f'{GL} - Rolling Locomotion'],
     'Muscle Up - Rings':        [f'{PR} - Dip Press'],
     'Muscle Up - Bar':          [f'{HP} - Vertical Pull'],
     'Thruster':                 [f'{PR} - Vertical Press'],
@@ -329,15 +336,15 @@ AAI = {
     'Bridge Push Up':           [f'{PR} - Bent-Arm to Straight-Arm Press'],
     'Monkey Kick':              [f'{GL} - Quadrupedal Forward'],
     'Hanging Zen Archer':       [f'{HP} - Passive / Active Hang'],
-    'Inverted Hang - Rings':    [f'{SA} - Straight-Arm Rotation'],
-    'Handstand - Partner':      [f'{PC} - Partner Connection'],
-    'Butterfly - Partner':      [f'{PC} - Partner Connection'],
-    'Pancake - Partner':        [f'{PC} - Partner Connection'],
-    'Partner Forward Fold':     [f'{PC} - Partner Connection'],
-    'Partner Hamstring Stretch':[f'{PC} - Partner Connection'],
-    'Over head Partner Push':   [f'{PC} - Partner Connection'],
-    'Partner Leg Lift - Front': [f'{PC} - Partner Connection'],
-    'Partner Leg Lift - Side':  [f'{PC} - Partner Connection'],
+    'Inverted Hang - Rings':    [f'{SA} - Straight Arm Rotation'],
+    'Handstand - Partner':      [f'{PC} - Team Work & Connection'],
+    'Butterfly - Partner':      [f'{PC} - Team Work & Connection'],
+    'Pancake - Partner':        [f'{PC} - Team Work & Connection'],
+    'Partner Forward Fold':     [f'{PC} - Team Work & Connection'],
+    'Partner Hamstring Stretch':[f'{PC} - Team Work & Connection'],
+    'Over head Partner Push':   [f'{PC} - Team Work & Connection'],
+    'Partner Leg Lift - Front': [f'{PC} - Team Work & Connection'],
+    'Partner Leg Lift - Side':  [f'{PC} - Team Work & Connection'],
 }
 
 # ============================================================ RESOLVE

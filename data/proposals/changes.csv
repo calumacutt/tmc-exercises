@@ -1,14 +1,9 @@
 Change,Name,Old Discipline,Old Line,New Discipline,New Line,Session Role,Also Appears In,Why
-RENAME,2 Ball,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
 RENAME,2 Up Two Over,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
 RENAME,3 Ball Behind the Back,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-RENAME,3 Ball Cascade,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
 RENAME,3 Ball Flash,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-RENAME,3 Ball Mills Mess,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-RENAME,3 Ball Reverse Cascade,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-RENAME,3 Ball Take Outs,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
 RENAME,3 Club Cascade,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-MOVE,360 Pull,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,360 Pull,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,Straight Arm Strength - Front Lever Line,straight-arm rotation through the shoulder - not a horizontal pull
 RENAME,4 Ball Fountain,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
 RENAME,4 Ball Fountain Reverse,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
 RENAME,4 Ball RLLR,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
@@ -20,7 +15,7 @@ RENAME,90/90 to Belly Roll,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,
 RENAME,Active Hang,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
 RENAME,Active Hang - Supinated,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
 MOVE,Aerial,Inverted & Rotational Locomotion,Cartwheel Family,Inverted & Rotational Locomotion,Flips & Handsprings,,Inverted & Rotational Locomotion - Cartwheel Family,no-hands rotation
-MOVE,Animal Pattern Relay Races,Games,Team Work & Connection,Ground Locomotion,Quadrupedal Forward,Game,,crawling patterns
+MOVE,Animal Pattern Relay Races,Ground Locomotion,Quadrupedal Forward,Ground Locomotion,Quadrupedal Forward,Game,,crawling patterns
 MOVE,Ape Swing,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Swinging & Brachiation,,,"swinging/travelling, not strict vertical pulling"
 RENAME,Arching Scap Pull,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
 RENAME,Arching Scap Pull - Supinated,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
@@ -28,11 +23,11 @@ RENAME,Arm Swipe,"Rhythm, Flow & Expression",Acrobatics,Rhythm & Flow,Acrobatics
 RENAME,Around the World,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Floor Flow,,,line renamed
 RENAME,Around the World Leg Raise,Lever & Straight-Arm Body Control,Core,Core & Midline,Hanging Core & Compression,,,line renamed
 RENAME,Around the World Leg Raise - Tuck,Lever & Straight-Arm Body Control,Core,Core & Midline,Hanging Core & Compression,,,line renamed
-MOVE,Back Lever,Pressing Strength,Horizontal Press,Straight-Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
-MOVE,Back Lever - Straddle,Pressing Strength,Horizontal Press,Straight-Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
-MOVE,Back Lever - Tuck,Pressing Strength,Horizontal Press,Straight-Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
+MOVE,Back Lever,Pressing Strength,Horizontal Press,Straight Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
+MOVE,Back Lever - Straddle,Pressing Strength,Horizontal Press,Straight Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
+MOVE,Back Lever - Tuck,Pressing Strength,Horizontal Press,Straight Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
 MOVE,Back Walkover,Inverted & Rotational Locomotion,Cartwheel Family,Inverted & Rotational Locomotion,Walkovers,,,walkovers are not cartwheels
-MOVE,Backward Roll - Bar,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,Ground Locomotion - Rolling Locomotion,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,Backward Roll - Bar,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,Ground Locomotion - Rolling Locomotion,straight-arm rotation through the shoulder - not a horizontal pull
 MOVE,Balancing,Games,Stick Games,Hand Balancing & Inversion,Static Inversion,Game,,balance game
 RENAME,Balancing Elimination,Games,Ball Games,Object Play,Ball Skills,Game,,line renamed
 MOVE,Banded Chin Pull Down,Prehab & Rehab,Banded,Shoulder & Thoracic Mobility,Scapular Control,Prehab,,"scapular control - was in Prehab & Rehab > Banded, a line named after equipment"
@@ -74,7 +69,7 @@ RENAME,Bo-Staff - Palm Spin,Hand-Eye Coordination & Object Manipulation,Staff,Ob
 MOVE,Bouncing Elimination,Games,Ball Games,Object Play,Ball Skills,Game,,"ball skills are Object Play, not a category of their own"
 MOVE,Bouncing and Shooting Basketball,Games,Ball Games,Object Play,Ball Skills,Game,,"ball skills are Object Play, not a category of their own"
 RENAME,Box,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-MOVE,Box Jump,,,Bounciness & Elastic Power,Vertical Jump,,,vertical jumping
+MOVE,Box Jump,Bounciness & Elastic Power,Vertical Jump,Bounciness & Elastic Power,Vertical Jump,,,vertical jumping
 MOVE,Brachiation,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Swinging & Brachiation,,,"swinging/travelling, not strict vertical pulling"
 MOVE,Bridge Circle,Hand Balancing & Inversion,Bridge Work,Spinal Mobility,Spinal Extension & Bridging,,Rhythm & Flow - Acrobatics,bridges were split across three disciplines - consolidated here
 MOVE,Bridge Circle - Half,Hand Balancing & Inversion,Bridge Work,Spinal Mobility,Spinal Extension & Bridging,,,bridges were split across three disciplines - consolidated here
@@ -82,7 +77,7 @@ MOVE,Bridge Hold,Foundational Resting Positions,,Spinal Mobility,Spinal Extensio
 MOVE,Bridge Pulses,Foundational Resting Positions,,Spinal Mobility,Spinal Extension & Bridging,,,bridges were split across three disciplines - consolidated here
 MOVE,Bridge Push Up,Pressing Strength,Bent-Arm to Straight-Arm Press,Spinal Mobility,Spinal Extension & Bridging,,Pressing Strength - Bent-Arm to Straight-Arm Press,bridges were split across three disciplines - consolidated here
 MOVE,Butterfly,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
-MOVE,Butterfly - Partner,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,Partner & Connection - Partner Connection,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
+MOVE,Butterfly - Partner,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,Partner & Connection - Team Work & Connection,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 MOVE,Butterfly - Weighted,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 RENAME,Butterfly Kick,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
 MOVE,Butterfly Twist,"Rhythm, Flow & Expression",Floor Flow,Inverted & Rotational Locomotion,Flips & Handsprings,,Rhythm & Flow - Floor Flow,no-hands rotation
@@ -105,14 +100,14 @@ MOVE,Cossack Squat,,,Loaded Lower Body Strength,Lateral / Mobility Squat,,,loade
 RENAME,Couch Stretch,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 RENAME,Couch Stretch - Arching,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 RENAME,Couch Stretch - Super,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
-MOVE,Crawling Patterns with Partner,Games,Floor & Flow Games,Ground Locomotion,Quadrupedal Forward,Game,,crawling patterns
+MOVE,Crawling Patterns with Partner,Ground Locomotion,Quadrupedal Forward,Ground Locomotion,Quadrupedal Forward,Game,,crawling patterns
 RENAME,Crescent Kick - Inside,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
 RENAME,Crescent Kick - Outside,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
 RENAME,Crescent Kick - Pop,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
-MOVE,Crow - Straight Arm,Hand Balancing & Inversion,Straight Arm Balance,Hand Balancing & Inversion,Bent-Arm Balances,,,Straight Arm Balance held one exercise and its name collided with Straight-Arm Strength
+MOVE,Crow - Straight Arm,Hand Balancing & Inversion,Bent-Arm Balances,Hand Balancing & Inversion,Bent-Arm Balances,,,Straight Arm Balance held one exercise and its name collided with Straight-Arm Strength
 MOVE,Cuban Rotation,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Shoulder Rotation,Prehab,,shoulder rotation - same rehome; the dumbbell versions had nowhere to go at all
 RENAME,Dancers Pose,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
-RENAME,Dead Bug Game,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,,line renamed
+RENAME,Dead Bug Game,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,,line renamed
 MOVE,Diagonal Stretch,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 RENAME,Drop Stick Game,Games,Stick Games,Object Play,Staff,Game,,line renamed
 MOVE,Dumbell Flys,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,Prehab,,chest / front-line opening - no such line existed
@@ -122,8 +117,6 @@ RENAME,Eagle Hang,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging 
 RENAME,Eagle Hang - Half,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
 RENAME,Elephant Walk,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 RENAME,Elephant Walk - Slant Board,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
-RENAME,Figure 8 Walk,"Rhythm, Flow & Expression",Rhythmic Foundations,Rhythm & Flow,Rhythmic Foundations,,,line renamed
-RENAME,Figure 8 Walk - Single Arm,"Rhythm, Flow & Expression",Rhythmic Foundations,Rhythm & Flow,Rhythmic Foundations,,,line renamed
 RENAME,Fish Flop,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Floor Flow,,,line renamed
 RENAME,Fish Flop - Single Leg,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Floor Flow,,,line renamed
 RENAME,Flip the Croc,Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
@@ -132,18 +125,17 @@ RENAME,Float - Frontside,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Fl
 MOVE,Foam Roller Opener - Dumbbell,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,,,chest / front-line opening - no such line existed
 MOVE,Foam Roller Opener - Stall Bars,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,,,chest / front-line opening - no such line existed
 RENAME,"Foot Taps, Handslaps",Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
-RENAME,Forward Backward Swing Walk,"Rhythm, Flow & Expression",Rhythmic Foundations,Rhythm & Flow,Rhythmic Foundations,,,line renamed
 RENAME,Forward Fold Pulses,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
-MOVE,Forward Roll - Bar,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,Ground Locomotion - Rolling Locomotion,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,Forward Roll - Bar,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,Ground Locomotion - Rolling Locomotion,straight-arm rotation through the shoulder - not a horizontal pull
 MOVE,Frog - Internal Lifts,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 MOVE,Frog Stretch,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
-MOVE,Front Lever,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
-MOVE,Front Lever - Deadlift,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
-MOVE,Front Lever - Straddle,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
-MOVE,Front Lever - Tuck,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
-MOVE,Front Lever Pull,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
-MOVE,Front Lever Pull - Straddle,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
-MOVE,Front Lever Pull - Tuck,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Front Lever,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Front Lever - Deadlift,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Front Lever - Straddle,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Front Lever - Tuck,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Front Lever Pull,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Front Lever Pull - Straddle,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Front Lever Pull - Tuck,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
 RENAME,Front Splits,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 RENAME,Front Splits - Active,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 RENAME,Front Splits - Knee Lift Contract and Relax,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
@@ -151,9 +143,9 @@ RENAME,Front Splits - Sliders,Foundational Resting Positions,Hip Opening (fronta
 MOVE,Front Walkover,Inverted & Rotational Locomotion,Cartwheel Family,Inverted & Rotational Locomotion,Walkovers,,,walkovers are not cartwheels
 RENAME,Gainer,"Rhythm, Flow & Expression",Acrobatics,Rhythm & Flow,Acrobatics,,,line renamed
 MOVE,Game of Soccer,Games,Ball Games,Object Play,Ball Skills,Game,,"ball skills are Object Play, not a category of their own"
-MOVE,Gather Step jump,,,Bounciness & Elastic Power,Horizontal Jump,,,travelling jump
-MOVE,German Hang,Pressing Strength,Horizontal Press,Straight-Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
-MOVE,German Hang - Assisted,Pressing Strength,Horizontal Press,Straight-Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
+MOVE,Gather Step Jump,Bounciness & Elastic Power,Vertical Jump,Bounciness & Elastic Power,Horizontal Jump,,,travelling jump
+MOVE,German Hang,Pressing Strength,Horizontal Press,Straight Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
+MOVE,German Hang - Assisted,Pressing Strength,Horizontal Press,Straight Arm Strength,Back Lever Line,,,"straight-arm pulling holds, currently under Pressing Strength > Horizontal Press"
 MOVE,Glide Kip,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Pull-to-Press Transition,,,"kipping and bar transitions belong with the other muscle-ups, not in strict Vertical Pull"
 MOVE,Good Morning,Foundational Resting Positions,Hip Opening (frontal),Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 MOVE,Good Morning - Single Leg,Foundational Resting Positions,Hip Opening (frontal),Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
@@ -174,37 +166,37 @@ MOVE,Head Shoulders Knees Toes Ball,Games,Ball Games,Object Play,Ball Skills,Gam
 RENAME,Heavy Hip Flexor Stretch,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 RENAME,Helicopter,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Floor Flow,,,line renamed
 RENAME,Helicóptero,"Rhythm, Flow & Expression",Acrobatics,Rhythm & Flow,Acrobatics,,,line renamed
-MOVE,High Jump,,,Bounciness & Elastic Power,Vertical Jump,,,vertical jumping
+MOVE,High Jump,Bounciness & Elastic Power,Vertical Jump,Bounciness & Elastic Power,Vertical Jump,,,vertical jumping
 MOVE,Hinge Pick Ups,Foundational Resting Positions,Stance Positions,Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 RENAME,Hook Kick,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
 MOVE,Horse Stance,Foundational Resting Positions,,Hip & Leg Mobility,Stance Positions,,,stance positions
 MOVE,Horse Stance - Squats,Foundational Resting Positions,,Loaded Lower Body Strength,Lateral / Mobility Squat,,Hip & Leg Mobility - Stance Positions,loaded squatting in the frontal plane
-RENAME,Human Flag,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
-RENAME,Human Flag - Angled,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
-RENAME,Human Flag - Feet Assisted,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
-RENAME,Human Flag - Feet Assisted Straddle,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
-RENAME,Human Flag - Kick Up,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
-RENAME,Human Flag - Limp,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
-RENAME,Human Flag - Negative,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
-RENAME,Human Flag - Straddle,Lever & Straight-Arm Body Control,Side Lever Line,Straight-Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag - Angled,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag - Feet Assisted,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag - Feet Assisted Straddle,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag - Kick Up,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag - Limp,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag - Negative,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
+RENAME,Human Flag - Straddle,Lever & Straight-Arm Body Control,Side Lever Line,Straight Arm Strength,Side Lever Line,,,line renamed
 MOVE,Hurdler Stretch,Foundational Resting Positions,,Hip & Leg Mobility,Front Split Line,,,sagittal / front-split work
-MOVE,Ice Cream Maker,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
+MOVE,Ice Cream Maker,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Front Lever Line,,,front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull
 RENAME,Infinity Ring Pull,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Vertical Pull,,,line renamed
-RENAME,Inverted Hang - Rings,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,Straight-Arm Strength - Straight-Arm Rotation,line renamed
+RENAME,Inverted Hang - Rings,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,Straight Arm Strength - Straight Arm Rotation,line renamed
 MOVE,Jefferson Curl,Foundational Resting Positions,Hip Opening (frontal),Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 MOVE,Jefferson Curl - Wide Leg,Foundational Resting Positions,Hip Opening (frontal),Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 MOVE,Jefferson Curl - to Squat,Foundational Resting Positions,Hip Opening (frontal),Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
-RENAME,Jenga Blocks,Games,Floor & Flow Games,Partner & Connection,Flow Games,Game,,line renamed
+RENAME,Jenga Blocks,Games,Floor & Flow Games,Partner & Connection,Floor & Flow Games,Game,,line renamed
 MOVE,Juggling,Games,Ball Games,Object Play,Juggling,Game,,was filed under Games > Ball Games alongside the real Juggling line
-MOVE,Kettlebell ATW to Lunge,,,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
-MOVE,Kettlebell Around the world,,,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
-MOVE,Kettlebell Halo,,,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
+MOVE,Kettlebell ATW to Lunge,Core & Midline,Rotational & Loaded Core,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
+MOVE,Kettlebell Around the World,Core & Midline,Rotational & Loaded Core,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
+MOVE,Kettlebell Halo,Core & Midline,Rotational & Loaded Core,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
 MOVE,Kettlebell Swing,Lever & Straight-Arm Body Control,Planche Line,Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 MOVE,Kettlebell Swing Single Arm,,,Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 MOVE,Kettlebell Swing Squat,,,Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 MOVE,Kettlebell Thruster,,,Loaded Lower Body Strength,Bilateral Squat,,Pressing Strength - Vertical Press,squat-to-press: the squat is the limiting element
-MOVE,Kettlebell Wood Chop,,,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
-MOVE,Kettlebell walking lunge,,,Loaded Lower Body Strength,Single-Leg Squat & Lunge,,,single-leg loaded strength
+MOVE,Kettlebell Walking Lunge,,,Loaded Lower Body Strength,Single-Leg Squat & Lunge,,,single-leg loaded strength
+MOVE,Kettlebell Wood Chop,Core & Midline,Rotational & Loaded Core,Core & Midline,Rotational & Loaded Core,,,"loaded rotation - had no Discipline or Line at all, and no line in the library fitted"
 RENAME,King of the Mat,Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
 RENAME,Knee Tap Game + Crawling Version,Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
 RENAME,Kneeling Runners Stretch,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
@@ -220,7 +212,7 @@ RENAME,Long Lunge - Hold,Foundational Resting Positions,Hip Opening (frontal),Hi
 RENAME,Long Lunge - Pulses,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 MOVE,Lunge,,,Loaded Lower Body Strength,Single-Leg Squat & Lunge,,,single-leg loaded strength
 MOVE,Lying Chest Stretch,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,,,chest / front-line opening - no such line existed
-RENAME,Marry Me,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,,line renamed
+RENAME,Marry Me,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,,line renamed
 RENAME,Meat Hook,Lever & Straight-Arm Body Control,Core,Core & Midline,Hanging Core & Compression,,,line renamed
 RENAME,Meat Hook - Negative,Lever & Straight-Arm Body Control,Core,Core & Midline,Hanging Core & Compression,,,line renamed
 RENAME,Meat Hook - Pull to One Arm,Lever & Straight-Arm Body Control,Core,Core & Midline,Hanging Core & Compression,,,line renamed
@@ -243,20 +235,20 @@ RENAME,Muscle Up - Rings,Hanging & Pulling Above the Bar,Pull-to-Press Transitio
 RENAME,Muscle Up - Transition,Hanging & Pulling Above the Bar,Pull-to-Press Transition,Hanging & Pulling,Pull-to-Press Transition,,,line renamed
 RENAME,Name Game,Games,Ball Games,Object Play,Ball Skills,Game,,line renamed
 RENAME,Nutcracker,Lever & Straight-Arm Body Control,Core,Core & Midline,Hanging Core & Compression,,,line renamed
-MOVE,Over head Partner Push,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,,Partner & Connection - Partner Connection,chest / front-line opening - no such line existed
+MOVE,Over head Partner Push,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,,Partner & Connection - Team Work & Connection,chest / front-line opening - no such line existed
 MOVE,Pancake,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 MOVE,Pancake - Dynamic,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 MOVE,Pancake - Elevated,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
-MOVE,Pancake - Partner,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,Partner & Connection - Partner Connection,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
+MOVE,Pancake - Partner,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,Partner & Connection - Team Work & Connection,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 MOVE,Pancake - Weighted,Foundational Resting Positions,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
-RENAME,Paper Scissors Rock,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,,line renamed
+RENAME,Paper Scissors Rock,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,,line renamed
 MOVE,Paralette Balance + Pass the Ball,Games,Ball Games,Object Play,Ball Skills,Game,,"ball skills are Object Play, not a category of their own"
 RENAME,Partner Arching Circles Around Stick,Games,Stick Games,Object Play,Staff,Game,,line renamed
-RENAME,Partner Carries,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,Loaded Lower Body Strength - Single-Leg Squat & Lunge,line renamed
-RENAME,Partner Forward Fold,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,Partner & Connection - Partner Connection,line renamed
-RENAME,Partner Hamstring Stretch,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,Partner & Connection - Partner Connection,line renamed
-RENAME,Partner Leg Lift - Front,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,Partner & Connection - Partner Connection,line renamed
-MOVE,Partner Leg Lift - Side,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Middle Split Line,,Partner & Connection - Partner Connection,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
+RENAME,Partner Carries,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,Loaded Lower Body Strength - Single-Leg Squat & Lunge,line renamed
+RENAME,Partner Forward Fold,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,Partner & Connection - Team Work & Connection,line renamed
+RENAME,Partner Hamstring Stretch,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,Partner & Connection - Team Work & Connection,line renamed
+RENAME,Partner Leg Lift - Front,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,Partner & Connection - Team Work & Connection,line renamed
+MOVE,Partner Leg Lift - Side,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Middle Split Line,,Partner & Connection - Team Work & Connection,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
 RENAME,Passive Hang,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
 RENAME,Passive Hang - Assisted,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
 RENAME,Passive Hang - Assisted Supinated,Hanging & Pulling Above the Bar,Passive / Active Hang,Hanging & Pulling,Passive / Active Hang,,,line renamed
@@ -266,40 +258,39 @@ RENAME,Passive to Active Hang - Supinated,Hanging & Pulling Above the Bar,Passiv
 MOVE,Pelican Curl,Hanging & Pulling Above the Bar,Horizontal Pull,Pressing Strength,Arms & Accessory,,,single-joint arm isolation - was padding out Horizontal Pull
 MOVE,Pigeon Stretch,Foundational Resting Positions,,Hip & Leg Mobility,Hip Rotation,,,hip rotation rather than a split line
 MOVE,Pigeon Stretch - Box,Foundational Resting Positions,,Hip & Leg Mobility,Hip Rotation,,,hip rotation rather than a split line
-RENAME,Planche,Lever & Straight-Arm Body Control,Planche Line,Straight-Arm Strength,Planche Line,,,line renamed
+RENAME,Planche,Lever & Straight-Arm Body Control,Planche Line,Straight Arm Strength,Planche Line,,,line renamed
 MOVE,Practice Ball Drills,Games,Ball Games,Object Play,Ball Skills,Game,,"ball skills are Object Play, not a category of their own"
 MOVE,Pull Over,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Pull-to-Press Transition,,,"kipping and bar transitions belong with the other muscle-ups, not in strict Vertical Pull"
 MOVE,Pull Over - Jump,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Pull-to-Press Transition,,,"kipping and bar transitions belong with the other muscle-ups, not in strict Vertical Pull"
 RENAME,Pull Up,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Vertical Pull,,,line renamed
 RENAME,Push Pull Off the Line,Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
-MOVE,Push Pull and Rolling in all directions,Games,Floor & Flow Games,Ground Locomotion,Rolling Locomotion,Game,,rolling
+MOVE,Push Pull and Rolling in all directions,Ground Locomotion,Rolling Locomotion,Ground Locomotion,Rolling Locomotion,Game,,rolling
 MOVE,Push Up - Bridge,Pressing Strength,Vertical Press,Spinal Mobility,Spinal Extension & Bridging,,Pressing Strength - Vertical Press,bridges were split across three disciplines - consolidated here
 RENAME,Quadrapedal Red Rover,Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
 MOVE,RDL,Foundational Resting Positions,Hip Opening (frontal),Loaded Lower Body Strength,Hip Hinge,,,loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility
 RENAME,Reversão,"Rhythm, Flow & Expression",Acrobatics,Rhythm & Flow,Acrobatics,,,line renamed
 RENAME,Ring Facepull,Hanging & Pulling Above the Bar,Horizontal Pull,Hanging & Pulling,Horizontal Pull,,,line renamed
-MOVE,Ring Roll,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
-MOVE,Ring Roll - Backward,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
-RENAME,Ring Row,Hanging & Pulling Above the Bar,Horizontal Pull,Hanging & Pulling,Horizontal Pull,,,line renamed
+MOVE,Ring Roll,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,Ring Roll - Backward,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
 RENAME,Ring Row - Rotational,Hanging & Pulling Above the Bar,Horizontal Pull,Hanging & Pulling,Horizontal Pull,,,line renamed
 RENAME,Ring Row - Rotational Contralateral,Hanging & Pulling Above the Bar,Horizontal Pull,Hanging & Pulling,Horizontal Pull,,,line renamed
 RENAME,Ring Row - Rotational Ipsilateral,Hanging & Pulling Above the Bar,Horizontal Pull,Hanging & Pulling,Horizontal Pull,,,line renamed
 RENAME,Rings Juggling,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-MOVE,Rolê,Inverted & Rotational Locomotion,Cartwheel Family,Inverted & Rotational Locomotion,Capoeira Inversions,,,capoeira
+MOVE,Rolê,Inverted & Rotational Locomotion,Cartwheel Family,Rhythm & Flow,Floor Flow,,,flowing ground transition
 RENAME,Rope Climb - Feet Assisted,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Vertical Pull,,,line renamed
 RENAME,Rope Climb - Legless,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Vertical Pull,,,line renamed
 RENAME,Roundhouse Kick,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
 RENAME,Schwheel,"Rhythm, Flow & Expression",Acrobatics,Rhythm & Flow,Acrobatics,,,line renamed
-RENAME,Shoulder Roll,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Floor Flow,,,line renamed
+RENAME,Shoulder Roll,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Floor Flow,,Ground Locomotion - Rolling Locomotion,line renamed
 RENAME,Shoulder Tap Game,Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
 MOVE,Side Pancake Weighted,,,Hip & Leg Mobility,Middle Split Line,,,"abduction / middle-split work - had no Line, and Middle Split Line did not exist"
-MOVE,Sissy Squat,,,Loaded Lower Body Strength,Single-Leg Squat & Lunge,,,single-leg loaded strength
-MOVE,Skin the Cat,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,Straight-Arm Strength - Front Lever Line,straight-arm rotation through the shoulder - not a horizontal pull
-MOVE,Skin the Cat - Bar,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
-MOVE,Skin the Cat - Jumping,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
-MOVE,Skin the Cat - Pike,Hanging & Pulling Above the Bar,Horizontal Pull,Straight-Arm Strength,Straight-Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,Sissy Squat,,,Loaded Lower Body Strength,Anterior Chain (knee),,,knee-extension dominant - not a single-leg squat pattern. Reverse Nordic joins it.
+MOVE,Skin the Cat,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,Straight Arm Strength - Front Lever Line,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,Skin the Cat - Bar,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,Skin the Cat - Jumping,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,Straight Arm Strength - Front Lever Line,straight-arm rotation through the shoulder - not a horizontal pull
+MOVE,Skin the Cat - Pike,Hanging & Pulling Above the Bar,Horizontal Pull,Straight Arm Strength,Straight Arm Rotation,,Straight Arm Strength - Front Lever Line,straight-arm rotation through the shoulder - not a horizontal pull
 MOVE,Soccer Ball Juggling,Games,Ball Games,Object Play,Ball Skills,Game,,"ball skills are Object Play, not a category of their own"
-RENAME,Speed Dating,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,,line renamed
+RENAME,Speed Dating,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,,line renamed
 MOVE,Spinal Waves and Joint Rotations,Games,Floor & Flow Games,Spinal Mobility,Spinal Waves,Game,,spinal waves (also a game - see tags)
 MOVE,Split Squat,,,Loaded Lower Body Strength,Single-Leg Squat & Lunge,,,single-leg loaded strength
 MOVE,Squat Gladiators,Games,Rough Housing,Hip & Leg Mobility,Squat Position,Game,Partner & Connection - Rough Housing,held squat position (also a game - see tags)
@@ -310,14 +301,13 @@ MOVE,Standing Lat Stretch,Foundational Resting Positions,,Shoulder & Thoracic Mo
 RENAME,Stick Circle Madness,Games,Stick Games,Object Play,Staff,Game,,line renamed
 MOVE,Stick Horse Stance,Games,Stick Games,Hip & Leg Mobility,Stance Positions,Game,Object Play - Staff,stance positions
 RENAME,Stick Twister,Games,Stick Games,Object Play,Staff,Game,,line renamed
-RENAME,Stone and Water,Games,Floor & Flow Games,Partner & Connection,Flow Games,Game,,line renamed
-RENAME,Stuck in the Mud,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,,line renamed
+RENAME,Stone and Water,Games,Floor & Flow Games,Partner & Connection,Floor & Flow Games,Game,,line renamed
+RENAME,Stuck in the Mud,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,,line renamed
 RENAME,Sweep Kick,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
 MOVE,Swing to Precision,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Swinging & Brachiation,,,"swinging/travelling, not strict vertical pulling"
 MOVE,Swinging,Hanging & Pulling Above the Bar,Vertical Pull,Hanging & Pulling,Swinging & Brachiation,,,"swinging/travelling, not strict vertical pulling"
 MOVE,Table Top Hold,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,Prehab,,chest / front-line opening - no such line existed
 MOVE,Table Top Lifts,Foundational Resting Positions,,Shoulder & Thoracic Mobility,Chest & Thoracic Opening,Prehab,,chest / front-line opening - no such line existed
-RENAME,Teacup Walk,"Rhythm, Flow & Expression",Rhythmic Foundations,Rhythm & Flow,Rhythmic Foundations,,,line renamed
 RENAME,Tennis Juggling,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
 RENAME,Thomas Stretch,Foundational Resting Positions,Hip Opening (frontal),Hip & Leg Mobility,Front Split Line,,,line renamed
 MOVE,Thoracic Bridge,Foundational Resting Positions,,Spinal Mobility,Spinal Extension & Bridging,,,bridges were split across three disciplines - consolidated here
@@ -326,12 +316,12 @@ MOVE,Thruster,Pressing Strength,Vertical Press,Loaded Lower Body Strength,Bilate
 RENAME,Tornado Kick,"Rhythm, Flow & Expression",Kicks,Rhythm & Flow,Kicks,,,line renamed
 MOVE,Tricep Extension - Banded,Prehab & Rehab,Banded,Pressing Strength,Arms & Accessory,,,single-joint arm isolation
 MOVE,Tricep Extension - Rings,Pressing Strength,Horizontal Press,Pressing Strength,Arms & Accessory,,,single-joint arm isolation
-RENAME,Trust Game Eyes Closed,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,,line renamed
+RENAME,Trust Game Eyes Closed,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,,line renamed
 RENAME,Tug of War,Games,Rough Housing,Partner & Connection,Rough Housing,Game,,line renamed
-RENAME,Voodoo Doll,Games,Floor & Flow Games,Partner & Connection,Flow Games,Game,,line renamed
+RENAME,Voodoo Doll,Games,Floor & Flow Games,Partner & Connection,Floor & Flow Games,Game,,line renamed
 MOVE,Walking Lunge,Ground Locomotion,Bipedal Forward,Loaded Lower Body Strength,Single-Leg Squat & Lunge,,,single-leg loaded strength
 RENAME,Weighted Juggling,Hand-Eye Coordination & Object Manipulation,Juggling,Object Play,Juggling,,,line renamed
-RENAME,Wheel Barrow Races,Games,Team Work & Connection,Partner & Connection,Partner Connection,Game,Ground Locomotion - Quadrupedal Forward,line renamed
+RENAME,Wheel Barrow Races,Games,Team Work & Connection,Partner & Connection,Team Work & Connection,Game,Ground Locomotion - Quadrupedal Forward,line renamed
 RENAME,Windmill,"Rhythm, Flow & Expression",Floor Flow,Rhythm & Flow,Floor Flow,,,line renamed
 RENAME,Windscreen Wipers,Lever & Straight-Arm Body Control,Core,Core & Midline,Hanging Core & Compression,,,line renamed
 MOVE,Yoga Wheel Opener,Foundational Resting Positions,,Spinal Mobility,Spinal Extension & Bridging,,,bridges were split across three disciplines - consolidated here
@@ -339,7 +329,7 @@ RENAME,Zen Archer,Games,Stick Games,Object Play,Staff,Game,,line renamed
 TAG,Bridge Walk,Ground Locomotion,Lateral / Multi-directional,Ground Locomotion,Lateral / Multi-directional,,Spinal Mobility - Spinal Extension & Bridging,"tag / cross-reference only, taxonomy unchanged"
 TAG,Cat Crawl - Spinal Wave,Ground Locomotion,Quadrupedal Forward,Ground Locomotion,Quadrupedal Forward,,Spinal Mobility - Spinal Waves,"tag / cross-reference only, taxonomy unchanged"
 TAG,Crab Walk,Ground Locomotion,Lateral / Multi-directional,Ground Locomotion,Lateral / Multi-directional,,Spinal Mobility - Spinal Extension & Bridging,"tag / cross-reference only, taxonomy unchanged"
-TAG,Handstand - Partner,Hand Balancing & Inversion,Static Inversion,Hand Balancing & Inversion,Static Inversion,,Partner & Connection - Partner Connection,"tag / cross-reference only, taxonomy unchanged"
+TAG,Handstand - Partner,Hand Balancing & Inversion,Static Inversion,Hand Balancing & Inversion,Static Inversion,,Partner & Connection - Team Work & Connection,"tag / cross-reference only, taxonomy unchanged"
 TAG,Handstand to Roll,Ground Locomotion,Rolling Locomotion,Ground Locomotion,Rolling Locomotion,,Hand Balancing & Inversion - Static Inversion,"tag / cross-reference only, taxonomy unchanged"
 TAG,Horse Stance - Walk,Ground Locomotion,Bipedal Forward,Ground Locomotion,Bipedal Forward,,Hip & Leg Mobility - Stance Positions,"tag / cross-reference only, taxonomy unchanged"
 TAG,Lizard Crawl - Push Up,Ground Locomotion,Quadrupedal Forward,Ground Locomotion,Quadrupedal Forward,,Pressing Strength - Horizontal Press,"tag / cross-reference only, taxonomy unchanged"
