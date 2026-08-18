@@ -1,0 +1,335 @@
+<title>Movement Library Taxonomy v3</title>
+<style>
+:root {
+  --bg:#FBF9F7; --panel:#FFFFFF; --ink:#221C18; --ink-2:#574C45; --ink-3:#8B7D74;
+  --rule:#E6DED7; --rule-2:#F2ECE7; --accent:8 58% 44%; --new:145 40% 32%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#17130F; --panel:#1F1A16; --ink:#F2EBE3; --ink-2:#BCAEA3; --ink-3:#897B70;
+    --rule:#332A24; --rule-2:#241E1A; --accent:8 64% 64%; --new:145 34% 56%;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#17130F; --panel:#1F1A16; --ink:#F2EBE3; --ink-2:#BCAEA3; --ink-3:#897B70;
+  --rule:#332A24; --rule-2:#241E1A; --accent:8 64% 64%; --new:145 34% 56%;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}
+.wrap { max-width:76ch; margin:0 auto; padding:0 1.25rem; }
+.wrap.top { padding-top:clamp(2.2rem,6vw,4.5rem); }
+.wrap.end { padding-bottom:6rem; }
+.wide { max-width:106ch; }
+h1,h2,h3,h4 {
+  font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  text-wrap:balance; font-weight:600;
+}
+h1 { font-size:clamp(2rem,5vw,2.85rem); line-height:1.08; margin:0 0 .55rem; letter-spacing:-.021em; }
+.sub {
+  color:var(--ink-3); font-size:.72rem; letter-spacing:.17em;
+  text-transform:uppercase; margin:0 0 2.4rem;
+}
+h2 {
+  font-size:1.45rem; margin:3.4rem 0 .8rem; padding-top:1.6rem;
+  border-top:1px solid var(--rule); letter-spacing:-.01em;
+}
+h2 .n {
+  display:block; margin-bottom:.45rem; color:hsl(var(--accent));
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.72rem; letter-spacing:.14em;
+}
+h3 { font-size:1.02rem; margin:2rem 0 .5rem; }
+.disc h3 { margin:0; font-size:1rem; }
+h4 { font-size:.93rem; margin:0 0 .2rem; }
+p { margin:0 0 1.05rem; }
+.lead { font-size:1.09rem; color:var(--ink-2); }
+em.new {
+  font-style:normal; font-family:ui-monospace,monospace; font-size:.6rem;
+  letter-spacing:.09em; text-transform:uppercase; color:hsl(var(--new));
+  border:1px solid hsl(var(--new) / .42); border-radius:3px;
+  padding:.05em .32em; vertical-align:.14em; white-space:nowrap;
+}
+.callout {
+  background:var(--panel); border:1px solid var(--rule);
+  border-left:3px solid hsl(var(--accent)); border-radius:0 6px 6px 0;
+  padding:1.05rem 1.2rem; margin:0 0 1.5rem;
+}
+.callout p:last-child { margin:0; }
+.grid {
+  display:grid; gap:.8rem; margin:1.6rem 0;
+  grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr));
+}
+.disc {
+  background:var(--panel); border:1px solid var(--rule); border-radius:7px;
+  border-top:3px solid hsl(var(--hue)); padding:.85rem 1rem .95rem;
+}
+.disc header { margin-bottom:.55rem; }
+.pillar {
+  margin:.18rem 0 0; font-size:.66rem; letter-spacing:.11em;
+  text-transform:uppercase; color:hsl(var(--hue));
+}
+table { border-collapse:collapse; width:100%; font-size:.87rem; }
+.lines td { padding:.24rem 0; border-bottom:1px solid var(--rule-2); }
+.lines tr:last-child td { border-bottom:0; }
+.lines .ln { color:var(--ink-2); }
+.num {
+  text-align:right; width:3.5ch; color:var(--ink-3);
+  font-family:ui-monospace,monospace; font-variant-numeric:tabular-nums;
+}
+.scroll {
+  overflow-x:auto; border:1px solid var(--rule); border-radius:7px;
+  background:var(--panel); margin:1.3rem 0;
+}
+.scroll table { font-size:.81rem; }
+.scroll td, .scroll th {
+  padding:.42rem .75rem; border-bottom:1px solid var(--rule-2);
+  text-align:left; white-space:nowrap;
+}
+.scroll tr:last-child td { border-bottom:0; }
+.scroll th {
+  font-size:.64rem; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600; border-bottom:1px solid var(--rule);
+}
+.scroll td.num { text-align:left; }
+td.arrow { color:var(--ink-3); }
+td.to { color:hsl(var(--accent)); }
+.movegroup { margin:0 0 1.35rem; padding-left:.9rem; border-left:2px solid var(--rule); }
+.ct { font-family:ui-monospace,monospace; font-size:.7rem; color:var(--ink-3); }
+.why { margin:0 0 .5rem; font-size:.84rem; color:var(--ink-3); }
+.chips { display:flex; flex-wrap:wrap; gap:.28rem; }
+.chip {
+  font-size:.75rem; padding:.12rem .45rem; border-radius:4px;
+  background:var(--rule-2); border:1px solid var(--rule);
+  color:var(--ink-2); white-space:nowrap;
+}
+ol.steps { padding-left:0; list-style:none; counter-reset:s; }
+ol.steps li {
+  counter-increment:s; position:relative;
+  padding-left:2.5rem; margin-bottom:1.05rem;
+}
+ol.steps li::before {
+  content:counter(s); position:absolute; left:0; top:.1rem;
+  width:1.65rem; height:1.65rem; display:grid; place-items:center;
+  font-family:ui-monospace,monospace; font-size:.71rem;
+  color:hsl(var(--accent)); border:1px solid hsl(var(--accent) / .34);
+  border-radius:50%;
+}
+.stat { display:flex; gap:2.2rem; flex-wrap:wrap; margin:1.7rem 0 .5rem; }
+.stat b {
+  display:block; font-family:ui-monospace,monospace; font-size:1.55rem;
+  font-variant-numeric:tabular-nums; color:var(--ink); line-height:1.2;
+}
+.stat span {
+  font-size:.66rem; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--ink-3);
+}
+code {
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85em;
+  background:var(--rule-2); padding:.1em .32em; border-radius:3px;
+}
+@media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+
+<div class="wrap top">
+  <h1>Cleaning up the Movement Library</h1>
+  <p class="sub">Taxonomy v3 &middot; proposal &middot; 472 exercises</p>
+
+  <p class="lead">Four things you asked for, and one idea that ties three of them
+  together: <strong>the sheet is trying to record two different things in one
+  column.</strong></p>
+
+  <div class="callout">
+    <p><strong>Discipline and Line answer &ldquo;what movement is this?&rdquo;</strong>
+    Games and Prehab&nbsp;&amp;&nbsp;Rehab answer a different question &mdash;
+    &ldquo;what job does this do in a class?&rdquo; That is why they never fitted.
+    A game of soccer is <em>ball skills</em> that happens to be played as a game;
+    a banded facepull is <em>scapular control</em> that happens to be prehab.</p>
+    <p>So both dissolve into real movement disciplines, and the class-role
+    information moves to a new tag column. That is your points 3 and 4 &mdash; the
+    same fix applied twice. It also retires the <code>Games</code> pillar, taking
+    you back to five.</p>
+  </div>
+
+  <div class="stat">
+    <div><b>15</b><span>Disciplines &larr; 12</span></div>
+    <div><b>57</b><span>Lines &larr; 38</span></div>
+    <div><b>0</b><span>Empty lines &larr; 23</span></div>
+    <div><b>0</b><span>Unplaced &larr; 57</span></div>
+  </div>
+
+  <h2><span class="n">01</span>Importance &mdash; three options</h2>
+  <p>Replace the 1&ndash;5 legend with exactly what you described:</p>
+  <div class="scroll"><table>
+    <tr><th>Value</th><th>Meaning</th></tr>
+    <tr><td class="num">1</td><td>In every program</td></tr>
+    <tr><td class="num">2</td><td>In every second program</td></tr>
+    <tr><td class="num">3</td><td>Everything else</td></tr>
+  </table></div>
+  <p>Delete rows 4 and 5 from the <code>Importance legend</code> column in the
+  Links tab. The dropdown already offers only 1&ndash;3, so nothing else changes.
+  <strong>The 33 blank cells can all become 3</strong> &mdash; under this wording a
+  blank <em>is</em> &ldquo;everything else&rdquo;, so the ambiguity disappears
+  instead of needing a decision per row.</p>
+
+  <h2><span class="n">02</span>The new tag column</h2>
+  <p>Add one column to the Exercises tab: <code>Session Role</code>,
+  semicolon-separated so an exercise can hold several.</p>
+  <p><code>Warm Up</code> &middot; <code>Skill</code> &middot;
+  <code>Strength</code> &middot; <code>Mobility</code> &middot;
+  <code>Conditioning</code> &middot; <code>Game</code> &middot;
+  <code>Prehab</code></p>
+  <p>The first four already exist in the Links tab as <code>Session Types</code>,
+  so this extends a vocabulary you have rather than inventing a parallel one.
+  <strong>51 exercises get <code>Game</code></strong>, <strong>23 get
+  <code>Prehab</code></strong> &mdash; both listed in section 6. The rest can be
+  filled in whenever; the taxonomy is correct without them.</p>
+
+  <h2><span class="n">03</span>The recommended structure</h2>
+  <p>15 disciplines, 57 lines, every one populated. Counts are what
+  each line holds <em>after</em> all the moves below.</p>
+</div>
+
+<div class="wrap wide">
+  <div class="grid"><article class="disc" style="--hue:42 70% 54%"><header><h3>Hand Balancing &amp; Inversion</h3><p class="pillar">Handstands &amp; Balance</p></header><table class="lines"><tbody><tr><td class="ln">Static Inversion</td><td class="num">11</td></tr><tr><td class="ln">Shaped Handstands</td><td class="num">10</td></tr><tr><td class="ln">Press Entries</td><td class="num">14</td></tr><tr><td class="ln">Bent-Arm Balances</td><td class="num">9</td></tr></tbody></table></article><article class="disc" style="--hue:8 58% 52%"><header><h3>Hanging &amp; Pulling <em class="new">new</em></h3><p class="pillar">Strength &amp; Capacity</p></header><table class="lines"><tbody><tr><td class="ln">Passive / Active Hang <em class="new">new</em></td><td class="num">15</td></tr><tr><td class="ln">Vertical Pull <em class="new">new</em></td><td class="num">13</td></tr><tr><td class="ln">Swinging &amp; Brachiation <em class="new">new</em></td><td class="num">6</td></tr><tr><td class="ln">Horizontal Pull <em class="new">new</em></td><td class="num">7</td></tr><tr><td class="ln">Pull-to-Press Transition <em class="new">new</em></td><td class="num">9</td></tr></tbody></table></article><article class="disc" style="--hue:8 58% 52%"><header><h3>Straight-Arm Strength <em class="new">new</em></h3><p class="pillar">Strength &amp; Capacity</p></header><table class="lines"><tbody><tr><td class="ln">Front Lever Line <em class="new">new</em></td><td class="num">8</td></tr><tr><td class="ln">Back Lever Line <em class="new">new</em></td><td class="num">5</td></tr><tr><td class="ln">Planche Line <em class="new">new</em></td><td class="num">1</td></tr><tr><td class="ln">Side Lever Line <em class="new">new</em></td><td class="num">8</td></tr><tr><td class="ln">Straight-Arm Rotation <em class="new">new</em></td><td class="num">9</td></tr></tbody></table></article><article class="disc" style="--hue:8 58% 52%"><header><h3>Core &amp; Midline <em class="new">new</em></h3><p class="pillar">Strength &amp; Capacity</p></header><table class="lines"><tbody><tr><td class="ln">Hanging Core &amp; Compression <em class="new">new</em></td><td class="num">14</td></tr><tr><td class="ln">Rotational &amp; Loaded Core <em class="new">new</em></td><td class="num">4</td></tr></tbody></table></article><article class="disc" style="--hue:8 58% 52%"><header><h3>Pressing Strength</h3><p class="pillar">Strength &amp; Capacity</p></header><table class="lines"><tbody><tr><td class="ln">Horizontal Press</td><td class="num">13</td></tr><tr><td class="ln">Vertical Press</td><td class="num">11</td></tr><tr><td class="ln">Dip Press</td><td class="num">6</td></tr><tr><td class="ln">Bent-Arm to Straight-Arm Press</td><td class="num">5</td></tr><tr><td class="ln">Arms &amp; Accessory <em class="new">new</em></td><td class="num">8</td></tr></tbody></table></article><article class="disc" style="--hue:8 58% 52%"><header><h3>Loaded Lower Body Strength <em class="new">new</em></h3><p class="pillar">Strength &amp; Capacity</p></header><table class="lines"><tbody><tr><td class="ln">Bilateral Squat <em class="new">new</em></td><td class="num">2</td></tr><tr><td class="ln">Single-Leg Squat &amp; Lunge <em class="new">new</em></td><td class="num">5</td></tr><tr><td class="ln">Lateral / Mobility Squat <em class="new">new</em></td><td class="num">2</td></tr><tr><td class="ln">Hip Hinge <em class="new">new</em></td><td class="num">11</td></tr></tbody></table></article><article class="disc" style="--hue:8 58% 52%"><header><h3>Bounciness &amp; Elastic Power</h3><p class="pillar">Strength &amp; Capacity</p></header><table class="lines"><tbody><tr><td class="ln">Vertical Jump</td><td class="num">4</td></tr><tr><td class="ln">Horizontal Jump</td><td class="num">3</td></tr></tbody></table></article><article class="disc" style="--hue:145 32% 46%"><header><h3>Hip &amp; Leg Mobility <em class="new">new</em></h3><p class="pillar">Mobility</p></header><table class="lines"><tbody><tr><td class="ln">Front Split Line <em class="new">new</em></td><td class="num">23</td></tr><tr><td class="ln">Middle Split Line <em class="new">new</em></td><td class="num">19</td></tr><tr><td class="ln">Hip Rotation <em class="new">new</em></td><td class="num">3</td></tr><tr><td class="ln">Squat Position <em class="new">new</em></td><td class="num">1</td></tr><tr><td class="ln">Stance Positions <em class="new">new</em></td><td class="num">2</td></tr></tbody></table></article><article class="disc" style="--hue:145 32% 46%"><header><h3>Shoulder &amp; Thoracic Mobility <em class="new">new</em></h3><p class="pillar">Mobility</p></header><table class="lines"><tbody><tr><td class="ln">Scapular Control <em class="new">new</em></td><td class="num">12</td></tr><tr><td class="ln">Shoulder Rotation <em class="new">new</em></td><td class="num">7</td></tr><tr><td class="ln">Chest &amp; Thoracic Opening <em class="new">new</em></td><td class="num">9</td></tr><tr><td class="ln">Lat &amp; Side Body <em class="new">new</em></td><td class="num">3</td></tr></tbody></table></article><article class="disc" style="--hue:145 32% 46%"><header><h3>Spinal Mobility <em class="new">new</em></h3><p class="pillar">Mobility</p></header><table class="lines"><tbody><tr><td class="ln">Spinal Extension &amp; Bridging <em class="new">new</em></td><td class="num">10</td></tr><tr><td class="ln">Spinal Waves <em class="new">new</em></td><td class="num">1</td></tr></tbody></table></article><article class="disc" style="--hue:268 32% 58%"><header><h3>Ground Locomotion</h3><p class="pillar">Flocomotion</p></header><table class="lines"><tbody><tr><td class="ln">Quadrupedal Forward</td><td class="num">21</td></tr><tr><td class="ln">Lateral / Multi-directional</td><td class="num">11</td></tr><tr><td class="ln">Rolling Locomotion</td><td class="num">11</td></tr><tr><td class="ln">Bipedal Forward</td><td class="num">3</td></tr></tbody></table></article><article class="disc" style="--hue:268 32% 58%"><header><h3>Inverted &amp; Rotational Locomotion</h3><p class="pillar">Flocomotion</p></header><table class="lines"><tbody><tr><td class="ln">Cartwheel Family</td><td class="num">11</td></tr><tr><td class="ln">Walkovers <em class="new">new</em></td><td class="num">3</td></tr><tr><td class="ln">Flips &amp; Handsprings <em class="new">new</em></td><td class="num">2</td></tr><tr><td class="ln">Capoeira Inversions <em class="new">new</em></td><td class="num">1</td></tr></tbody></table></article><article class="disc" style="--hue:268 32% 58%"><header><h3>Rhythm &amp; Flow <em class="new">new</em></h3><p class="pillar">Flocomotion</p></header><table class="lines"><tbody><tr><td class="ln">Rhythmic Foundations <em class="new">new</em></td><td class="num">4</td></tr><tr><td class="ln">Floor Flow <em class="new">new</em></td><td class="num">10</td></tr><tr><td class="ln">Kicks <em class="new">new</em></td><td class="num">10</td></tr><tr><td class="ln">Acrobatics <em class="new">new</em></td><td class="num">9</td></tr><tr><td class="ln">Dance / Musical Movement <em class="new">new</em></td><td class="num">3</td></tr></tbody></table></article><article class="disc" style="--hue:268 32% 58%"><header><h3>Partner &amp; Connection <em class="new">new</em></h3><p class="pillar">Flocomotion</p></header><table class="lines"><tbody><tr><td class="ln">Rough Housing <em class="new">new</em></td><td class="num">9</td></tr><tr><td class="ln">Partner Connection <em class="new">new</em></td><td class="num">8</td></tr><tr><td class="ln">Flow Games <em class="new">new</em></td><td class="num">3</td></tr></tbody></table></article><article class="disc" style="--hue:198 46% 52%"><header><h3>Object Play <em class="new">new</em></h3><p class="pillar">Object Play</p></header><table class="lines"><tbody><tr><td class="ln">Juggling <em class="new">new</em></td><td class="num">20</td></tr><tr><td class="ln">Staff <em class="new">new</em></td><td class="num">20</td></tr><tr><td class="ln">Ball Skills <em class="new">new</em></td><td class="num">10</td></tr></tbody></table></article></div>
+</div>
+
+<div class="wrap">
+  <h3>What changed, and why</h3>
+  <p><strong>Split the lines doing several jobs at once.</strong>
+  <code>Horizontal Pull</code> held 29 exercises doing four different things:
+  rows, arm curls, the front lever family, and straight-arm rotation. It comes down
+  to 7. <code>Vertical Pull</code> mixed strict pulling with swinging and kipping,
+  so swinging gets its own line.</p>
+
+  <p><strong>Dropped the lines that overlapped each other.</strong>
+  <code>Inverted &amp; Rotational Locomotion &rsaquo; Rolls</code> duplicated
+  <code>Ground Locomotion &rsaquo; Rolling Locomotion</code>. Bridges were spread
+  across <em>three</em> disciplines. <code>Straight Arm Balance</code> held a single
+  exercise and its name collided with the Straight-Arm Strength discipline.
+  <code>Rotational / Kick Power</code> overlapped <code>Kicks</code>.</p>
+
+  <p><strong>Renamed the lines named after the wrong thing.</strong>
+  <code>Prehab &amp; Rehab &rsaquo; Banded</code> was named after a <em>band</em>,
+  which is exactly why the four dumbbell versions of exercises already sitting in
+  it had nowhere to go &mdash; equipment is not a category of movement. Likewise
+  <code>Hip Opening (frontal)</code> and <code>(sagittal)</code> become
+  <code>Middle Split Line</code> and <code>Front Split Line</code>: the same
+  distinction, in words a member would recognise.</p>
+
+  <div class="callout">
+    <p><strong>One rename is worth doing for a purely technical reason.</strong>
+    <code>Rhythm, Flow &amp; Expression</code> contains a comma, and multi-value
+    fields are comma- or semicolon-separated. That single comma makes it impossible
+    to reference any of its five lines from <code>Also Appears In</code> &mdash;
+    which is why <code>Bridge Circle</code>'s reference is broken today. Renaming it
+    <strong>Rhythm &amp; Flow</strong> removes the problem at the source.</p>
+  </div>
+
+  <h3>The one thing to check before anything else</h3>
+  <p><code>Hip Opening (frontal)</code> currently holds 33 exercises that are
+  almost all <em>sagittal</em> &mdash; front splits, long lunges, couch stretch,
+  forward folds, Thomas stretch. Meanwhile the pancake / middle splits / frog /
+  butterfly cluster you have been entering has no Line at all, and
+  <code>Hip Opening (sagittal)</code> sits empty. <strong>The line's name and its
+  contents disagree.</strong> I have swapped them, which re-homes about a sixth of
+  the Mobility pillar. It is the biggest single judgement here and the one most
+  worth your physical read.</p>
+
+  <h2><span class="n">04</span>Renames &mdash; do these first</h2>
+  <p>21 bulk find-and-replace operations. Every exercise in a line travels
+  with it, so these are fast and they shrink the per-row work considerably.</p>
+</div>
+
+<div class="wrap wide">
+  <div class="scroll"><table>
+    <tr><th>From</th><th></th><th>To</th></tr>
+    <tr><td>Foundational Resting Positions - Hip Opening (frontal)</td><td class="arrow">&rarr;</td><td class="to">Hip &amp; Leg Mobility - Front Split Line</td></tr><tr><td>Foundational Resting Positions - Stance Positions</td><td class="arrow">&rarr;</td><td class="to">Hip &amp; Leg Mobility - Stance Positions</td></tr><tr><td>Games - Ball Games</td><td class="arrow">&rarr;</td><td class="to">Object Play - Ball Skills</td></tr><tr><td>Games - Floor &amp; Flow Games</td><td class="arrow">&rarr;</td><td class="to">Partner &amp; Connection - Flow Games</td></tr><tr><td>Games - Rough Housing</td><td class="arrow">&rarr;</td><td class="to">Partner &amp; Connection - Rough Housing</td></tr><tr><td>Games - Stick Games</td><td class="arrow">&rarr;</td><td class="to">Object Play - Staff</td></tr><tr><td>Games - Team Work &amp; Connection</td><td class="arrow">&rarr;</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Hand-Eye Coordination &amp; Object Manipulation - Juggling</td><td class="arrow">&rarr;</td><td class="to">Object Play - Juggling</td></tr><tr><td>Hand-Eye Coordination &amp; Object Manipulation - Staff</td><td class="arrow">&rarr;</td><td class="to">Object Play - Staff</td></tr><tr><td>Hanging &amp; Pulling Above the Bar - Horizontal Pull</td><td class="arrow">&rarr;</td><td class="to">Hanging &amp; Pulling - Horizontal Pull</td></tr><tr><td>Hanging &amp; Pulling Above the Bar - Passive / Active Hang</td><td class="arrow">&rarr;</td><td class="to">Hanging &amp; Pulling - Passive / Active Hang</td></tr><tr><td>Hanging &amp; Pulling Above the Bar - Pull-to-Press Transition</td><td class="arrow">&rarr;</td><td class="to">Hanging &amp; Pulling - Pull-to-Press Transition</td></tr><tr><td>Hanging &amp; Pulling Above the Bar - Vertical Pull</td><td class="arrow">&rarr;</td><td class="to">Hanging &amp; Pulling - Vertical Pull</td></tr><tr><td>Lever &amp; Straight-Arm Body Control - Core</td><td class="arrow">&rarr;</td><td class="to">Core &amp; Midline - Hanging Core &amp; Compression</td></tr><tr><td>Lever &amp; Straight-Arm Body Control - Front Lever Line</td><td class="arrow">&rarr;</td><td class="to">Straight-Arm Strength - Front Lever Line</td></tr><tr><td>Lever &amp; Straight-Arm Body Control - Planche Line</td><td class="arrow">&rarr;</td><td class="to">Straight-Arm Strength - Planche Line</td></tr><tr><td>Lever &amp; Straight-Arm Body Control - Side Lever Line</td><td class="arrow">&rarr;</td><td class="to">Straight-Arm Strength - Side Lever Line</td></tr><tr><td>Rhythm, Flow &amp; Expression - Acrobatics</td><td class="arrow">&rarr;</td><td class="to">Rhythm &amp; Flow - Acrobatics</td></tr><tr><td>Rhythm, Flow &amp; Expression - Floor Flow</td><td class="arrow">&rarr;</td><td class="to">Rhythm &amp; Flow - Floor Flow</td></tr><tr><td>Rhythm, Flow &amp; Expression - Kicks</td><td class="arrow">&rarr;</td><td class="to">Rhythm &amp; Flow - Kicks</td></tr><tr><td>Rhythm, Flow &amp; Expression - Rhythmic Foundations</td><td class="arrow">&rarr;</td><td class="to">Rhythm &amp; Flow - Rhythmic Foundations</td></tr>
+  </table></div>
+</div>
+
+<div class="wrap">
+  <h2><span class="n">05</span>Exercise moves</h2>
+  <p>160 exercises change line beyond the renames, grouped by where they land
+  so you can work through one destination at a time. <code>changes.csv</code> has
+  the same thing row by row if you would rather tick down a list.</p>
+</div>
+
+<div class="wrap wide">
+  <section class="movegroup"><h4>Bounciness &amp; Elastic Power - Horizontal Jump <span class="ct">1</span></h4><p class="why">travelling jump</p><div class="chips"><span class="chip">Gather Step jump</span></div></section><section class="movegroup"><h4>Bounciness &amp; Elastic Power - Vertical Jump <span class="ct">2</span></h4><p class="why">vertical jumping</p><div class="chips"><span class="chip">Box Jump</span><span class="chip">High Jump</span></div></section><section class="movegroup"><h4>Core &amp; Midline - Rotational &amp; Loaded Core <span class="ct">4</span></h4><p class="why">loaded rotation - had no Discipline or Line at all, and no line in the library fitted</p><div class="chips"><span class="chip">Kettlebell ATW to Lunge</span><span class="chip">Kettlebell Around the world</span><span class="chip">Kettlebell Halo</span><span class="chip">Kettlebell Wood Chop</span></div></section><section class="movegroup"><h4>Ground Locomotion - Quadrupedal Forward <span class="ct">2</span></h4><p class="why">crawling patterns</p><div class="chips"><span class="chip">Animal Pattern Relay Races</span><span class="chip">Crawling Patterns with Partner</span></div></section><section class="movegroup"><h4>Ground Locomotion - Rolling Locomotion <span class="ct">1</span></h4><p class="why">rolling</p><div class="chips"><span class="chip">Push Pull and Rolling in all directions</span></div></section><section class="movegroup"><h4>Hand Balancing &amp; Inversion - Bent-Arm Balances <span class="ct">1</span></h4><p class="why">Straight Arm Balance held one exercise and its name collided with Straight-Arm Strength</p><div class="chips"><span class="chip">Crow - Straight Arm</span></div></section><section class="movegroup"><h4>Hand Balancing &amp; Inversion - Static Inversion <span class="ct">1</span></h4><p class="why">balance game</p><div class="chips"><span class="chip">Balancing</span></div></section><section class="movegroup"><h4>Hanging &amp; Pulling - Pull-to-Press Transition <span class="ct">5</span></h4><p class="why">kipping and bar transitions belong with the other muscle-ups, not in strict Vertical Pull</p><div class="chips"><span class="chip">Bar Kip</span><span class="chip">Glide Kip</span><span class="chip">Muscle Up - Bar</span><span class="chip">Pull Over</span><span class="chip">Pull Over - Jump</span></div></section><section class="movegroup"><h4>Hanging &amp; Pulling - Swinging &amp; Brachiation <span class="ct">6</span></h4><p class="why">swinging/travelling, not strict vertical pulling</p><div class="chips"><span class="chip">Ape Swing</span><span class="chip">Brachiation</span><span class="chip">Lache</span><span class="chip">Lateral Swing</span><span class="chip">Swing to Precision</span><span class="chip">Swinging</span></div></section><section class="movegroup"><h4>Hip &amp; Leg Mobility - Front Split Line <span class="ct">1</span></h4><p class="why">sagittal / front-split work</p><div class="chips"><span class="chip">Hurdler Stretch</span></div></section><section class="movegroup"><h4>Hip &amp; Leg Mobility - Hip Rotation <span class="ct">3</span></h4><p class="why">hip rotation rather than a split line</p><div class="chips"><span class="chip">90/90</span><span class="chip">Pigeon Stretch</span><span class="chip">Pigeon Stretch - Box</span></div></section><section class="movegroup"><h4>Hip &amp; Leg Mobility - Middle Split Line <span class="ct">19</span></h4><p class="why">abduction / middle-split work - had no Line, and Middle Split Line did not exist</p><div class="chips"><span class="chip">Butterfly</span><span class="chip">Butterfly - Partner</span><span class="chip">Butterfly - Weighted</span><span class="chip">Copenhagen</span><span class="chip">Diagonal Stretch</span><span class="chip">Frog - Internal Lifts</span><span class="chip">Frog Stretch</span><span class="chip">Leg Swings - Side</span><span class="chip">Middle Splits</span><span class="chip">Middle Splits - Active</span><span class="chip">Middle Splits - Contract and Relax</span><span class="chip">Middle Splits - Sliding</span><span class="chip">Pancake</span><span class="chip">Pancake - Dynamic</span><span class="chip">Pancake - Elevated</span><span class="chip">Pancake - Partner</span><span class="chip">Pancake - Weighted</span><span class="chip">Partner Leg Lift - Side</span><span class="chip">Side Pancake Weighted</span></div></section><section class="movegroup"><h4>Hip &amp; Leg Mobility - Squat Position <span class="ct">1</span></h4><p class="why">held squat position (also a game - see tags)</p><div class="chips"><span class="chip">Squat Gladiators</span></div></section><section class="movegroup"><h4>Hip &amp; Leg Mobility - Stance Positions <span class="ct">2</span></h4><p class="why">stance positions</p><div class="chips"><span class="chip">Horse Stance</span><span class="chip">Stick Horse Stance</span></div></section><section class="movegroup"><h4>Inverted &amp; Rotational Locomotion - Capoeira Inversions <span class="ct">1</span></h4><p class="why">capoeira</p><div class="chips"><span class="chip">Rolê</span></div></section><section class="movegroup"><h4>Inverted &amp; Rotational Locomotion - Flips &amp; Handsprings <span class="ct">2</span></h4><p class="why">no-hands rotation</p><div class="chips"><span class="chip">Aerial</span><span class="chip">Butterfly Twist</span></div></section><section class="movegroup"><h4>Inverted &amp; Rotational Locomotion - Walkovers <span class="ct">3</span></h4><p class="why">walkovers are not cartwheels</p><div class="chips"><span class="chip">Back Walkover</span><span class="chip">Front Walkover</span><span class="chip">Gumby</span></div></section><section class="movegroup"><h4>Loaded Lower Body Strength - Bilateral Squat <span class="ct">2</span></h4><p class="why">squat-to-press: the squat is the limiting element</p><div class="chips"><span class="chip">Kettlebell Thruster</span><span class="chip">Thruster</span></div></section><section class="movegroup"><h4>Loaded Lower Body Strength - Hip Hinge <span class="ct">11</span></h4><p class="why">loaded hip hinge - Kettlebell Swing was filed under Planche Line; the rest sat in hip mobility</p><div class="chips"><span class="chip">Good Morning</span><span class="chip">Good Morning - Single Leg</span><span class="chip">Good Morning - Wide Leg</span><span class="chip">Hinge Pick Ups</span><span class="chip">Jefferson Curl</span><span class="chip">Jefferson Curl - Wide Leg</span><span class="chip">Jefferson Curl - to Squat</span><span class="chip">Kettlebell Swing</span><span class="chip">Kettlebell Swing Single Arm</span><span class="chip">Kettlebell Swing Squat</span><span class="chip">RDL</span></div></section><section class="movegroup"><h4>Loaded Lower Body Strength - Lateral / Mobility Squat <span class="ct">2</span></h4><p class="why">loaded squatting in the frontal plane</p><div class="chips"><span class="chip">Cossack Squat</span><span class="chip">Horse Stance - Squats</span></div></section><section class="movegroup"><h4>Loaded Lower Body Strength - Single-Leg Squat &amp; Lunge <span class="ct">5</span></h4><p class="why">single-leg loaded strength</p><div class="chips"><span class="chip">Kettlebell walking lunge</span><span class="chip">Lunge</span><span class="chip">Sissy Squat</span><span class="chip">Split Squat</span><span class="chip">Walking Lunge</span></div></section><section class="movegroup"><h4>Object Play - Ball Skills <span class="ct">8</span></h4><p class="why">ball skills are Object Play, not a category of their own</p><div class="chips"><span class="chip">Bouncing Elimination</span><span class="chip">Bouncing and Shooting Basketball</span><span class="chip">Game of Soccer</span><span class="chip">Head Shoulders Knees Toes Ball</span><span class="chip">Paralette Balance + Pass the Ball</span><span class="chip">Practice Ball Drills</span><span class="chip">Soccer Ball Juggling</span><span class="chip">Throwing and Catching</span></div></section><section class="movegroup"><h4>Object Play - Juggling <span class="ct">1</span></h4><p class="why">was filed under Games &gt; Ball Games alongside the real Juggling line</p><div class="chips"><span class="chip">Juggling</span></div></section><section class="movegroup"><h4>Object Play - Staff <span class="ct">1</span></h4><p class="why">duplicate of the Staff line</p><div class="chips"><span class="chip">Bo Staff Spinning</span></div></section><section class="movegroup"><h4>Pressing Strength - Arms &amp; Accessory <span class="ct">3</span></h4><p class="why">single-joint arm isolation</p><div class="chips"><span class="chip">Bicep Curl - Banded</span><span class="chip">Tricep Extension - Banded</span><span class="chip">Tricep Extension - Rings</span></div></section><section class="movegroup"><h4>Pressing Strength - Arms &amp; Accessory <span class="ct">5</span></h4><p class="why">single-joint arm isolation - was padding out Horizontal Pull</p><div class="chips"><span class="chip">Bicep Curl - Dumbbell</span><span class="chip">Bicep Curl - Rings</span><span class="chip">Bicep Curl - Rotational</span><span class="chip">Hammer Curl</span><span class="chip">Pelican Curl</span></div></section><section class="movegroup"><h4>Rhythm &amp; Flow - Dance / Musical Movement <span class="ct">3</span></h4><p class="why">expressive / musical movement - fills a declared line that was empty</p><div class="chips"><span class="chip">Contact Improv</span><span class="chip">Coordinations</span><span class="chip">Mimic Game</span></div></section><section class="movegroup"><h4>Shoulder &amp; Thoracic Mobility - Chest &amp; Thoracic Opening <span class="ct">9</span></h4><p class="why">chest / front-line opening - no such line existed</p><div class="chips"><span class="chip">Banded Thoracic Rotations</span><span class="chip">Dumbell Flys</span><span class="chip">Foam Roller Opener - Dumbbell</span><span class="chip">Foam Roller Opener - Stall Bars</span><span class="chip">Lying Chest Stretch</span><span class="chip">Over head Partner Push</span><span class="chip">Standing Chest Stretch</span><span class="chip">Table Top Hold</span><span class="chip">Table Top Lifts</span></div></section><section class="movegroup"><h4>Shoulder &amp; Thoracic Mobility - Lat &amp; Side Body <span class="ct">3</span></h4><p class="why">lateral flexion - not thoracic extension, so it needs its own line</p><div class="chips"><span class="chip">Mermaid Stretch</span><span class="chip">Squat Lat Stretch</span><span class="chip">Standing Lat Stretch</span></div></section><section class="movegroup"><h4>Shoulder &amp; Thoracic Mobility - Scapular Control <span class="ct">12</span></h4><p class="why">scapular control - was in Prehab &amp; Rehab &gt; Banded, a line named after equipment</p><div class="chips"><span class="chip">Banded Chin Pull Down</span><span class="chip">Banded Facepull</span><span class="chip">Banded Frontal Raise</span><span class="chip">Banded Lateral Raise</span><span class="chip">Banded Lower Trap Pull</span><span class="chip">Banded Overhead Pull Apart</span><span class="chip">Banded Pull Apart</span><span class="chip">Banded Row</span><span class="chip">Banded Shoulder Routine</span><span class="chip">Banded Straight Arm Pull Down</span><span class="chip">Behind the Back Supinated Raise</span><span class="chip">Dumbell Lower Trap Raise</span></div></section><section class="movegroup"><h4>Shoulder &amp; Thoracic Mobility - Shoulder Rotation <span class="ct">7</span></h4><p class="why">shoulder rotation - same rehome; the dumbbell versions had nowhere to go at all</p><div class="chips"><span class="chip">Banded Circles</span><span class="chip">Banded Dislocate</span><span class="chip">Banded External Rotation - Single Arm</span><span class="chip">Banded External Rotation Pull Apart</span><span class="chip">Banded Internal Rotation - Single Arm</span><span class="chip">Cuban Rotation</span><span class="chip">Dumbell Internal/External rotion</span></div></section><section class="movegroup"><h4>Spinal Mobility - Spinal Extension &amp; Bridging <span class="ct">10</span></h4><p class="why">bridges were split across three disciplines - consolidated here</p><div class="chips"><span class="chip">Bridge Circle</span><span class="chip">Bridge Circle - Half</span><span class="chip">Bridge Hold</span><span class="chip">Bridge Pulses</span><span class="chip">Bridge Push Up</span><span class="chip">Cobra Peel</span><span class="chip">Push Up - Bridge</span><span class="chip">Standing Arch</span><span class="chip">Thoracic Bridge</span><span class="chip">Yoga Wheel Opener</span></div></section><section class="movegroup"><h4>Spinal Mobility - Spinal Waves <span class="ct">1</span></h4><p class="why">spinal waves (also a game - see tags)</p><div class="chips"><span class="chip">Spinal Waves and Joint Rotations</span></div></section><section class="movegroup"><h4>Straight-Arm Strength - Back Lever Line <span class="ct">5</span></h4><p class="why">straight-arm pulling holds, currently under Pressing Strength &gt; Horizontal Press</p><div class="chips"><span class="chip">Back Lever</span><span class="chip">Back Lever - Straddle</span><span class="chip">Back Lever - Tuck</span><span class="chip">German Hang</span><span class="chip">German Hang - Assisted</span></div></section><section class="movegroup"><h4>Straight-Arm Strength - Front Lever Line <span class="ct">8</span></h4><p class="why">front lever family - the declared Front Lever Line was empty while these sat in Horizontal Pull</p><div class="chips"><span class="chip">Front Lever</span><span class="chip">Front Lever - Deadlift</span><span class="chip">Front Lever - Straddle</span><span class="chip">Front Lever - Tuck</span><span class="chip">Front Lever Pull</span><span class="chip">Front Lever Pull - Straddle</span><span class="chip">Front Lever Pull - Tuck</span><span class="chip">Ice Cream Maker</span></div></section><section class="movegroup"><h4>Straight-Arm Strength - Straight-Arm Rotation <span class="ct">9</span></h4><p class="why">straight-arm rotation through the shoulder - not a horizontal pull</p><div class="chips"><span class="chip">360 Pull</span><span class="chip">Backward Roll - Bar</span><span class="chip">Forward Roll - Bar</span><span class="chip">Ring Roll</span><span class="chip">Ring Roll - Backward</span><span class="chip">Skin the Cat</span><span class="chip">Skin the Cat - Bar</span><span class="chip">Skin the Cat - Jumping</span><span class="chip">Skin the Cat - Pike</span></div></section>
+</div>
+
+<div class="wrap">
+  <h2><span class="n">06</span>Tags</h2>
+  <h4>Session Role = Game <span class="ct">51</span></h4>
+  <p class="why">Everything that came out of the Games discipline. They are still
+  games &mdash; they just now live under the movement they actually train.</p>
+  <div class="chips"><span class="chip">Animal Pattern Relay Races</span><span class="chip">Balancing</span><span class="chip">Balancing Elimination</span><span class="chip">Bo Staff Spinning</span><span class="chip">Bouncing Elimination</span><span class="chip">Bouncing and Shooting Basketball</span><span class="chip">Circle Stick Game</span><span class="chip">Contact Improv</span><span class="chip">Coordinations</span><span class="chip">Crawling Patterns with Partner</span><span class="chip">Dead Bug Game</span><span class="chip">Drop Stick Game</span><span class="chip">Flip the Croc</span><span class="chip">Foot Taps, Handslaps</span><span class="chip">Game of Soccer</span><span class="chip">Grappling</span><span class="chip">Hanging Zen Archer</span><span class="chip">Head Shoulders Knees Toes Ball</span><span class="chip">Jenga Blocks</span><span class="chip">Juggling</span><span class="chip">King of the Mat</span><span class="chip">Knee Tap Game + Crawling Version</span><span class="chip">Limbo</span><span class="chip">Marry Me</span><span class="chip">Mimic Game</span><span class="chip">Movement Riddles</span><span class="chip">Name Game</span><span class="chip">Paper Scissors Rock</span><span class="chip">Paralette Balance + Pass the Ball</span><span class="chip">Partner Arching Circles Around Stick</span><span class="chip">Partner Carries</span><span class="chip">Practice Ball Drills</span><span class="chip">Push Pull Off the Line</span><span class="chip">Push Pull and Rolling in all directions</span><span class="chip">Quadrapedal Red Rover</span><span class="chip">Shoulder Tap Game</span><span class="chip">Soccer Ball Juggling</span><span class="chip">Speed Dating</span><span class="chip">Spinal Waves and Joint Rotations</span><span class="chip">Squat Gladiators</span><span class="chip">Stick Circle Madness</span><span class="chip">Stick Horse Stance</span><span class="chip">Stick Twister</span><span class="chip">Stone and Water</span><span class="chip">Stuck in the Mud</span><span class="chip">Throwing and Catching</span><span class="chip">Trust Game Eyes Closed</span><span class="chip">Tug of War</span><span class="chip">Voodoo Doll</span><span class="chip">Wheel Barrow Races</span><span class="chip">Zen Archer</span></div>
+
+  <h4 style="margin-top:1.7rem">Session Role = Prehab <span class="ct">23</span></h4>
+  <p class="why">The banded and dumbbell shoulder work, filed by what it trains
+  rather than what it uses.</p>
+  <div class="chips"><span class="chip">Banded Chin Pull Down</span><span class="chip">Banded Circles</span><span class="chip">Banded Dislocate</span><span class="chip">Banded External Rotation - Single Arm</span><span class="chip">Banded External Rotation Pull Apart</span><span class="chip">Banded Facepull</span><span class="chip">Banded Frontal Raise</span><span class="chip">Banded Internal Rotation - Single Arm</span><span class="chip">Banded Lateral Raise</span><span class="chip">Banded Lower Trap Pull</span><span class="chip">Banded Overhead Pull Apart</span><span class="chip">Banded Pull Apart</span><span class="chip">Banded Row</span><span class="chip">Banded Shoulder Routine</span><span class="chip">Banded Straight Arm Pull Down</span><span class="chip">Banded Thoracic Rotations</span><span class="chip">Behind the Back Supinated Raise</span><span class="chip">Cuban Rotation</span><span class="chip">Dumbell Flys</span><span class="chip">Dumbell Internal/External rotion</span><span class="chip">Dumbell Lower Trap Raise</span><span class="chip">Table Top Hold</span><span class="chip">Table Top Lifts</span></div>
+
+  <h2><span class="n">07</span>Also Appears In</h2>
+  <p>34 exercises genuinely belong in two places &mdash; the ones where a
+  coach looking in either line would expect to find them. A bridge walk is
+  locomotion <em>and</em> spinal extension; a muscle-up is a pull <em>and</em> a
+  dip. Semicolon-separated, and each value has to match a LineKey exactly.</p>
+</div>
+
+<div class="wrap wide">
+  <div class="scroll"><table>
+    <tr><th>Exercise</th><th>Also Appears In</th></tr>
+    <tr><td>Aerial</td><td class="to">Inverted &amp; Rotational Locomotion - Cartwheel Family</td></tr><tr><td>Backward Roll - Bar</td><td class="to">Ground Locomotion - Rolling Locomotion</td></tr><tr><td>Bridge Circle</td><td class="to">Rhythm &amp; Flow - Acrobatics</td></tr><tr><td>Bridge Push Up</td><td class="to">Pressing Strength - Bent-Arm to Straight-Arm Press</td></tr><tr><td>Bridge Walk</td><td class="to">Spinal Mobility - Spinal Extension &amp; Bridging</td></tr><tr><td>Butterfly - Partner</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Butterfly Twist</td><td class="to">Rhythm &amp; Flow - Floor Flow</td></tr><tr><td>Cat Crawl - Spinal Wave</td><td class="to">Spinal Mobility - Spinal Waves</td></tr><tr><td>Crab Walk</td><td class="to">Spinal Mobility - Spinal Extension &amp; Bridging</td></tr><tr><td>Forward Roll - Bar</td><td class="to">Ground Locomotion - Rolling Locomotion</td></tr><tr><td>Handstand - Partner</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Handstand to Roll</td><td class="to">Hand Balancing &amp; Inversion - Static Inversion</td></tr><tr><td>Hanging Zen Archer</td><td class="to">Hanging &amp; Pulling - Passive / Active Hang</td></tr><tr><td>Horse Stance - Squats</td><td class="to">Hip &amp; Leg Mobility - Stance Positions</td></tr><tr><td>Horse Stance - Walk</td><td class="to">Hip &amp; Leg Mobility - Stance Positions</td></tr><tr><td>Inverted Hang - Rings</td><td class="to">Straight-Arm Strength - Straight-Arm Rotation</td></tr><tr><td>Kettlebell Thruster</td><td class="to">Pressing Strength - Vertical Press</td></tr><tr><td>Lizard Crawl - Push Up</td><td class="to">Pressing Strength - Horizontal Press</td></tr><tr><td>Monkey Kick</td><td class="to">Ground Locomotion - Quadrupedal Forward</td></tr><tr><td>Muscle Up - Bar</td><td class="to">Hanging &amp; Pulling - Vertical Pull</td></tr><tr><td>Muscle Up - Rings</td><td class="to">Pressing Strength - Dip Press</td></tr><tr><td>Over head Partner Push</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Pancake - Partner</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Partner Carries</td><td class="to">Loaded Lower Body Strength - Single-Leg Squat &amp; Lunge</td></tr><tr><td>Partner Forward Fold</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Partner Hamstring Stretch</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Partner Leg Lift - Front</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Partner Leg Lift - Side</td><td class="to">Partner &amp; Connection - Partner Connection</td></tr><tr><td>Push Up - Bridge</td><td class="to">Pressing Strength - Vertical Press</td></tr><tr><td>Skin the Cat</td><td class="to">Straight-Arm Strength - Front Lever Line</td></tr><tr><td>Squat Gladiators</td><td class="to">Partner &amp; Connection - Rough Housing</td></tr><tr><td>Stick Horse Stance</td><td class="to">Object Play - Staff</td></tr><tr><td>Thruster</td><td class="to">Pressing Strength - Vertical Press</td></tr><tr><td>Wheel Barrow Races</td><td class="to">Ground Locomotion - Quadrupedal Forward</td></tr>
+  </table></div>
+</div>
+
+<div class="wrap end">
+  <h2><span class="n">08</span>Order to do it in</h2>
+  <ol class="steps">
+    <li><strong>Decide the frontal/sagittal swap.</strong> Almost everything in
+    Hip &amp; Leg Mobility depends on it.</li>
+    <li><strong>Update the Links tab</strong> to the 57 LineKeys in section
+    3, and trim the Importance legend to three values.</li>
+    <li><strong>Run the 21 renames</strong> as find-and-replace on the
+    Exercises tab.</li>
+    <li><strong>Apply the 160 moves</strong> from section 5 or
+    <code>changes.csv</code>.</li>
+    <li><strong>Add the Session Role column</strong> and tag the 51 games and
+    23 prehab rows.</li>
+    <li><strong>Fill Also Appears In</strong> from section 7.</li>
+    <li><strong>Two loose ends.</strong> <code>Split Squat</code> exists twice
+    &mdash; delete the old Mobility row and keep the new one. And
+    <code>Bridge Circle</code>'s Also Appears In has stray quote marks; remove
+    them.</li>
+  </ol>
+
+  <h2><span class="n">09</span>Where I am least confident</h2>
+  <p><strong>The frontal/sagittal swap.</strong> Anatomically I believe it is
+  right, but it is a big move and you know the material better than I do.</p>
+
+  <p><strong><code>Partner &amp; Connection</code> as a discipline.</strong> You
+  asked for games to go under the discipline that applies to them. For roughly
+  twenty of them &mdash; grappling, king of the mat, trust games, partner carries
+  &mdash; no movement discipline applies, because partner contact <em>is</em> the
+  content. So I made it a real discipline rather than force them somewhere false.
+  If you would rather retire the handful with almost no movement in them
+  (<code>Name Game</code>, <code>Speed Dating</code>,
+  <code>Paper Scissors Rock</code>, <code>Marry Me</code>), that works too.</p>
+
+  <p><strong>I deliberately left one declared line out.</strong>
+  <code>Rotational Articulation</code> was declared and empty, and across all
+  472 exercises I found nothing to put in it. That reads as a gap in the
+  <em>training</em> rather than the taxonomy &mdash; there is no standalone
+  rotational articulation work in the library. Declaring an empty line would have
+  hidden that.</p>
+
+  <p><strong>Four kettlebell exercises</strong> &mdash; halo, around-the-world,
+  wood chop, ATW-to-lunge &mdash; exposed that core work existed only as a
+  <em>hanging</em> line inside a straight-arm discipline. I gave core its own
+  discipline rather than wedge loaded rotation into a mobility line.</p>
+</div>

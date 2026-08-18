@@ -1,0 +1,335 @@
+<title>Movement Library Taxonomy v3</title>
+<style>
+:root {{
+  --bg:#FBF9F7; --panel:#FFFFFF; --ink:#221C18; --ink-2:#574C45; --ink-3:#8B7D74;
+  --rule:#E6DED7; --rule-2:#F2ECE7; --accent:8 58% 44%; --new:145 40% 32%;
+}}
+@media (prefers-color-scheme: dark) {{
+  :root:not([data-theme="light"]) {{
+    --bg:#17130F; --panel:#1F1A16; --ink:#F2EBE3; --ink-2:#BCAEA3; --ink-3:#897B70;
+    --rule:#332A24; --rule-2:#241E1A; --accent:8 64% 64%; --new:145 34% 56%;
+  }}
+}}
+:root[data-theme="dark"] {{
+  --bg:#17130F; --panel:#1F1A16; --ink:#F2EBE3; --ink-2:#BCAEA3; --ink-3:#897B70;
+  --rule:#332A24; --rule-2:#241E1A; --accent:8 64% 64%; --new:145 34% 56%;
+}}
+* {{ box-sizing:border-box; }}
+body {{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+}}
+.wrap {{ max-width:76ch; margin:0 auto; padding:0 1.25rem; }}
+.wrap.top {{ padding-top:clamp(2.2rem,6vw,4.5rem); }}
+.wrap.end {{ padding-bottom:6rem; }}
+.wide {{ max-width:106ch; }}
+h1,h2,h3,h4 {{
+  font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  text-wrap:balance; font-weight:600;
+}}
+h1 {{ font-size:clamp(2rem,5vw,2.85rem); line-height:1.08; margin:0 0 .55rem; letter-spacing:-.021em; }}
+.sub {{
+  color:var(--ink-3); font-size:.72rem; letter-spacing:.17em;
+  text-transform:uppercase; margin:0 0 2.4rem;
+}}
+h2 {{
+  font-size:1.45rem; margin:3.4rem 0 .8rem; padding-top:1.6rem;
+  border-top:1px solid var(--rule); letter-spacing:-.01em;
+}}
+h2 .n {{
+  display:block; margin-bottom:.45rem; color:hsl(var(--accent));
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.72rem; letter-spacing:.14em;
+}}
+h3 {{ font-size:1.02rem; margin:2rem 0 .5rem; }}
+.disc h3 {{ margin:0; font-size:1rem; }}
+h4 {{ font-size:.93rem; margin:0 0 .2rem; }}
+p {{ margin:0 0 1.05rem; }}
+.lead {{ font-size:1.09rem; color:var(--ink-2); }}
+em.new {{
+  font-style:normal; font-family:ui-monospace,monospace; font-size:.6rem;
+  letter-spacing:.09em; text-transform:uppercase; color:hsl(var(--new));
+  border:1px solid hsl(var(--new) / .42); border-radius:3px;
+  padding:.05em .32em; vertical-align:.14em; white-space:nowrap;
+}}
+.callout {{
+  background:var(--panel); border:1px solid var(--rule);
+  border-left:3px solid hsl(var(--accent)); border-radius:0 6px 6px 0;
+  padding:1.05rem 1.2rem; margin:0 0 1.5rem;
+}}
+.callout p:last-child {{ margin:0; }}
+.grid {{
+  display:grid; gap:.8rem; margin:1.6rem 0;
+  grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr));
+}}
+.disc {{
+  background:var(--panel); border:1px solid var(--rule); border-radius:7px;
+  border-top:3px solid hsl(var(--hue)); padding:.85rem 1rem .95rem;
+}}
+.disc header {{ margin-bottom:.55rem; }}
+.pillar {{
+  margin:.18rem 0 0; font-size:.66rem; letter-spacing:.11em;
+  text-transform:uppercase; color:hsl(var(--hue));
+}}
+table {{ border-collapse:collapse; width:100%; font-size:.87rem; }}
+.lines td {{ padding:.24rem 0; border-bottom:1px solid var(--rule-2); }}
+.lines tr:last-child td {{ border-bottom:0; }}
+.lines .ln {{ color:var(--ink-2); }}
+.num {{
+  text-align:right; width:3.5ch; color:var(--ink-3);
+  font-family:ui-monospace,monospace; font-variant-numeric:tabular-nums;
+}}
+.scroll {{
+  overflow-x:auto; border:1px solid var(--rule); border-radius:7px;
+  background:var(--panel); margin:1.3rem 0;
+}}
+.scroll table {{ font-size:.81rem; }}
+.scroll td, .scroll th {{
+  padding:.42rem .75rem; border-bottom:1px solid var(--rule-2);
+  text-align:left; white-space:nowrap;
+}}
+.scroll tr:last-child td {{ border-bottom:0; }}
+.scroll th {{
+  font-size:.64rem; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:600; border-bottom:1px solid var(--rule);
+}}
+.scroll td.num {{ text-align:left; }}
+td.arrow {{ color:var(--ink-3); }}
+td.to {{ color:hsl(var(--accent)); }}
+.movegroup {{ margin:0 0 1.35rem; padding-left:.9rem; border-left:2px solid var(--rule); }}
+.ct {{ font-family:ui-monospace,monospace; font-size:.7rem; color:var(--ink-3); }}
+.why {{ margin:0 0 .5rem; font-size:.84rem; color:var(--ink-3); }}
+.chips {{ display:flex; flex-wrap:wrap; gap:.28rem; }}
+.chip {{
+  font-size:.75rem; padding:.12rem .45rem; border-radius:4px;
+  background:var(--rule-2); border:1px solid var(--rule);
+  color:var(--ink-2); white-space:nowrap;
+}}
+ol.steps {{ padding-left:0; list-style:none; counter-reset:s; }}
+ol.steps li {{
+  counter-increment:s; position:relative;
+  padding-left:2.5rem; margin-bottom:1.05rem;
+}}
+ol.steps li::before {{
+  content:counter(s); position:absolute; left:0; top:.1rem;
+  width:1.65rem; height:1.65rem; display:grid; place-items:center;
+  font-family:ui-monospace,monospace; font-size:.71rem;
+  color:hsl(var(--accent)); border:1px solid hsl(var(--accent) / .34);
+  border-radius:50%;
+}}
+.stat {{ display:flex; gap:2.2rem; flex-wrap:wrap; margin:1.7rem 0 .5rem; }}
+.stat b {{
+  display:block; font-family:ui-monospace,monospace; font-size:1.55rem;
+  font-variant-numeric:tabular-nums; color:var(--ink); line-height:1.2;
+}}
+.stat span {{
+  font-size:.66rem; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--ink-3);
+}}
+code {{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85em;
+  background:var(--rule-2); padding:.1em .32em; border-radius:3px;
+}}
+@media (prefers-reduced-motion:reduce) {{ * {{ animation:none !important; transition:none !important; }} }}
+</style>
+
+<div class="wrap top">
+  <h1>Cleaning up the Movement Library</h1>
+  <p class="sub">Taxonomy v3 &middot; proposal &middot; {n_ex} exercises</p>
+
+  <p class="lead">Four things you asked for, and one idea that ties three of them
+  together: <strong>the sheet is trying to record two different things in one
+  column.</strong></p>
+
+  <div class="callout">
+    <p><strong>Discipline and Line answer &ldquo;what movement is this?&rdquo;</strong>
+    Games and Prehab&nbsp;&amp;&nbsp;Rehab answer a different question &mdash;
+    &ldquo;what job does this do in a class?&rdquo; That is why they never fitted.
+    A game of soccer is <em>ball skills</em> that happens to be played as a game;
+    a banded facepull is <em>scapular control</em> that happens to be prehab.</p>
+    <p>So both dissolve into real movement disciplines, and the class-role
+    information moves to a new tag column. That is your points 3 and 4 &mdash; the
+    same fix applied twice. It also retires the <code>Games</code> pillar, taking
+    you back to five.</p>
+  </div>
+
+  <div class="stat">
+    <div><b>{n_disc}</b><span>Disciplines &larr; {n_disc_old}</span></div>
+    <div><b>{n_lines}</b><span>Lines &larr; {n_lines_old}</span></div>
+    <div><b>0</b><span>Empty lines &larr; 23</span></div>
+    <div><b>0</b><span>Unplaced &larr; 57</span></div>
+  </div>
+
+  <h2><span class="n">01</span>Importance &mdash; three options</h2>
+  <p>Replace the 1&ndash;5 legend with exactly what you described:</p>
+  <div class="scroll"><table>
+    <tr><th>Value</th><th>Meaning</th></tr>
+    <tr><td class="num">1</td><td>In every program</td></tr>
+    <tr><td class="num">2</td><td>In every second program</td></tr>
+    <tr><td class="num">3</td><td>Everything else</td></tr>
+  </table></div>
+  <p>Delete rows 4 and 5 from the <code>Importance legend</code> column in the
+  Links tab. The dropdown already offers only 1&ndash;3, so nothing else changes.
+  <strong>The 33 blank cells can all become 3</strong> &mdash; under this wording a
+  blank <em>is</em> &ldquo;everything else&rdquo;, so the ambiguity disappears
+  instead of needing a decision per row.</p>
+
+  <h2><span class="n">02</span>The new tag column</h2>
+  <p>Add one column to the Exercises tab: <code>Session Role</code>,
+  semicolon-separated so an exercise can hold several.</p>
+  <p><code>Warm Up</code> &middot; <code>Skill</code> &middot;
+  <code>Strength</code> &middot; <code>Mobility</code> &middot;
+  <code>Conditioning</code> &middot; <code>Game</code> &middot;
+  <code>Prehab</code></p>
+  <p>The first four already exist in the Links tab as <code>Session Types</code>,
+  so this extends a vocabulary you have rather than inventing a parallel one.
+  <strong>{n_game} exercises get <code>Game</code></strong>, <strong>{n_prehab} get
+  <code>Prehab</code></strong> &mdash; both listed in section 6. The rest can be
+  filled in whenever; the taxonomy is correct without them.</p>
+
+  <h2><span class="n">03</span>The recommended structure</h2>
+  <p>{n_disc} disciplines, {n_lines} lines, every one populated. Counts are what
+  each line holds <em>after</em> all the moves below.</p>
+</div>
+
+<div class="wrap wide">
+  <div class="grid">{cards}</div>
+</div>
+
+<div class="wrap">
+  <h3>What changed, and why</h3>
+  <p><strong>Split the lines doing several jobs at once.</strong>
+  <code>Horizontal Pull</code> held 29 exercises doing four different things:
+  rows, arm curls, the front lever family, and straight-arm rotation. It comes down
+  to 7. <code>Vertical Pull</code> mixed strict pulling with swinging and kipping,
+  so swinging gets its own line.</p>
+
+  <p><strong>Dropped the lines that overlapped each other.</strong>
+  <code>Inverted &amp; Rotational Locomotion &rsaquo; Rolls</code> duplicated
+  <code>Ground Locomotion &rsaquo; Rolling Locomotion</code>. Bridges were spread
+  across <em>three</em> disciplines. <code>Straight Arm Balance</code> held a single
+  exercise and its name collided with the Straight-Arm Strength discipline.
+  <code>Rotational / Kick Power</code> overlapped <code>Kicks</code>.</p>
+
+  <p><strong>Renamed the lines named after the wrong thing.</strong>
+  <code>Prehab &amp; Rehab &rsaquo; Banded</code> was named after a <em>band</em>,
+  which is exactly why the four dumbbell versions of exercises already sitting in
+  it had nowhere to go &mdash; equipment is not a category of movement. Likewise
+  <code>Hip Opening (frontal)</code> and <code>(sagittal)</code> become
+  <code>Middle Split Line</code> and <code>Front Split Line</code>: the same
+  distinction, in words a member would recognise.</p>
+
+  <div class="callout">
+    <p><strong>One rename is worth doing for a purely technical reason.</strong>
+    <code>Rhythm, Flow &amp; Expression</code> contains a comma, and multi-value
+    fields are comma- or semicolon-separated. That single comma makes it impossible
+    to reference any of its five lines from <code>Also Appears In</code> &mdash;
+    which is why <code>Bridge Circle</code>'s reference is broken today. Renaming it
+    <strong>Rhythm &amp; Flow</strong> removes the problem at the source.</p>
+  </div>
+
+  <h3>The one thing to check before anything else</h3>
+  <p><code>Hip Opening (frontal)</code> currently holds 33 exercises that are
+  almost all <em>sagittal</em> &mdash; front splits, long lunges, couch stretch,
+  forward folds, Thomas stretch. Meanwhile the pancake / middle splits / frog /
+  butterfly cluster you have been entering has no Line at all, and
+  <code>Hip Opening (sagittal)</code> sits empty. <strong>The line's name and its
+  contents disagree.</strong> I have swapped them, which re-homes about a sixth of
+  the Mobility pillar. It is the biggest single judgement here and the one most
+  worth your physical read.</p>
+
+  <h2><span class="n">04</span>Renames &mdash; do these first</h2>
+  <p>{n_rename} bulk find-and-replace operations. Every exercise in a line travels
+  with it, so these are fast and they shrink the per-row work considerably.</p>
+</div>
+
+<div class="wrap wide">
+  <div class="scroll"><table>
+    <tr><th>From</th><th></th><th>To</th></tr>
+    {rename_rows}
+  </table></div>
+</div>
+
+<div class="wrap">
+  <h2><span class="n">05</span>Exercise moves</h2>
+  <p>{n_move} exercises change line beyond the renames, grouped by where they land
+  so you can work through one destination at a time. <code>changes.csv</code> has
+  the same thing row by row if you would rather tick down a list.</p>
+</div>
+
+<div class="wrap wide">
+  {move_groups}
+</div>
+
+<div class="wrap">
+  <h2><span class="n">06</span>Tags</h2>
+  <h4>Session Role = Game <span class="ct">{n_game}</span></h4>
+  <p class="why">Everything that came out of the Games discipline. They are still
+  games &mdash; they just now live under the movement they actually train.</p>
+  <div class="chips">{game_chips}</div>
+
+  <h4 style="margin-top:1.7rem">Session Role = Prehab <span class="ct">{n_prehab}</span></h4>
+  <p class="why">The banded and dumbbell shoulder work, filed by what it trains
+  rather than what it uses.</p>
+  <div class="chips">{prehab_chips}</div>
+
+  <h2><span class="n">07</span>Also Appears In</h2>
+  <p>{n_aai} exercises genuinely belong in two places &mdash; the ones where a
+  coach looking in either line would expect to find them. A bridge walk is
+  locomotion <em>and</em> spinal extension; a muscle-up is a pull <em>and</em> a
+  dip. Semicolon-separated, and each value has to match a LineKey exactly.</p>
+</div>
+
+<div class="wrap wide">
+  <div class="scroll"><table>
+    <tr><th>Exercise</th><th>Also Appears In</th></tr>
+    {aai_rows}
+  </table></div>
+</div>
+
+<div class="wrap end">
+  <h2><span class="n">08</span>Order to do it in</h2>
+  <ol class="steps">
+    <li><strong>Decide the frontal/sagittal swap.</strong> Almost everything in
+    Hip &amp; Leg Mobility depends on it.</li>
+    <li><strong>Update the Links tab</strong> to the {n_lines} LineKeys in section
+    3, and trim the Importance legend to three values.</li>
+    <li><strong>Run the {n_rename} renames</strong> as find-and-replace on the
+    Exercises tab.</li>
+    <li><strong>Apply the {n_move} moves</strong> from section 5 or
+    <code>changes.csv</code>.</li>
+    <li><strong>Add the Session Role column</strong> and tag the {n_game} games and
+    {n_prehab} prehab rows.</li>
+    <li><strong>Fill Also Appears In</strong> from section 7.</li>
+    <li><strong>Two loose ends.</strong> <code>Split Squat</code> exists twice
+    &mdash; delete the old Mobility row and keep the new one. And
+    <code>Bridge Circle</code>'s Also Appears In has stray quote marks; remove
+    them.</li>
+  </ol>
+
+  <h2><span class="n">09</span>Where I am least confident</h2>
+  <p><strong>The frontal/sagittal swap.</strong> Anatomically I believe it is
+  right, but it is a big move and you know the material better than I do.</p>
+
+  <p><strong><code>Partner &amp; Connection</code> as a discipline.</strong> You
+  asked for games to go under the discipline that applies to them. For roughly
+  twenty of them &mdash; grappling, king of the mat, trust games, partner carries
+  &mdash; no movement discipline applies, because partner contact <em>is</em> the
+  content. So I made it a real discipline rather than force them somewhere false.
+  If you would rather retire the handful with almost no movement in them
+  (<code>Name Game</code>, <code>Speed Dating</code>,
+  <code>Paper Scissors Rock</code>, <code>Marry Me</code>), that works too.</p>
+
+  <p><strong>I deliberately left one declared line out.</strong>
+  <code>Rotational Articulation</code> was declared and empty, and across all
+  {n_ex} exercises I found nothing to put in it. That reads as a gap in the
+  <em>training</em> rather than the taxonomy &mdash; there is no standalone
+  rotational articulation work in the library. Declaring an empty line would have
+  hidden that.</p>
+
+  <p><strong>Four kettlebell exercises</strong> &mdash; halo, around-the-world,
+  wood chop, ATW-to-lunge &mdash; exposed that core work existed only as a
+  <em>hanging</em> line inside a straight-arm discipline. I gave core its own
+  discipline rather than wedge loaded rotation into a mobility line.</p>
+</div>
