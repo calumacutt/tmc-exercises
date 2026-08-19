@@ -11,7 +11,7 @@ import {
 import { LOGO_DATA_URI } from './logo.js';
 import {
   SIZE, CX, CY, R_HUB, R_INNER, GAP_PILLAR, svg, SVGNS, el, polar, sectorPath,
-  setDefs, getCSS, estLabelWidth, TITLE_FONT, TITLE_TRACKING,
+  setDefs, getCSS, estLabelWidth, TITLE_FONT, TITLE_TRACKING, MAST_FONT,
 } from './svg.js';
 
 function render() {
@@ -148,33 +148,22 @@ function render() {
   bgRect.setAttribute('width', vbSize); bgRect.setAttribute('height', vbSize);
   svg._vb = { x: vbX, y: vbY, size: vbSize };
 
-  // Masthead and legend go in LAST, once the viewBox is known, and they live
-  // inside the SVG so they travel with the PNG/SVG export. Before this the
-  // export was a wheel with nothing identifying it — the page masthead is HTML,
-  // outside the SVG. A circle inscribed in a square leaves ~21% of the canvas
-  // empty in the corners, so this costs no layout room.
+  // Masthead goes in LAST, once the viewBox is known, and lives inside the SVG so
+  // it travels with the PNG/SVG export — the page masthead is HTML, outside the
+  // SVG, so the export used to carry nothing identifying it. A circle inscribed in
+  // a square leaves ~21% of the canvas empty in the corners, so it costs no
+  // layout room.
   drawMasthead(vbX, vbY, vbSize, discR);
-  drawLegend(sectorJobs, vbX, vbY, vbSize, discR);
-}
-
-// How far a corner block can extend before it touches the disc. The disc edge
-// runs diagonally across each corner, so the usable depth is measured along the
-// diagonal from the canvas corner to the circle.
-function cornerRoom(vbSize, discR) {
-  return (vbSize / 2) - discR / Math.SQRT2;
 }
 
 function drawMasthead(vbX, vbY, vbSize, discR) {
   const pad = vbSize * 0.028;
   const cx = vbX + vbSize / 2, cy = vbY + vbSize / 2;
-  // Two lines, because the space in a corner is a TRIANGLE — a tall narrow block
-  // fits it far better than one wide line, which ran straight into the disc.
-  const lines = ['The Ultimate', 'Mover'];
-  const sub = 'The Movement Collective · Newcastle';
-  const font = fs => `600 ${fs}px Fraunces, Georgia, serif`;
+  const lines = ['TMC Pillars'];
 
   // Horizontal room left of the disc at a given height. The disc curves away as
-  // you go up, so every line of the block has a different amount of space.
+  // you go up, so every line of the block has a different amount of space — and a
+  // corner is a triangle, so this matters more than a single margin would suggest.
   const roomAt = (y, fs) => {
     const dy = Math.abs(y - cy);
     const inside = discR * discR - dy * dy;
@@ -182,20 +171,15 @@ function drawMasthead(vbX, vbY, vbSize, discR) {
     return (cx - discHalf) - (vbX + pad) - fs * 0.5;
   };
 
-  // Shrink until EVERY line clears — including the subtitle, which sits lowest
-  // and so has the least room. Checking only the title lines let the subtitle
-  // run into the disc.
-  let fs = vbSize * 0.045;
+  // Shrink until every line clears the disc at its own baseline.
+  let fs = vbSize * 0.062;
   for (let attempt = 0; attempt < 40; attempt++) {
-    const lh = fs * 1.02, subFs = fs * 0.19;
-    const rows = lines.map((ln, i) => ({
-      text: ln, fs, y: vbY + pad + fs * 0.85 + i * lh, font: font(fs), tracking: 0,
-    }));
-    rows.push({
-      text: sub, fs: subFs, font: `500 ${subFs}px Archivo, sans-serif`, tracking: 0.22,
-      y: vbY + pad + fs * 0.85 + (lines.length - 1) * lh + subFs * 2.6,
+    const lh = fs * 1.02;
+    const fits = lines.every((ln, i) => {
+      const y = vbY + pad + fs * 0.85 + i * lh;
+      return estLabelWidth(ln, fs, MAST_FONT(fs), 0) <= roomAt(y, fs);
     });
-    if (rows.every(r => estLabelWidth(r.text, r.fs, r.font, r.tracking) <= roomAt(r.y, r.fs))) break;
+    if (fits) break;
     fs *= 0.94;
   }
 
@@ -208,39 +192,8 @@ function drawMasthead(vbX, vbY, vbSize, discR) {
     }, g);
     t.textContent = ln;
   });
-  const subFs = fs * 0.19;
-  const st = el('text', {
-    x: vbX + pad, y: vbY + pad + fs * 0.85 + (lines.length - 1) * lh + subFs * 2.6,
-    fill: getCSS('--ink-faint'), 'font-size': subFs, class: 'w-mast-sub',
-  }, g);
-  st.textContent = sub;
 }
 
-function drawLegend(sectorJobs, vbX, vbY, vbSize, discR) {
-  const pad = vbSize * 0.028;
-  const room = cornerRoom(vbSize, discR);
-  const fs = Math.min(vbSize * 0.0115, room * 0.16);
-  const row = fs * 2.1;
-  const sw = fs * 0.85;                       // swatch size
-  const right = vbX + vbSize - pad;
-  // stack upward from the bottom-right corner so it hugs the corner
-  const bottom = vbY + vbSize - pad;
-  const g = el('g', {}, svg);
-  const pillars = sectorJobs.map(j => j.pillar);
-  pillars.forEach((pillar, i) => {
-    const y = bottom - (pillars.length - 1 - i) * row;
-    const base = pillarBase(pillar);
-    const label = el('text', {
-      x: right - sw - fs * 0.9, y, 'text-anchor': 'end', 'dominant-baseline': 'middle',
-      fill: getCSS('--ink-soft'), 'font-size': fs, class: 'w-legend',
-    }, g);
-    label.textContent = pillar;
-    el('rect', {
-      x: right - sw, y: y - sw / 2, width: sw, height: sw, rx: sw * 0.28, ry: sw * 0.28,
-      fill: hsl(base.h, base.s, base.l),
-    }, g);
-  });
-}
 
 // Draw just the pillar title for a sector (network handles the pills).
 function drawSectorTitleForJob(job, discR) {
@@ -313,12 +266,10 @@ function serialisedSVG() {
   // inline a <style> with the font declarations + class fonts so the file is standalone
   const style = document.createElementNS(SVGNS, 'style');
   style.textContent = `
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Archivo:wght@400;500;600&display=swap');
-    .w-pillar-label{font-family:'Fraunces',Georgia,serif;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700&family=Archivo:wght@400;500;600&display=swap');
+    .w-pillar-label{font-family:'Quicksand','Trebuchet MS',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;}
     .w-ex-label{font-family:'Archivo',sans-serif;letter-spacing:0.01em;}
-    .w-mast{font-family:'Fraunces',Georgia,serif;font-weight:600;}
-    .w-mast-sub{font-family:'Archivo',sans-serif;font-weight:500;letter-spacing:0.22em;text-transform:uppercase;}
-    .w-legend{font-family:'Archivo',sans-serif;font-weight:500;letter-spacing:0.06em;}
+    .w-mast{font-family:'Baloo 2','Trebuchet MS',sans-serif;font-weight:800;}
   `;
   clone.insertBefore(style, clone.firstChild);
   return new XMLSerializer().serializeToString(clone);

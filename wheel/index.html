@@ -6,7 +6,7 @@
 <title>The Movement Wheel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #14110F;
@@ -47,8 +47,8 @@
     margin-bottom: 10px;
   }
   header h1 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
+    font-family: 'Baloo 2', 'Trebuchet MS', sans-serif;
+    font-weight: 800;
     font-size: clamp(28px, 4vw, 46px);
     letter-spacing: -0.01em;
     line-height: 1;
@@ -200,16 +200,17 @@
   .tune-actions { grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 12px; }
 
   /* Wheel text styles (also inlined on export).
-     NOTE: .w-pillar-label's tracking is mirrored by TITLE_TRACKING in svg.js so
-     the collision box matches what is drawn. Change both or neither. */
+     Rounded faces on purpose: every object on the wheel is a rounded rect or a
+     circle, and a sharp high-contrast serif fought that.
+     NOTE: .w-pillar-label's family/weight/tracking are mirrored by TITLE_FONT and
+     TITLE_TRACKING in svg.js, and .w-mast's by MAST_FONT, so the collision boxes
+     match what is drawn. Change both or neither. */
   .w-pillar-label {
-    font-family: 'Fraunces', Georgia, serif; font-weight: 600;
+    font-family: 'Quicksand', 'Trebuchet MS', sans-serif; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.08em;
   }
   .w-ex-label { font-family: 'Archivo', sans-serif; font-weight: 400; letter-spacing: 0.01em; }
-  .w-mast { font-family: 'Fraunces', Georgia, serif; font-weight: 600; }
-  .w-mast-sub { font-family: 'Archivo', sans-serif; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; }
-  .w-legend { font-family: 'Archivo', sans-serif; font-weight: 500; letter-spacing: 0.06em; }
+  .w-mast { font-family: 'Baloo 2', 'Trebuchet MS', sans-serif; font-weight: 800; }
 
   @media (max-width: 640px) {
     .controls { gap: 12px 16px; }

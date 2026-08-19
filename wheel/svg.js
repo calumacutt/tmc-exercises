@@ -60,8 +60,11 @@ function estLabelWidth(text, fs, font, tracking) {
 
 // The face + tracking the pillar titles are drawn in. Kept here so the measuring
 // and the drawing cannot drift apart.
-const TITLE_FONT = fs => `600 ${fs}px Fraunces, Georgia, serif`;
+const TITLE_FONT = fs => `700 ${fs}px Quicksand, "Trebuchet MS", sans-serif`;
 const TITLE_TRACKING = 0.08;
+
+// Same contract for the masthead.
+const MAST_FONT = fs => `800 ${fs}px "Baloo 2", "Trebuchet MS", sans-serif`;
 
 function getCSS(varName) {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || "#000";
@@ -70,5 +73,5 @@ function getCSS(varName) {
 export {
   SIZE, CX, CY, R_HUB, R_INNER, GAP_PILLAR,
   svg, SVGNS, el, polar, sectorPath,
-  setDefs, getDefs, estLabelWidth, TITLE_FONT, TITLE_TRACKING, getCSS,
+  setDefs, getDefs, estLabelWidth, TITLE_FONT, TITLE_TRACKING, MAST_FONT, getCSS,
 };

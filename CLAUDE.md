@@ -610,27 +610,35 @@ Single file, ~1,670 lines, to be split per §2.
 
 ### Visual design language
 
-**The export is a finished piece, not a diagram.** The masthead, subtitle and
-pillar legend are drawn **inside the SVG**, so they travel with the PNG/SVG.
-Before that the export carried only exercise labels and pillar titles — nothing
-identifying what it was, because the page masthead is HTML *outside* the SVG.
-They live in the corners, which a circle inscribed in a square leaves empty
-(~21% of the canvas), so they cost no layout room. The masthead is stacked on two
-lines and **fit-scaled against the disc edge at each line's own baseline** — a
-corner is a triangle, so a wide single line runs into the wheel, and the subtitle
-sits lowest and has the least room of all.
+**The export is a finished piece, not a diagram.** The masthead — **"TMC
+Pillars"** — is drawn **inside the SVG**, so it travels with the PNG/SVG. Before
+that the export carried only exercise labels and pillar titles, nothing
+identifying what it was, because the page masthead is HTML *outside* the SVG. It
+sits in a corner, which a circle inscribed in a square leaves empty (~21% of the
+canvas), so it costs no layout room, and it is **fit-scaled against the disc edge
+at its own baseline** — a corner is a triangle, so a wide line runs into the
+wheel.
+
+A pillar legend and a subtitle were tried and removed: the legend became
+redundant once the pillar titles were large and legible enough to read directly.
+
+**Typefaces are rounded on purpose.** Every object on the wheel is a rounded rect
+or a circle, and the original Fraunces fought that. Masthead is **Baloo 2 800**,
+pillar titles **Quicksand 700** uppercase, exercise labels **Archivo 400**.
+Fraunces is gone entirely — note it has an `opsz` axis, so at masthead sizes it
+was automatically using its high-contrast display cut and reading thin.
 
 ⚠️ **`.w-pillar-label` is uppercased in JS, not by CSS `text-transform`.** The
 title's collision box is measured with `estLabelWidth`, and a CSS-only transform
 would leave it measuring the shorter mixed-case string and silently under-reserve
 space. For the same reason `estLabelWidth` takes an explicit font and tracking:
-titles render in Fraunces with 0.08em tracking while the default measure is
+titles render in Quicksand with 0.08em tracking while the default measure is
 Archivo with none, so measuring the wrong face under-reserved the box. `svg.js`
-exports `TITLE_FONT` / `TITLE_TRACKING` and the CSS mirrors them — change both or
-neither.
+exports `TITLE_FONT` / `TITLE_TRACKING` / `MAST_FONT` and the CSS mirrors them —
+change both or neither.
 
 - Dark warm charcoal, `--bg: #14110F`. Poster aesthetic.
-- Fraunces + Archivo via Google Fonts CDN; falls back to system fonts.
+- Baloo 2 + Quicksand + Archivo via Google Fonts CDN; falls back to system fonts.
 - Title masthead "The Ultimate Mover" + TMC logo as an embedded base64 data
   URI (~80KB, original black-on-white **inverted to cream** for the dark hub).
 - Deterministic seeded layout via `mulberry32` / `hashStr` — same input gives
