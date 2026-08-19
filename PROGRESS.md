@@ -297,8 +297,25 @@ way they never are in a spreadsheet.
       the **seed** covering the full radius by equal area. Narrowing the seed
       range would bring the hole straight back.
       `TUNE` down to 13 exposed parameters.
-      **Still to do:** density is mildly rim-heavy (90.6 outer vs 53.7 mid-band).
-      Then retune and record defaults in `CLAUDE.md` §9.
+      **Restructured into HARD and SOFT (Calum's call, and it was the right one).**
+      Soft is now *only* pairwise pill repulsion. Everything else became a hard
+      constraint colliding on the pill's real bounding box: sector spokes, inner
+      and outer rings, title boxes, other pills. Hard runs **first** each
+      iteration so walls take priority, and 40 hard-only passes settle it.
+      Deleted: `angularFill` (an ablation showed it made evenness *worse*),
+      `titleRepel`/`titleRange` (the same job the hard title obstacles already
+      did), `boundaryRepel`/`boundaryRange` (re-expressed as a hard spoke wall,
+      and they were switched off anyway).
+      A wedge is narrower near the hub, so when both spokes fight over a pill too
+      wide to fit, it is squeezed **outward** — what a physical wedge would do,
+      and it removes the old "give up and centre it" fallback.
+      **Measured at 492 pills: radial density CV 0.345 → 0.064** (bands 60.6,
+      71.4, 71.7, 71.0, 67.5, 74.5 — essentially uniform), 0 pill overlaps, 0
+      title overlaps, 0 ring violations with the nearest box edge sitting exactly
+      on the 176px inner ring. `TUNE` 13 → **8 sliders** (19 at the start of the
+      split). Exports still work; boundary keystones still render.
+      **Still to do:** retune and record defaults in `CLAUDE.md` §9 — largely
+      done now that there are only 8.
 - [ ] **2.6 Add discipline/line visual grouping** — shades of the pillar
       colour, plus tighter clustering for exercises sharing a line. This is the
       "subtly educates the viewer" goal: horizontal pulls near each other,

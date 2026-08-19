@@ -655,39 +655,56 @@ were tuned by hand and are the current defaults:
 |---|---|---|
 | 2a Spacing push strength | `charge` | 2.5 |
 | 2b Desired space around each pill (px) | `air` | 26 |
-| 2c Even-density pull across the arc | `angularFill` | 0.05 |
 | 3 Keystone→seam attraction | `keystoneSeam` | 0.3 |
-| 4a Title repulsion | `titleRepel` | 16 |
-| 4b Title reach (px) | `titleRange` | 150 |
-| 5a Sector-boundary repulsion | `boundaryRepel` | 0 |
-| 5b Boundary reach (px) | `boundaryRange` | 60 |
-| Sector arc allocation | `angleExp` | 0.7 |
 | 4a Title distance hub→rim | `titlePos` | 0.667 |
+| Sector arc allocation | `angleExp` | 0.7 |
 | Pillar title size (fixed) | `titleSize` | 30 |
 | Exercise pill size | `pillScale` | 1.2 |
 | Relaxation iterations | `iterations` | 600 |
 
+### The layout is HARD and SOFT, and nothing else
+
+**SOFT — one force only: pairwise repulsion** between pills in the same pillar.
+Each pill claims a box grown by `air`; two pills push apart by the smaller of
+their two axis overlaps, along the vector between their CENTRES. Pushing along an
+axis instead locks pills onto whichever axis they already share and builds
+columns — that was measured at 10:1 vertical over horizontal.
+
+**HARD — snaps a pill fully back into a valid position.** All of it collides on
+the pill's *actual bounding box*:
+
+- the two **spokes** bounding its sector. If a pill is wider than the sector at
+  its radius the two spokes fight, and it is squeezed **outward** where the arc is
+  longer — what a wedge-shaped container would physically do.
+- the **inner and outer rings**, using the nearest and farthest point of the box
+  rather than its centre.
+- the **pillar title boxes**, which do not move, so the pill takes the whole push.
+- **other pills**, resolved along the axis of least penetration. Pads: 12px
+  horizontal, 8px vertical.
+
+**HARD runs first each iteration**, so pressure away from walls and solid objects
+takes priority over pills jostling each other. After the loop, 40 hard-only
+passes settle it — soft ran last inside the loop, and repeating the constraints
+converges on satisfying all of them rather than letting whichever ran last win.
+
+**The one exception:** boundary keystones get a soft pull toward their seam and an
+exemption from the spoke walls, because they are meant to straddle it. 2 nodes.
+
+This replaced a system with five soft forces. Removing `angularFill`,
+`titleRepel`/`titleRange` and `boundaryRepel`/`boundaryRange` — the last two
+re-expressed as hard walls — took radial density CV from **0.345 to 0.064** and
+`TUNE` from 13 sliders to 8. Overlaps stayed at 0.
+
 **Forces with no slider** (they matter more than several that have one):
 
-- **Hard box separation** — resolves any real pill-rectangle overlap along the
-  axis of least penetration. Pads: 12px horizontal, 8px vertical. Pillar titles
-  are immovable obstacles in this pass, so title clearance is a hard constraint,
-  not just the soft `titleRepel` force.
-- **Wedge + radius clamp** (`clampNode`) — absolute. Keystones get 0.06 rad of
-  angular bleed, boundary keystones 0.14, so they can sit on a seam.
-- **A 40-pass settle loop** after the main relaxation, alternating separation and
-  clamping. Necessary because the clamp is hard: when it ran last, the final
-  thing to touch a node could shove it back inside its wedge on top of a
-  neighbour, with nothing left to undo it. Alternating converges on both
-  constraints instead of letting whichever runs last win.
 - **Disc radius** (`chooseDiscRadius`) — area estimate × 1.7 breathing per pill,
   title reserve × 1.5, floor `R_HUB + 240`, whole thing × 1.35, capped 3200px.
   The single biggest influence on perceived spacing, and entirely hardcoded.
+- **The seed** — see the warning above. It is what fills the radius.
 - **Font size** — 12/13/14/16px stepped by total exercise count; `pillScale`
   multiplies it.
 - **Per-node charge** — auto-scaled as `√(wedge area ÷ node count)`, then the
-  pair force is capped at 7px with a `+1200` softening term. So `charge` is a
-  multiplier on an invisible number, and it saturates at close range.
+  pair force is capped at 7px with a `+1200` softening term.
 
 **Distances are measured between bounding boxes, not centres.** Pill widths vary
 5.5× with name length (48–268px), so centre distance badly misjudged how close

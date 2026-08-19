@@ -199,53 +199,19 @@ function buildNetwork(sectorJobs, discR) {
     }
   }
 
-  // Angular fill targets. There is deliberately NO radial target any more.
+  // ---- relaxation ----
+  // Two categories of movement, and only two:
   //
-  // A radial attractor used to pull every node onto an even-area target radius,
-  // but that target was floored at 12% of the area, which put the nearest
-  // possible target 548px out from a hub the boundary allows pills to reach at
-  // 192px. The result was a 356px ring of usable space that no node was ever
-  // assigned to — the empty middle. The pull was not merely failing to fill the
-  // centre, it was actively evacuating it.
+  //   HARD  snaps a pill fully back into a valid position — inside its sector's
+  //         spokes and rings, clear of the pillar titles, not overlapping another
+  //         pill. Runs FIRST each iteration so walls and solid objects take
+  //         priority over pills jostling each other.
+  //   SOFT  one force: pairwise repulsion between pills in the same pillar.
+  //         Nothing else is a force.
   //
-  // It is not needed: the SEED below already distributes nodes across the full
-  // radius by equal area, so the uniform radial spread is there from the start
-  // and the spacing force only has to resolve local crowding. Removing the pull
-  // took the closest pill from 359px to 192px and put 21 pills in the innermost
-  // band that previously held none, with density comparable to the rest.
-  //
-  // Note this works because of the seed, NOT because repulsion expands to fill
-  // space. The spacing force is contact-only — it fires when grown boxes overlap
-  // — so it cannot feel a void, and any arrangement without overlaps is a stable
-  // equilibrium, holes included. Keep the seed spanning the full radius.
-  for (const job of sectorJobs) {
-    // Ordered by NAME, not by level and not by sheet order. Any order gives even
-    // density — the order only decides which node lands where — so this is the
-    // neutral deterministic choice. Sheet order would make radius correlate with
-    // discipline, quietly reintroducing grouping.
-    const pn = nodes.filter(n => n.job.pillar === job.pillar)
-      .sort((a, b) => a.ex.name.localeCompare(b.ex.name));
-    const N = pn.length;
-    const span = job.a1 - job.a0;
-    const GOLD = 0.6180339887;
-    pn.forEach((n, i) => {
-      // Per-node ANGULAR target: a golden-ratio sweep across the wedge arc.
-      // This is the other half of "even fill" and it went missing when the
-      // line-based angular force was removed — leaving radius as the only
-      // positional attractor, so nodes kept their seeded angle and slid in and
-      // out radially, forming radial strands. Per node, not per line, so no
-      // line-awareness comes back with it.
-      const af = (i * GOLD) % 1;
-      n.fillA = job.a0 + 0.06 + af * (span - 0.12);
-    });
-  }
-
-  // ---- force-directed relaxation ----
-  // Design goals:
-  //  • every node carries a repulsive charge so a pillar's nodes spread to fill
-  //    the whole wedge (incl. corners) rather than hugging the centre axis.
-  //  • an even-density radial pull keeps it uniform hub→rim.
-  //  • boundary keystones are drawn toward their shared seam.
+  // The one wrinkle is the boundary-keystone seam pull, which is soft but not
+  // pairwise. It exists because those keystones are meant to sit ON a seam, and
+  // it is paired with an exemption from the spoke walls. It affects 2 nodes.
   const ITER = TUNE.iterations;
   // per-pillar charge scales with how much room the pillar has per node, so a
   // wide-but-sparse pillar (e.g. Strength) pushes harder to fill its area.
@@ -257,16 +223,14 @@ function buildNetwork(sectorJobs, discR) {
   for (const node of nodes) {
     node.charge = Math.sqrt(pillarArea.get(node.job.pillar) || 4000);
   }
-  // Pillar titles are immovable obstacles for the separation pass. The soft
-  // title repulsion alone left pills sitting on titles, because it is a force
-  // and can be outvoted; this makes clearance a hard constraint like pill/pill
-  // overlap already was.
+  // Pillar titles are immovable obstacles in the hard pass. There is no longer a
+  // soft title force as well — that was the same job done twice.
   const titleBoxes = sectorJobs
     .filter(j => j._title)
     .map(j => ({ x: j._title.x, y: j._title.y, halfW: j._title.halfW, halfH: j._title.halfH }));
 
-  // Fail fast on a non-finite title box. These are obstacles in the separation
-  // pass, so a single NaN here propagates into every node's position and the
+  // Fail fast on a non-finite title box. These are obstacles in the hard pass,
+  // so a single NaN here propagates into every node's position and the
   // whole wheel silently collapses — exactly the cascade CLAUDE.md §6.1
   // describes. It happens for real: a missing TUNE key makes titleR NaN, which
   // is invisible until every pill has no coordinates. Loud beats silent.
@@ -278,10 +242,10 @@ function buildNetwork(sectorJobs, discR) {
     }
   }
   for (let it = 0; it < ITER; it++) {
-    // charge repulsion: nearby same-pillar nodes repel so the pillar's nodes
-    // spread to fill its wedge. Bounded + medium range so it fills area without
-    // flinging everything to the rim (which would hollow out the middle).
-    //
+    // ---- HARD first: walls and solid objects take priority ----
+    hardPass(nodes, titleBoxes, innerR, discR);
+
+    // ---- SOFT: pairwise repulsion, and nothing else ----
     // SPACING FORCE — aim for roughly equal clear air around every pill.
     //
     // Each pill claims a box grown by TUNE.air on all sides. Two pills are
@@ -322,21 +286,7 @@ function buildNetwork(sectorJobs, discR) {
         B.x += ux * push; B.y += uy * push;
       }
     }
-    // angular even-fill: rotate each node toward its target ANGLE, the mirror of
-    // the radial pull above. Without this the wedge fills in one dimension only.
-    if (TUNE.angularFill > 0) {
-      for (const node of nodes) {
-        const dx = node.x - CX, dy = node.y - CY;
-        const r = Math.hypot(dx, dy) || 1;
-        const cur = Math.atan2(dy, dx);
-        let tgt = node.fillA;
-        while (tgt - cur > Math.PI) tgt -= TWO_PI;
-        while (tgt - cur < -Math.PI) tgt += TWO_PI;
-        const na = cur + (tgt - cur) * TUNE.angularFill;
-        node.x = CX + r * Math.cos(na);
-        node.y = CY + r * Math.sin(na);
-      }
-    }
+
     // boundary keystones: gentle pull toward their shared seam angle so they
     // settle exactly on the pillar border they bridge.
     for (const node of nodes) {
@@ -351,70 +301,13 @@ function buildNetwork(sectorJobs, discR) {
       node.x = CX + r * Math.cos(na);
       node.y = CY + r * Math.sin(na);
     }
-    // 4. title repulsion: push exercises out of the pillar TITLE text box so
-    // labels stay readable. Soft radial-ish shove away from each title centre.
-    if (TUNE.titleRepel > 0) {
-      for (const job of sectorJobs) {
-        const ttl = job._title;
-        if (!ttl) continue;
-        const RR = TUNE.titleRange;
-        for (const node of nodes) {
-          const dx = node.x - ttl.x, dy = node.y - ttl.y;
-          // Both boxes count. This used to subtract only the title's extent, so
-          // a long pill whose CENTRE cleared the title but whose end overlapped
-          // it felt no push at all — the main cause of pills sitting on titles.
-          const ax = Math.max(0, Math.abs(dx) - ttl.halfW - node.halfW);
-          const ay = Math.max(0, Math.abs(dy) - ttl.halfH - node.halfH);
-          const d = Math.hypot(ax, ay);
-          if (d > RR) continue;
-          let ux = dx, uy = dy; const ul = Math.hypot(ux, uy) || 1;
-          ux /= ul; uy /= ul;
-          const mag = TUNE.titleRepel * (1 - d / RR);
-          node.x += ux * mag; node.y += uy * mag;
-        }
-      }
-    }
-    // 5. sector-boundary repulsion: push exercises away from the seams between
-    // pillars (the radial lines at a0/a1) so chains don't sit on the divider.
-    // Keystones that are MEANT to bridge a seam are exempt.
-    if (TUNE.boundaryRepel > 0) {
-      for (const node of nodes) {
-        if (node.isBoundaryKey) continue;
-        const dx = node.x - CX, dy = node.y - CY;
-        const r = Math.hypot(dx, dy) || 1;
-        let ang = Math.atan2(dy, dx);
-        // distance (in px, tangential) to each of the two seams
-        for (const seam of [node.a0, node.a1]) {
-          let da = ang - seam;
-          while (da > Math.PI) da -= TWO_PI;
-          while (da < -Math.PI) da += TWO_PI;
-          const tang = da * r;                 // arc-length offset from seam
-          if (Math.abs(tang) > TUNE.boundaryRange) continue;
-          const sign = tang >= 0 ? 1 : -1;
-          const mag = TUNE.boundaryRepel * (1 - Math.abs(tang) / TUNE.boundaryRange);
-          // nudge angularly away from the seam
-          const na = ang + sign * (mag / r);
-          ang = na;
-        }
-        node.x = CX + r * Math.cos(ang);
-        node.y = CY + r * Math.sin(ang);
-      }
-    }
-    // hard overlap resolution + containment
-    separate(nodes, titleBoxes);
-    for (const node of nodes) clampNode(node, innerR, discR);
   }
 
-  // ---- settle pass ----
-  // clampNode is a HARD constraint and used to run last, which meant the final
-  // thing to touch a node could shove it back inside its wedge directly on top
-  // of a neighbour, with nothing left to undo that. Alternating separation and
-  // clamping converges on satisfying both instead of letting the clamp win by
-  // being last.
-  for (let pass = 0; pass < 40; pass++) {
-    separate(nodes, titleBoxes);
-    for (const node of nodes) clampNode(node, innerR, discR);
-  }
+  // ---- settle ----
+  // Soft ran last inside the loop, so finish on hard constraints only. Repeating
+  // converges on satisfying all of them at once instead of letting whichever ran
+  // last win.
+  for (let pass = 0; pass < 40; pass++) hardPass(nodes, titleBoxes, innerR, discR);
 
   // ---- draw pills, then titles on top ----
   for (const node of nodes) {
@@ -426,65 +319,132 @@ function buildNetwork(sectorJobs, discR) {
 }
 
 
-// Hard, box-aware separation. Resolves any actual rectangle overlap by pushing
-// along the axis of least penetration — the cheapest way out. Pill/pill pushes
-// both apart; pill/title pushes only the pill, since titles do not move.
-function separate(nodes, titleBoxes) {
-  const padX = 12, padY = 8;
-  for (let i = 0; i < nodes.length; i++) {
-    for (let k = i + 1; k < nodes.length; k++) {
-      const A = nodes[i], B = nodes[k];
-      const dx = B.x - A.x, dy = B.y - A.y;
-      const ox = (A.halfW + B.halfW + padX) - Math.abs(dx);
-      const oy = (A.halfH + B.halfH + padY) - Math.abs(dy);
-      if (ox <= 0 || oy <= 0) continue;
-      if (ox < oy) {
-        const push = ox / 2 * (dx <= 0 ? 1 : -1);
-        A.x += push; B.x -= push;
-      } else {
-        const push = oy / 2 * (dy <= 0 ? 1 : -1);
-        A.y += push; B.y -= push;
-      }
+// ============================================================
+// HARD CONSTRAINTS
+// ============================================================
+// Everything in here SNAPS a pill fully back into a valid position, as opposed
+// to the single soft force (pairwise repulsion) which only nudges. Hard runs
+// BEFORE soft each iteration, so pressure away from walls and solid objects
+// takes priority over pills jostling each other.
+//
+// All of it collides on the pill's ACTUAL bounding box:
+//   • the two spokes bounding its sector
+//   • the inner and outer rings
+//   • the pillar title boxes
+//   • other pills
+//
+// Boundary keystones are exempt from the spoke walls — they are deliberately
+// meant to straddle the seam they bridge, which is what earns them the two-tone
+// split fill. Everything else is exempt from nothing.
+
+const PAD_X = 12, PAD_Y = 8;   // desired clear space when resolving overlaps
+
+// Distance from the wheel centre to the NEAREST and FARTHEST point of a pill's
+// box. Used for the ring walls so they collide on the box, not the centre.
+function boxRadii(node) {
+  const dx = Math.abs(node.x - CX), dy = Math.abs(node.y - CY);
+  const nearX = Math.max(0, dx - node.halfW), nearY = Math.max(0, dy - node.halfH);
+  return {
+    near: Math.hypot(nearX, nearY),
+    far: Math.hypot(dx + node.halfW, dy + node.halfH),
+  };
+}
+
+// Push a pill inside one spoke. The spoke is the ray from the centre at `ang`;
+// `inward` is the unit normal pointing into the sector. Returns the distance it
+// had to move (0 if it was already clear).
+function clampToSpoke(node, ang, inwardX, inwardY) {
+  let worst = Infinity;
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      const px = node.x + sx * node.halfW - CX;
+      const py = node.y + sy * node.halfH - CY;
+      worst = Math.min(worst, px * inwardX + py * inwardY);
     }
   }
-  for (const node of nodes) {
-    for (const t of titleBoxes) {
-      const dx = node.x - t.x, dy = node.y - t.y;
-      const ox = (node.halfW + t.halfW + padX) - Math.abs(dx);
-      const oy = (node.halfH + t.halfH + padY) - Math.abs(dy);
-      if (ox <= 0 || oy <= 0) continue;
-      // whole push goes to the pill
-      if (ox < oy) node.x += ox * (dx <= 0 ? -1 : 1);
-      else         node.y += oy * (dy <= 0 ? -1 : 1);
-    }
-  }
+  if (worst >= 0) return 0;
+  node.x += inwardX * -worst;
+  node.y += inwardY * -worst;
+  return -worst;
 }
 
 function clampNode(node, innerR, discR) {
-  const dx = node.x - CX, dy = node.y - CY;
-  let r = Math.hypot(dx, dy);
-  let ang = Math.atan2(dy, dx);
-  const TWO_PI = Math.PI * 2;
-  while (ang < node.a0 - Math.PI) ang += TWO_PI;
-  while (ang > node.a0 + Math.PI) ang -= TWO_PI;
-  // allow keystones to bleed past the boundary (to sit on the seam); boundary
-  // keystones get extra bleed so they can centre right on the shared edge.
-  const bleed = node.isBoundaryKey ? 0.14 : (node.isKey ? 0.06 : 0.0);
-  const angHalf = Math.min((node.halfW + 4) / Math.max(r, 1), node.span * 0.5);
-  const lo = node.a0 + 0.02 + angHalf - bleed, hi = node.a1 - 0.02 - angHalf + bleed;
-  if (lo <= hi) {
-    if (ang < lo) ang = lo; else if (ang > hi) ang = hi;
-  } else { ang = (node.a0 + node.a1) / 2; }
-  const rLo = innerR + node.halfH, rHi = discR - node.halfH * 0.5;
-  if (r < rLo) r = rLo; else if (r > rHi) r = rHi;
-  node.x = CX + r * Math.cos(ang);
-  node.y = CY + r * Math.sin(ang);
+  // ---- rings, on the box ----
+  const ringClamp = () => {
+    const { near, far } = boxRadii(node);
+    const dx = node.x - CX, dy = node.y - CY;
+    const r = Math.hypot(dx, dy) || 1;
+    if (near < innerR) {
+      const push = innerR - near;
+      node.x += dx / r * push; node.y += dy / r * push;
+    } else if (far > discR) {
+      const pull = far - discR;
+      node.x -= dx / r * pull; node.y -= dy / r * pull;
+    }
+  };
+
+  ringClamp();
+
+  // ---- spokes, on the box ----
+  // Boundary keystones straddle their seam on purpose, so they skip this.
+  if (!node.isBoundaryKey) {
+    const n0x = -Math.sin(node.a0), n0y = Math.cos(node.a0);
+    const n1x = Math.sin(node.a1), n1y = -Math.cos(node.a1);
+    for (let pass = 0; pass < 6; pass++) {
+      const m0 = clampToSpoke(node, node.a0, n0x, n0y);
+      const m1 = clampToSpoke(node, node.a1, n1x, n1y);
+      if (m0 === 0 && m1 === 0) break;
+      if (pass >= 2) {
+        // The two spokes are fighting: the pill is wider than the sector at this
+        // radius. A wedge-shaped container resolves that by squeezing the pill
+        // OUTWARD, where the arc is longer — so do exactly that rather than
+        // wedging it at the centre line and calling it done.
+        const dx = node.x - CX, dy = node.y - CY;
+        const r = Math.hypot(dx, dy) || 1;
+        node.x += dx / r * 6; node.y += dy / r * 6;
+      }
+    }
+  }
+
+  ringClamp();
 }
 
+// Resolve a real overlap between two boxes along the axis of least penetration —
+// the cheapest way out. `share` splits the correction between them; pass 0 to
+// move only the first.
+function resolveOverlap(A, B, share) {
+  const dx = B.x - A.x, dy = B.y - A.y;
+  const ox = (A.halfW + B.halfW + PAD_X) - Math.abs(dx);
+  if (ox <= 0) return;
+  const oy = (A.halfH + B.halfH + PAD_Y) - Math.abs(dy);
+  if (oy <= 0) return;
+  if (ox < oy) {
+    const push = ox * (dx <= 0 ? 1 : -1);
+    A.x += push * (1 - share); B.x -= push * share;
+  } else {
+    const push = oy * (dy <= 0 ? 1 : -1);
+    A.y += push * (1 - share); B.y -= push * share;
+  }
+}
 
+// One full hard pass: solid objects first, then the walls that contain them.
+function hardPass(nodes, titleBoxes, innerR, discR) {
+  // pills vs pills — still a hard constraint, not a force. Soft repulsion alone
+  // does not prevent overlaps: measured, it left 14 of them at 492 pills.
+  for (let i = 0; i < nodes.length; i++) {
+    for (let k = i + 1; k < nodes.length; k++) {
+      resolveOverlap(nodes[i], nodes[k], 0.5);
+    }
+  }
+  // pills vs titles — titles do not move, so the pill takes the whole push.
+  // This replaces the old soft `titleRepel`, which was doing the same job twice.
+  for (const node of nodes) {
+    for (const t of titleBoxes) resolveOverlap(node, t, 0);
+  }
+  // walls last, so a pill shoved by a neighbour still ends up inside its sector
+  for (const node of nodes) clampNode(node, innerR, discR);
+}
 
-
-// draw a pill for a network node (keystones rendered larger/bolder via drawPill)
 function drawPillNode(node) {
   const base = pillarBase(node.job.pillar);
   drawPill({ lab: node.ex, x: node.x, y: node.y, w: node.w, h: node.h, node }, node.fs, base, node.job.pillar);
