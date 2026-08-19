@@ -6,7 +6,7 @@
 <title>The Movement Wheel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #14110F;
@@ -210,6 +210,10 @@
     text-transform: uppercase; letter-spacing: 0.08em;
   }
   .w-ex-label { font-family: 'Archivo', sans-serif; font-weight: 400; letter-spacing: 0.01em; }
+  /* Keystone labels are BOLD. This has to be a more specific selector than
+     .w-ex-label, because in SVG a CSS rule beats a font-weight presentation
+     attribute on the element — setting the attribute alone silently did nothing. */
+  text.w-ex-label.w-ex-key { font-weight: 700; }
   .w-mast { font-family: 'Baloo 2', 'Trebuchet MS', sans-serif; font-weight: 800; }
 
   @media (max-width: 640px) {

@@ -266,9 +266,10 @@ function serialisedSVG() {
   // inline a <style> with the font declarations + class fonts so the file is standalone
   const style = document.createElementNS(SVGNS, 'style');
   style.textContent = `
-    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700&family=Archivo:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700&family=Archivo:wght@400;500;600;700&display=swap');
     .w-pillar-label{font-family:'Quicksand','Trebuchet MS',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;}
-    .w-ex-label{font-family:'Archivo',sans-serif;letter-spacing:0.01em;}
+    .w-ex-label{font-family:'Archivo',sans-serif;font-weight:400;letter-spacing:0.01em;}
+    text.w-ex-label.w-ex-key{font-weight:700;}
     .w-mast{font-family:'Baloo 2','Trebuchet MS',sans-serif;font-weight:800;}
   `;
   clone.insertBefore(style, clone.firstChild);

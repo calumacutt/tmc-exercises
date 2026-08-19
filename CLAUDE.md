@@ -670,15 +670,24 @@ One treatment for every pill: rounded rect, fill from the discipline shade,
 outline from the line shade, label ink flipped for contrast.
 
 - **Keystones are not a different kind of object.** Same fill and outline rules,
-  just a larger pill (`fs + 3`, 2px outline) with a **crown above it**. They used
-  to own a luminous fill and dark ink, which reserved the bright end of the
-  lightness ramp and left disciplines fighting over the remainder — that is why
-  the discipline shading was invisible. Marking them by size and an icon instead
-  frees the whole ramp.
-- ⚠️ **The crown is inside the collision box.** `halfH` grows by the crown height
-  plus its gap, and the pill is drawn in the *bottom* of that box, so a crown can
+  just a larger pill (`fs + 3`, 2px outline), a **bold label**, and a **gold
+  five-pointed star above it**. They used to own a luminous fill and dark ink,
+  which reserved the bright end of the lightness ramp and left disciplines
+  fighting over the remainder — that is why the discipline shading was invisible.
+  Marking them by size, weight and an icon instead frees the whole ramp.
+- The star is **always `--accent` gold**, never the label ink. It sits above the
+  pill on the dark canvas rather than on the fill, so gold reads against every
+  pillar, and one constant colour makes keystones legible as a single category —
+  which a colour that flipped with the fill could not do.
+- ⚠️ **The star is inside the collision box.** `halfH` grows by the icon height
+  plus its gap, and the pill is drawn in the *bottom* of that box, so a star can
   never sit on a neighbouring pill. Same principle as the pillar titles: collide
   on what is actually drawn.
+- ⚠️ **The bold weight comes from a CSS class, not a `font-weight` attribute.**
+  In SVG a CSS rule beats a presentation attribute, so `.w-ex-label`'s 400
+  silently won and the attribute did nothing. `text.w-ex-label.w-ex-key` is
+  deliberately more specific. The font link also has to request Archivo **700**
+  or the browser synthesises fake bold.
 - **Boundary keystone** (keystone whose Also Appears In links to an *adjacent*
   pillar): **two-tone split fill** — own pillar colour on one half, bridged
   pillar's colour on the other — and pulled onto the shared seam angle.

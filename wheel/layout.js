@@ -115,22 +115,22 @@ function buildNetwork(sectorJobs, discR) {
   for (const job of sectorJobs) {
     for (const ex of job.exercises) {
       // Keystones are the same KIND of object as everything else now — just
-      // bigger, with a crown above them. They no longer get a luminous fill, which
-      // is what frees the whole lightness ramp for disciplines.
+      // bigger, bold, with a gold star above them. They no longer get a luminous
+      // fill, which is what frees the whole lightness ramp for disciplines.
       const kfs = ex.keystone ? fs + 3 : fs;
       const w = pillWidth(ex.name, kfs) * TUNE.pillScale;
       const pillH = pillHeight(kfs) * TUNE.pillScale;
-      // The crown sits ABOVE the pill, and the collision box grows to include it —
-      // otherwise crowns would sit on top of neighbouring pills. Same principle as
+      // The star sits ABOVE the pill, and the collision box grows to include it —
+      // otherwise stars would sit on top of neighbouring pills. Same principle as
       // the pillar titles: collide on what is actually drawn.
-      const crownH = ex.keystone ? pillH * 0.52 : 0;
-      const crownGap = ex.keystone ? pillH * 0.16 : 0;
-      const extra = crownH + crownGap;
+      const iconH = ex.keystone ? pillH * 0.60 : 0;
+      const iconGap = ex.keystone ? pillH * 0.14 : 0;
+      const extra = iconH + iconGap;
       const h = pillH + extra;
       const node = {
         ex, job, isKey: ex.keystone,
         x: 0, y: 0, halfW: w / 2, halfH: h / 2, w, h,
-        pillH, crownH, crownGap, extra,
+        pillH, iconH, iconGap, extra,
         fs: kfs * TUNE.pillScale,
       };
       nodes.push(node);
@@ -491,17 +491,22 @@ function drawPillNode(node) {
   drawPill(node);
 }
 
-// A small three-point crown, flat-based, sitting on `yBottom` centred at `cx`.
-function crownPath(cx, yBottom, w, h) {
-  const x0 = cx - w / 2, x1 = cx + w / 2;
-  const shoulder = yBottom - h * 0.28;
-  const dip = yBottom - h * 0.46;
-  return `M${x0},${yBottom} L${x0},${shoulder} L${cx - w * 0.25},${dip} `
-       + `L${cx},${yBottom - h} L${cx + w * 0.25},${dip} L${x1},${shoulder} `
-       + `L${x1},${yBottom} Z`;
+// A five-pointed star, centred, pointing up. `rOuter` is the circumscribed
+// radius; 0.42 for the inner radius is the classic proportion.
+function starPath(cx, cy, rOuter) {
+  const rInner = rOuter * 0.42;
+  let d = '';
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? rOuter : rInner;
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    d += (i ? 'L' : 'M') + (cx + r * Math.cos(a)).toFixed(2)
+       + ',' + (cy + r * Math.sin(a)).toFixed(2);
+  }
+  return d + 'Z';
 }
 
-// wrap a long pillar name onto up to two lines
+// Split a pillar title onto two lines when it is long, so the block is tall and
+// narrow rather than wide — a wedge has more room radially than tangentially.
 function wrapTitle(name) {
   if (name.length <= 14) return [name];
   // split on slash or space near the middle
@@ -534,7 +539,7 @@ function drawSectorTitle(lines, x, y, fs, base) {
 // stays readable across the whole ramp.
 //
 // Keystones are not a different kind of object any more: same fill, same outline
-// rules, just a larger pill with a crown above it. That is what makes the full
+// rules, just a larger pill with BOLD text and a gold star above it. That is what makes the full
 // lightness range usable for disciplines — previously keystones owned the bright
 // end and the disciplines had to share what was left, which was invisible.
 function drawPill(node) {
@@ -579,18 +584,23 @@ function drawPill(node) {
   const ink = darkInk ? '#191410' : getCSS('--ink');
 
   if (node.isKey) {
-    const cw = node.pillH * 0.78;
+    // Always GOLD, never the label ink. The star sits above the pill on the dark
+    // canvas, not on the fill, so gold reads well against every pillar — and one
+    // constant colour makes keystones legible as a single category across the
+    // whole wheel, which a colour that flipped with the fill could not do.
+    const r = node.iconH / 2;
     el('path', {
-      d: crownPath(node.x, pillTop - node.crownGap, cw, node.crownH),
-      fill: ink, 'fill-opacity': 0.92,
+      d: starPath(node.x, pillTop - node.iconGap - r, r),
+      fill: getCSS('--accent'),
     }, g);
   }
 
+  // Weight comes from the CLASS, not a font-weight attribute: in SVG a CSS rule
+  // beats a presentation attribute, so .w-ex-label's 400 silently won.
   const t = el('text', {
     x: node.x, y: cyPill, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
     fill: ink, 'font-size': node.fs,
-    'font-weight': node.isKey ? '600' : '400',
-    class: 'w-ex-label',
+    class: node.isKey ? 'w-ex-label w-ex-key' : 'w-ex-label',
   }, g);
   t.textContent = lab.name;
 }
