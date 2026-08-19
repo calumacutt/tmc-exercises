@@ -583,6 +583,13 @@ shading**, and **hot/cold**.
 **Decision: heat is carried by GLOW.** Hue stays with the pillar, lightness with
 discipline/line. Hot regions of the wheel glow; cold regions do not.
 
+The lightness half is now implemented as `shade()` in `shared/taxonomy.js`:
+discipline gets a wide lightness spread (30) and line a fine one (9), carried on
+the pill **border** because on a dark pill that is the only element with enough
+area-to-contrast to read as colour. Indices come from an **alphabetical** ordering
+of the disciplines in a pillar and the lines in a discipline — *not* by exercise
+count, which would reshuffle every colour on the wheel each time the sheet grows.
+
 This required freeing the channel, because **keystones already used the glow**
 (`#ks-glow`) and one channel cannot carry two meanings — a hot keystone would
 have been indistinguishable from a cold one, with the two effects stacking.

@@ -333,10 +333,33 @@ way they never are in a spreadsheet.
       split). Exports still work; boundary keystones still render.
       **Still to do:** retune and record defaults in `CLAUDE.md` §9 — largely
       done now that there are only 8.
-- [ ] **2.6 Add discipline/line visual grouping** — shades of the pillar
-      colour, plus tighter clustering for exercises sharing a line. This is the
-      "subtly educates the viewer" goal: horizontal pulls near each other,
-      vertical pulls near each other, both near but not mixed.
+- [~] **2.6 Add discipline/line visual grouping.**
+      **Step 1 done — colour.** `shade()` in `shared/taxonomy.js` implements §8.1
+      as decided: hue stays with the pillar, **lightness carries discipline (wide
+      spread, 30) and line (fine spread, 9)**. The pill BORDER carries it, since
+      on a dark pill that is the only element with enough area-to-contrast to read
+      as colour; the fill takes a 10% lift from the same shade so a block of one
+      discipline shares a faint tone. 56 distinct tones across the wheel, 0
+      overlaps, no layout change at all.
+      **Indices are ALPHABETICAL, not by exercise count** — deliberately. Count
+      order would reshuffle every colour on the wheel whenever the sheet grows, so
+      a discipline's tone would not be a stable identity.
+      **Step 2 — make them BLOBS, and remove the radial bias.** Measuring first
+      showed the grouping already exists spatially but as the wrong shape:
+      `collectExercises` returns exercises discipline-grouped and the seed maps
+      sequential index → radius by equal area, so **disciplines are concentric
+      radial bands** (Strength & Capacity: Hanging 567, Pressing 962, Straight-Arm
+      1207, Loaded Lower Body 1357, Core 1445) with lines sub-banded inside them.
+      Calum does not want radial or angular ordering — the target is **t-SNE-style
+      blobs**: well-defined clusters, related clusters near each other, position
+      in the disc irrelevant. So the radial banding is an artefact to remove, not a
+      base to build on.
+      ⚠️ **The risk to name before adding any attraction:** the spacing force is
+      contact-only, so it cannot feel empty space, and `radialFill` was deleted
+      precisely because a positional attractor left a void. Attraction between
+      group members contracts clusters and opens gaps that nothing fills. Measure
+      density CV (currently **0.064**) before and after; if it climbs much past
+      0.1, voids are appearing.
 - [ ] **2.7 Infer `Level` by topological rank** from progression edges, with
       manual override. Avoids hand-filling ~400 rows.
 - [ ] **2.8 Extend `validateRows()`** to warn on unresolvable `Also Appears In`

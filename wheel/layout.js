@@ -24,7 +24,7 @@
 // task 2.5 work.
 
 import { TUNE } from './tune.js';
-import { hsl, pillarBase } from '../shared/taxonomy.js';
+import { hsl, pillarBase, shade } from '../shared/taxonomy.js';
 import {
   CX, CY, R_HUB, R_INNER, svg, el, polar, estLabelWidth, getCSS, getDefs,
 } from './svg.js';
@@ -124,6 +124,36 @@ function buildNetwork(sectorJobs, discR) {
       nodes.push(node);
       nodeByName.set(ex.name, node);
     }
+  }
+
+  // ---- discipline / line shading ----
+  // Indices come from an ALPHABETICAL ordering of the disciplines present in each
+  // pillar, and of the lines present in each discipline. Alphabetical rather than
+  // by count so a discipline keeps the same tone as the sheet grows — see
+  // shade() in shared/taxonomy.js.
+  const discsOf = new Map();   // pillar -> [discipline]
+  const linesOf = new Map();   // pillar|discipline -> [line]
+  for (const node of nodes) {
+    const p = node.job.pillar;
+    const d = (node.ex.discipline || '(none)').trim();
+    const l = (node.ex.line || '(none)').trim();
+    if (!discsOf.has(p)) discsOf.set(p, new Set());
+    discsOf.get(p).add(d);
+    const dk = p + '|' + d;
+    if (!linesOf.has(dk)) linesOf.set(dk, new Set());
+    linesOf.get(dk).add(l);
+  }
+  const sortedDiscs = new Map();
+  for (const [p, set] of discsOf) sortedDiscs.set(p, [...set].sort());
+  const sortedLines = new Map();
+  for (const [dk, set] of linesOf) sortedLines.set(dk, [...set].sort());
+
+  for (const node of nodes) {
+    const p = node.job.pillar;
+    const d = (node.ex.discipline || '(none)').trim();
+    const l = (node.ex.line || '(none)').trim();
+    const ds = sortedDiscs.get(p), ls = sortedLines.get(p + '|' + d);
+    node.shade = shade(p, ds.indexOf(d), ds.length, ls.indexOf(l), ls.length);
   }
 
   // Discipline -> pillar, so an Also Appears In reference can be resolved to a
@@ -486,11 +516,15 @@ function drawPill(it, fs, base, pillar) {
   const rx = it.h / 2;
 
   if (!lab.keystone) {
-    // ordinary pill: dark fill, faint pillar-coloured border
+    // Ordinary pill. The BORDER carries the discipline/line shade — on a dark
+    // pill the border is the only part with enough area-to-contrast to read as
+    // colour, so it does the work. The fill gets a much smaller lift from the
+    // same shade so blocks of one discipline read as a faintly common tone.
+    const sh = node && node.shade ? node.shade : base;
     el('rect', {
       x, y, width: it.w, height: it.h, rx, ry: rx,
-      fill: hsl(base.h, base.s, 14), 'fill-opacity': 0.92,
-      stroke: hsl(base.h, base.s, Math.min(base.l + 6, 64)),
+      fill: hsl(sh.h, sh.s, 11 + (sh.l - base.l) * 0.10), 'fill-opacity': 0.92,
+      stroke: hsl(sh.h, sh.s, Math.max(24, Math.min(sh.l + 6, 72))),
       'stroke-width': 1.5,
     }, g);
     const t = el('text', {
