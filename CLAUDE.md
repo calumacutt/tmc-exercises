@@ -637,16 +637,25 @@ were tuned by hand and are the current defaults:
 > ⚠️ **Both the link and the line parameters are gone.** `linkStiff`, `linkLen`,
 > `crossLen`, `linkCross` went with the links; `lineRepel`, `lineRange` and
 > `angularSpread` went with all line-awareness in the layout — see PROGRESS 2.4
-> and 2.5. The level-based radial bias is gone too. The layout is now a pure
-> per-pillar scatter: node charge repulsion, an even-density radial fill, and
-> title/seam clearance — the only property affecting placement is the pillar.
+> and 2.5. The level-based radial bias is gone, and so is the radial even-density
+> pull — it was floored at 12% of the wedge area, which left a 356px ring next to
+> the hub that no node could ever be assigned to, and it *actively evacuated* a
+> centre the seed had already filled. The layout is now a pure per-pillar scatter:
+> box-aware spacing, an angular even-fill, and title/seam clearance. The only
+> property affecting placement is the pillar.
+>
+> ⚠️ **The seed is load-bearing.** The spacing force is contact-only — it fires
+> when boxes grown by `air` overlap — so it cannot feel a void and any
+> overlap-free arrangement is a stable equilibrium, holes included. Uniform
+> radial spread comes from the SEED spanning the full radius by equal area, not
+> from repulsion expanding to fill the disc. Do not narrow the seed range.
 > **`TUNE` is down to 12 exposed parameters from 19.**
 
 | Panel label | Key | Default |
 |---|---|---|
-| 2c Node spreading (fill wedge) | `charge` | 2.5 |
-| 2d Node spreading reach (px) | `chargeRange` | 320 |
-| 2e Even-density pull hub→rim | `radialFill` | 0.05 |
+| 2a Spacing push strength | `charge` | 2.5 |
+| 2b Desired space around each pill (px) | `air` | 26 |
+| 2c Even-density pull across the arc | `angularFill` | 0.05 |
 | 3 Keystone→seam attraction | `keystoneSeam` | 0.3 |
 | 4a Title repulsion | `titleRepel` | 16 |
 | 4b Title reach (px) | `titleRange` | 150 |

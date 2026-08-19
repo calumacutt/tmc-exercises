@@ -11,7 +11,6 @@ const TUNE = {
   charge:        2.50,  // how hard crowded pills push apart
   air:           26,    // desired clear space around each pill, px
   // radial area fill (keeps density even hub->rim)
-  radialFill:    0.05,  // pull toward even-area target radius
   angularFill:   0.05,  // pull toward even-area target angle
   // 3. keystone-to-boundary attraction
   keystoneSeam:  0.30,  // how strongly boundary keystones snap to the seam
@@ -32,8 +31,7 @@ const TUNE_DEFS = [
   ['__g2', 'Node spreading'],
   ['charge',       '2a. Spacing push strength',               0, 2.5, 0.05, 2],
   ['air',          '2b. Desired space around each pill (px)', 4, 120, 2, 0],
-  ['radialFill',   '2c. Even-density pull (hub→rim)',         0, 0.25, 0.005, 3],
-  ['angularFill',  '2d. Even-density pull (across the arc)',   0, 0.25, 0.005, 3],
+  ['angularFill',  '2c. Even-density pull (across the arc)',   0, 0.25, 0.005, 3],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Pillar titles'],

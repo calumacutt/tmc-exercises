@@ -199,11 +199,25 @@ function buildNetwork(sectorJobs, discR) {
     }
   }
 
-  // even-area fill: within each pillar, place nodes on a low-discrepancy areal
-  // grid across the WHOLE wedge (radius by sqrt-area for even density, angle by
-  // a golden-ratio sweep across the arc). This is the attractor the relaxation
-  // relaxes toward, so the wedge fills uniformly in 2D — radius AND arc — rather
-  // than chains bunching on the centre axis of a wide pillar.
+  // Angular fill targets. There is deliberately NO radial target any more.
+  //
+  // A radial attractor used to pull every node onto an even-area target radius,
+  // but that target was floored at 12% of the area, which put the nearest
+  // possible target 548px out from a hub the boundary allows pills to reach at
+  // 192px. The result was a 356px ring of usable space that no node was ever
+  // assigned to — the empty middle. The pull was not merely failing to fill the
+  // centre, it was actively evacuating it.
+  //
+  // It is not needed: the SEED below already distributes nodes across the full
+  // radius by equal area, so the uniform radial spread is there from the start
+  // and the spacing force only has to resolve local crowding. Removing the pull
+  // took the closest pill from 359px to 192px and put 21 pills in the innermost
+  // band that previously held none, with density comparable to the rest.
+  //
+  // Note this works because of the seed, NOT because repulsion expands to fill
+  // space. The spacing force is contact-only — it fires when grown boxes overlap
+  // — so it cannot feel a void, and any arrangement without overlaps is a stable
+  // equilibrium, holes included. Keep the seed spanning the full radius.
   for (const job of sectorJobs) {
     // Ordered by NAME, not by level and not by sheet order. Any order gives even
     // density — the order only decides which node lands where — so this is the
@@ -215,11 +229,6 @@ function buildNetwork(sectorJobs, discR) {
     const span = job.a1 - job.a0;
     const GOLD = 0.6180339887;
     pn.forEach((n, i) => {
-      const frac = (i + 0.5) / Math.max(N, 1);
-      // compress toward a mid annulus (0.12..0.92) so the scatter stays compact
-      // and doesn't stretch all the way from hub to rim.
-      const cf = 0.12 + frac * 0.80;
-      n.fillR = Math.sqrt(innerR * innerR + cf * (discR * discR - innerR * innerR));
       // Per-node ANGULAR target: a golden-ratio sweep across the wedge arc.
       // This is the other half of "even fill" and it went missing when the
       // line-based angular force was removed — leaving radius as the only
@@ -312,15 +321,6 @@ function buildNetwork(sectorJobs, discR) {
         A.x -= ux * push; A.y -= uy * push;
         B.x += ux * push; B.y += uy * push;
       }
-    }
-    // area-fill containment: charge + line-spread push outward, which alone
-    // hollows the centre. Pull each node toward its even-area target RADIUS so
-    // the wedge fills uniformly hub→rim (no hollow, no rim pile).
-    for (const node of nodes) {
-      const dx = node.x - CX, dy = node.y - CY;
-      const r = Math.hypot(dx, dy) || 1;
-      const pull = (node.fillR - r) * TUNE.radialFill;
-      node.x += dx / r * pull; node.y += dy / r * pull;
     }
     // angular even-fill: rotate each node toward its target ANGLE, the mirror of
     // the radial pull above. Without this the wedge fills in one dimension only.

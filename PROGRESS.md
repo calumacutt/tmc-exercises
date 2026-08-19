@@ -283,10 +283,22 @@ way they never are in a spreadsheet.
       take a 138×31 pill to roughly 70×60 (~1.1:1) and make equal air actually
       look equal. Staggering alternate rows is a cheaper partial fix. Calum's
       call.
-      **Still to do:** the radial distribution is rim-weighted and the innermost
-      band is empty — the hardcoded 0.12 inner floor and the 1.35 disc-radius
-      multiplier are the likely causes. Then retune and record defaults in
-      `CLAUDE.md` §9.
+      **Empty centre: fixed by deletion.** The `radialFill` pull is gone
+      entirely, along with `fillR` and its 0.12–0.92 annulus compression. The
+      floor put the nearest possible target 548px from a hub the boundary allows
+      pills to reach at 192px, so a 356px ring was never assigned to — and the
+      pull was not failing to fill the centre, it was *actively evacuating* one
+      the seed had already populated. Measured: closest pill 359px → **192px**,
+      innermost band 0 → **21 pills** at density comparable to the rest, still
+      0 overlaps.
+      **Why it works, which matters for anyone touching the seed:** the spacing
+      force is contact-only, so it cannot feel a void — any overlap-free
+      arrangement is stable, holes included. The uniform radial spread comes from
+      the **seed** covering the full radius by equal area. Narrowing the seed
+      range would bring the hole straight back.
+      `TUNE` down to 13 exposed parameters.
+      **Still to do:** density is mildly rim-heavy (90.6 outer vs 53.7 mid-band).
+      Then retune and record defaults in `CLAUDE.md` §9.
 - [ ] **2.6 Add discipline/line visual grouping** — shades of the pillar
       colour, plus tighter clustering for exercises sharing a line. This is the
       "subtly educates the viewer" goal: horizontal pulls near each other,
