@@ -257,6 +257,32 @@ way they never are in a spreadsheet.
         neighbour with nothing left to fix it.
       **Measured result: 0 pill/pill overlaps and 0 pill/title overlaps at both
       194 and 492 visible pills** (was 14 and 3).
+      **Spacing round 2 (from Calum's render):** pills were stacking into
+      aligned vertical columns with no horizontal spread. Two real defects found
+      and fixed, plus one finding that is not a defect:
+      - **the push direction was axis-locked.** It used the closest-corner vector,
+        so for a vertical stack `gapX` is 0 and the push was *purely vertical* —
+        a pill could never escape sideways, which built and then reinforced the
+        columns. Now pushes along the vector between CENTRES.
+      - **the per-node angular attractor was missing entirely.** `fillA` was
+        deleted as vestigial when line-awareness was removed (its only consumer
+        was the line-based angular force), leaving **radius as the only
+        positional attractor** — so nodes kept their seeded angle and slid in and
+        out radially. Restored per-node, with an `angularFill` slider.
+      - proximity now uses per-axis overlap of boxes grown by `TUNE.air`, pushed
+        by the smaller overlap. Calum's `min(gapX, gapY)` idea, but on grown
+        boxes so it keeps a gradient — a raw `min(gap)` pinned nearly every
+        neighbour to the 7px force cap and made things worse (measured).
+      **Result: median vertical air 9px → 26px, 0 overlaps, 0 title overlaps.**
+      **But the column effect is geometric, not a force bug.** Median pill is
+      138×31px (4.4:1), so horizontal pitch is 164px against a vertical pitch of
+      57px — nearly 3× asymmetric. Only ~7 pills fit across a pillar's arc while
+      each pillar holds ~98, needing ~14 rows. Nearest-neighbour is therefore
+      vertical for almost everyone no matter what the forces do.
+      **The real lever is pill shape:** wrapping long names onto two lines would
+      take a 138×31 pill to roughly 70×60 (~1.1:1) and make equal air actually
+      look equal. Staggering alternate rows is a cheaper partial fix. Calum's
+      call.
       **Still to do:** the radial distribution is rim-weighted and the innermost
       band is empty — the hardcoded 0.12 inner floor and the 1.35 disc-radius
       multiplier are the likely causes. Then retune and record defaults in

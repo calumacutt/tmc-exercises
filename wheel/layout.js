@@ -213,12 +213,21 @@ function buildNetwork(sectorJobs, discR) {
       .sort((a, b) => a.ex.name.localeCompare(b.ex.name));
     const N = pn.length;
     const span = job.a1 - job.a0;
+    const GOLD = 0.6180339887;
     pn.forEach((n, i) => {
       const frac = (i + 0.5) / Math.max(N, 1);
       // compress toward a mid annulus (0.12..0.92) so the scatter stays compact
       // and doesn't stretch all the way from hub to rim.
       const cf = 0.12 + frac * 0.80;
       n.fillR = Math.sqrt(innerR * innerR + cf * (discR * discR - innerR * innerR));
+      // Per-node ANGULAR target: a golden-ratio sweep across the wedge arc.
+      // This is the other half of "even fill" and it went missing when the
+      // line-based angular force was removed — leaving radius as the only
+      // positional attractor, so nodes kept their seeded angle and slid in and
+      // out radially, forming radial strands. Per node, not per line, so no
+      // line-awareness comes back with it.
+      const af = (i * GOLD) % 1;
+      n.fillA = job.a0 + 0.06 + af * (span - 0.12);
     });
   }
 
@@ -264,42 +273,44 @@ function buildNetwork(sectorJobs, discR) {
     // spread to fill its wedge. Bounded + medium range so it fills area without
     // flinging everything to the rim (which would hollow out the middle).
     //
-    // BOX-AWARE. This measures the gap between the two pills' bounding boxes,
-    // not the distance between their centres. Centre distance is wrong here
-    // because pill widths vary enormously with name length: two long pills side
-    // by side have far-apart centres and so felt almost no repulsion, even with
-    // their ends nearly touching — which is exactly why long names ran into
-    // their neighbours while empty space sat nearby.
+    // SPACING FORCE — aim for roughly equal clear air around every pill.
+    //
+    // Each pill claims a box grown by TUNE.air on all sides. Two pills are
+    // "crowded" only when those grown boxes overlap, i.e. they are too close on
+    // BOTH axes; clear on either axis means there is already air between them.
+    // The push is the SMALLER of the two overlaps — the least movement that
+    // would resolve the crowding — applied along the vector between CENTRES.
+    //
+    // Both halves matter:
+    //  • measuring per-axis overlap of grown boxes (rather than hypot of the
+    //    corner gap) means a pill sitting directly above another reads as
+    //    crowded, which it is. hypot() let a vertical stack look far apart
+    //    because its horizontal gap was zero.
+    //  • pushing along CENTRES rather than along an axis is what lets a pill
+    //    escape sideways. An axis-aligned push locks pills onto whichever axis
+    //    they already share: for a vertical stack the horizontal gap is 0, so
+    //    the push was purely vertical and the column could only ever get
+    //    tighter. Measured, that gave nearest-neighbours 10:1 vertical over
+    //    horizontal with a median horizontal gap of 0px.
+    //
+    // Overlap varies continuously, so unlike a min(gap) proximity term this
+    // keeps a usable gradient instead of pinning every neighbour to a force cap.
+    const AIR = TUNE.air;
     for (let i = 0; i < nodes.length; i++) {
       const A = nodes[i];
       for (let k = i + 1; k < nodes.length; k++) {
         const B = nodes[k];
         if (A.job.pillar !== B.job.pillar) continue;
         const dx = B.x - A.x, dy = B.y - A.y;
-        // per-axis separation between the boxes; 0 on an axis means they overlap
-        // on that axis. hypot of the two is the distance between the closest
-        // points of the two rectangles.
-        const gapX = Math.max(0, Math.abs(dx) - (A.halfW + B.halfW));
-        const gapY = Math.max(0, Math.abs(dy) - (A.halfH + B.halfH));
-        const gap = Math.hypot(gapX, gapY);
-        if (gap > TUNE.chargeRange) continue;
-        // Push along the closest-point vector, so pills that are side by side
-        // separate sideways and pills stacked vertically separate vertically,
-        // instead of everything drifting diagonally. Fall back to the centre
-        // vector when the boxes already overlap and the gap vector is zero.
-        let ux, uy;
-        if (gap > 0.001) {
-          ux = Math.sign(dx) * gapX;
-          uy = Math.sign(dy) * gapY;
-        } else {
-          ux = dx; uy = dy;
-        }
-        const ul = Math.hypot(ux, uy) || 1;
-        ux /= ul; uy /= ul;
-        const q = (A.charge + B.charge) * 0.5;
-        const mag = Math.min(7, (q * q) / (gap * gap + 1200) * TUNE.charge);
-        A.x -= ux * mag; A.y -= uy * mag;
-        B.x += ux * mag; B.y += uy * mag;
+        const overX = (A.halfW + B.halfW + AIR) - Math.abs(dx);
+        if (overX <= 0) continue;
+        const overY = (A.halfH + B.halfH + AIR) - Math.abs(dy);
+        if (overY <= 0) continue;
+        const push = Math.min(overX, overY) * 0.5 * TUNE.charge;
+        const dist = Math.hypot(dx, dy) || 1;
+        const ux = dx / dist, uy = dy / dist;
+        A.x -= ux * push; A.y -= uy * push;
+        B.x += ux * push; B.y += uy * push;
       }
     }
     // area-fill containment: charge + line-spread push outward, which alone
@@ -310,6 +321,21 @@ function buildNetwork(sectorJobs, discR) {
       const r = Math.hypot(dx, dy) || 1;
       const pull = (node.fillR - r) * TUNE.radialFill;
       node.x += dx / r * pull; node.y += dy / r * pull;
+    }
+    // angular even-fill: rotate each node toward its target ANGLE, the mirror of
+    // the radial pull above. Without this the wedge fills in one dimension only.
+    if (TUNE.angularFill > 0) {
+      for (const node of nodes) {
+        const dx = node.x - CX, dy = node.y - CY;
+        const r = Math.hypot(dx, dy) || 1;
+        const cur = Math.atan2(dy, dx);
+        let tgt = node.fillA;
+        while (tgt - cur > Math.PI) tgt -= TWO_PI;
+        while (tgt - cur < -Math.PI) tgt += TWO_PI;
+        const na = cur + (tgt - cur) * TUNE.angularFill;
+        node.x = CX + r * Math.cos(na);
+        node.y = CY + r * Math.sin(na);
+      }
     }
     // boundary keystones: gentle pull toward their shared seam angle so they
     // settle exactly on the pillar border they bridge.
