@@ -6,4 +6,7 @@ Write-Host "  hub     http://localhost:8000/"
 Write-Host "  wheel   http://localhost:8000/wheel/"
 Write-Host "  builder http://localhost:8000/builder/"
 Set-Location $root
-python -m http.server 8000
+# serve.py sends no-store, so an edited module always takes effect on reload.
+# Plain `python -m http.server` lets the browser cache ES modules and silently
+# keep running stale code.
+python tools/serve.py 8000

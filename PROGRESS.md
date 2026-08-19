@@ -77,6 +77,16 @@ been pulled forward out of Phase 3 because it is urgent and unblocked.
       both export buttons, and the duplicate-name refusal. Relevant to §3's
       unresolved "no automated test path" tension — that gap is now a bug that
       reached Calum, not a hypothetical.
+- [x] **W8 Dev server now sends `no-store`.** `python -m http.server` let the
+      browser cache ES modules, so edits silently had no effect and — worse —
+      **old and new modules loaded together.** That produced a phantom NaN
+      cascade (fresh `render.js` + cached `tune.js` without `titlePos`), which I
+      spent real time chasing as a layout bug that did not exist.
+      **This invalidates verification done earlier in the split**, including some
+      "0 overlaps" claims. Re-measured on the no-cache server: 0 pill/pill and
+      0 pill/title overlaps at 492 pills, but only after raising the settle loop
+      from 24 to 40 passes — at 24 there was still 1 overlap. Use
+      `tools/serve.py`.
 - [ ] **W4 Legacy pillar aliases were dropped** from `PILLAR_COLOURS`, so old
       fixtures in `data/examples/` render grey. Fine under fail-fast, but decide
       before those become test fixtures.

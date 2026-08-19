@@ -106,10 +106,20 @@ rather than the tool.
 wheel **is now split into modules (task 2.2), so double-clicking it no longer
 works.** Serve it. This is the price of the split and it was accepted.
 
-- **Local dev:** `python -m http.server 8000` from the repo root, then
+- **Local dev:** `python tools/serve.py 8000` from the repo root, then
   `http://localhost:8000/wheel/`. That is what `tools/serve.ps1` (primary — the
   dev box runs PowerShell) and `tools/serve.sh` do. **Note `python`, not
   `python3`: `python3` is not on PATH on the dev machine.**
+- ⚠️ **Do not use plain `python -m http.server`.** It sends `Last-Modified` and
+  the browser then caches ES modules aggressively — which means an edited module
+  can keep running the OLD code, and worse, **a mix of old and new modules can
+  load together.** That produced a phantom "NaN cascade" during the wheel split:
+  a fresh `render.js` reading `TUNE.titlePos` from a cached `tune.js` that
+  predated the key, giving `titleR = NaN`, which propagated into every node.
+  There was no bug in the code at all. `tools/serve.py` sends `no-store`, so a
+  reload always gets what is on disk. **Verification against a caching server is
+  worthless** — several checks during the split silently passed against stale
+  modules.
 - **Playwright tests must use `http://localhost:...`, not `file://`.**
   This is a change from how the wheel was previously tested.
 - ⚠️ **There is currently no automated test path at all.** `node`, `npm` and
@@ -643,6 +653,7 @@ were tuned by hand and are the current defaults:
 | 5a Sector-boundary repulsion | `boundaryRepel` | 0 |
 | 5b Boundary reach (px) | `boundaryRange` | 60 |
 | Sector arc allocation | `angleExp` | 0.7 |
+| 4a Title distance hub→rim | `titlePos` | 0.667 |
 | Pillar title size (fixed) | `titleSize` | 30 |
 | Exercise pill size | `pillScale` | 1.2 |
 | Relaxation iterations | `iterations` | 600 |
@@ -655,7 +666,7 @@ were tuned by hand and are the current defaults:
   not just the soft `titleRepel` force.
 - **Wedge + radius clamp** (`clampNode`) — absolute. Keystones get 0.06 rad of
   angular bleed, boundary keystones 0.14, so they can sit on a seam.
-- **A 24-pass settle loop** after the main relaxation, alternating separation and
+- **A 40-pass settle loop** after the main relaxation, alternating separation and
   clamping. Necessary because the clamp is hard: when it ran last, the final
   thing to touch a node could shove it back inside its wedge on top of a
   neighbour, with nothing left to undo it. Alternating converges on both

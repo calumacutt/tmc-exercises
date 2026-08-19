@@ -246,6 +246,19 @@ function buildNetwork(sectorJobs, discR) {
   const titleBoxes = sectorJobs
     .filter(j => j._title)
     .map(j => ({ x: j._title.x, y: j._title.y, halfW: j._title.halfW, halfH: j._title.halfH }));
+
+  // Fail fast on a non-finite title box. These are obstacles in the separation
+  // pass, so a single NaN here propagates into every node's position and the
+  // whole wheel silently collapses — exactly the cascade CLAUDE.md §6.1
+  // describes. It happens for real: a missing TUNE key makes titleR NaN, which
+  // is invisible until every pill has no coordinates. Loud beats silent.
+  for (const t of titleBoxes) {
+    if (![t.x, t.y, t.halfW, t.halfH].every(Number.isFinite)) {
+      throw new Error(
+        'Pillar title box is not finite: ' + JSON.stringify(t) +
+        ' — check TUNE.titlePos and TUNE.titleSize are set.');
+    }
+  }
   for (let it = 0; it < ITER; it++) {
     // charge repulsion: nearby same-pillar nodes repel so the pillar's nodes
     // spread to fill its wedge. Bounded + medium range so it fills area without
@@ -372,7 +385,7 @@ function buildNetwork(sectorJobs, discR) {
   // of a neighbour, with nothing left to undo that. Alternating separation and
   // clamping converges on satisfying both instead of letting the clamp win by
   // being last.
-  for (let pass = 0; pass < 24; pass++) {
+  for (let pass = 0; pass < 40; pass++) {
     separate(nodes, titleBoxes);
     for (const node of nodes) clampNode(node, innerR, discR);
   }

@@ -7,4 +7,7 @@ echo "Serving $(pwd) at http://localhost:8000/"
 echo "  hub     http://localhost:8000/"
 echo "  wheel   http://localhost:8000/wheel/"
 echo "  builder http://localhost:8000/builder/"
-exec python -m http.server 8000
+# serve.py sends no-store, so an edited module always takes effect on reload.
+# Plain `python -m http.server` lets the browser cache ES modules and silently
+# keep running stale code.
+exec python tools/serve.py 8000

@@ -14,7 +14,8 @@ const TUNE = {
   radialFill:    0.05,  // pull toward even-area target radius
   // 3. keystone-to-boundary attraction
   keystoneSeam:  0.30,  // how strongly boundary keystones snap to the seam
-  // 4. repulsion away from the pillar TITLE text boxes
+  // 4. pillar TITLE placement + clearance
+  titlePos:      0.667, // title distance hub→rim (0..1)
   titleRepel:    16,    // strength (0 = off by default; raise to clear titles)
   titleRange:    150,   // reach in px around a title
   // 5. repulsion away from sector (pillar) boundary seams
@@ -33,9 +34,10 @@ const TUNE_DEFS = [
   ['radialFill',   '2c. Even-density pull (hub→rim)',         0, 0.25, 0.005, 3],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
-  ['__g4', 'Title clearance'],
-  ['titleRepel',   '4a. Push exercises off the pillar titles',0, 40, 1, 0],
-  ['titleRange',   '4b. Reach around titles (px)',            40, 300, 10, 0],
+  ['__g4', 'Pillar titles'],
+  ['titlePos',     '4a. Title distance from hub (0=hub, 1=rim)', 0.15, 0.9, 0.01, 2],
+  ['titleRepel',   '4b. Push exercises off the pillar titles',0, 40, 1, 0],
+  ['titleRange',   '4c. Reach around titles (px)',            40, 300, 10, 0],
   ['__g5', 'Sector boundaries'],
   ['boundaryRepel','5a. Push exercises off pillar seams',     0, 40, 1, 0],
   ['boundaryRange','5b. Reach from seam (px)',                10, 160, 5, 0],

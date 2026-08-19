@@ -10,8 +10,8 @@ import {
 } from './layout.js';
 import { LOGO_DATA_URI } from './logo.js';
 import {
-  SIZE, CX, CY, R_HUB, GAP_PILLAR, svg, SVGNS, el, polar, sectorPath, setDefs,
-  getCSS, estLabelWidth,
+  SIZE, CX, CY, R_HUB, R_INNER, GAP_PILLAR, svg, SVGNS, el, polar, sectorPath,
+  setDefs, getCSS, estLabelWidth,
 } from './svg.js';
 
 function render() {
@@ -138,10 +138,15 @@ function drawSectorTitleForJob(job, discR) {
   const { pillar, a0, a1 } = job;
   const span = a1 - a0;
   const mid = (a0 + a1) / 2;
-  const innerR = R_HUB + 16;
+  // Third copy of this constant, missed when R_INNER was introduced — the title
+  // was being placed from a different inner radius than the layout uses.
+  const innerR = R_INNER;
   const base = pillarBase(pillar);
   const titleFs = titleFontSize(span);
-  const titleR = innerR + (discR - innerR) * 0.40;
+  // Distance from hub to rim, 0..1. Sat at a hardcoded 0.40, which put the title
+  // in the narrow part of the wedge where there is least room — so exercises
+  // either side of it got squeezed. Now tunable; see TUNE.titlePos.
+  const titleR = innerR + (discR - innerR) * TUNE.titlePos;
   const [tx, ty] = polar(CX, CY, titleR, mid);
   const titleLines = wrapTitle(pillar);
   job._title = { lines: titleLines, x: tx, y: ty, fs: titleFs, base,
