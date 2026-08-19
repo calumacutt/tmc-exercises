@@ -610,6 +610,25 @@ Single file, ~1,670 lines, to be split per §2.
 
 ### Visual design language
 
+**The export is a finished piece, not a diagram.** The masthead, subtitle and
+pillar legend are drawn **inside the SVG**, so they travel with the PNG/SVG.
+Before that the export carried only exercise labels and pillar titles — nothing
+identifying what it was, because the page masthead is HTML *outside* the SVG.
+They live in the corners, which a circle inscribed in a square leaves empty
+(~21% of the canvas), so they cost no layout room. The masthead is stacked on two
+lines and **fit-scaled against the disc edge at each line's own baseline** — a
+corner is a triangle, so a wide single line runs into the wheel, and the subtitle
+sits lowest and has the least room of all.
+
+⚠️ **`.w-pillar-label` is uppercased in JS, not by CSS `text-transform`.** The
+title's collision box is measured with `estLabelWidth`, and a CSS-only transform
+would leave it measuring the shorter mixed-case string and silently under-reserve
+space. For the same reason `estLabelWidth` takes an explicit font and tracking:
+titles render in Fraunces with 0.08em tracking while the default measure is
+Archivo with none, so measuring the wrong face under-reserved the box. `svg.js`
+exports `TITLE_FONT` / `TITLE_TRACKING` and the CSS mirrors them — change both or
+neither.
+
 - Dark warm charcoal, `--bg: #14110F`. Poster aesthetic.
 - Fraunces + Archivo via Google Fonts CDN; falls back to system fonts.
 - Title masthead "The Ultimate Mover" + TMC logo as an embedded base64 data
@@ -658,7 +677,7 @@ were tuned by hand and are the current defaults:
 | 3 Keystone→seam attraction | `keystoneSeam` | 0.3 |
 | 4a Title distance hub→rim | `titlePos` | 0.667 |
 | Sector arc allocation | `angleExp` | 0.7 |
-| Pillar title size (fixed) | `titleSize` | 30 |
+| Pillar title size (fixed) | `titleSize` | 48 |
 | Exercise pill size | `pillScale` | 1.2 |
 | Relaxation iterations | `iterations` | 600 |
 

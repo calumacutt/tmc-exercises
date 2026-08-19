@@ -468,7 +468,10 @@ function drawSectorTitle(lines, x, y, fs, base) {
   lines.forEach((ln, i) => {
     const t = el('text', {
       x, y: y0 + i * lh, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
-      fill: hsl(base.h, Math.min(base.s + 6, 80), Math.min(base.l + 24, 82)),
+      // More saturated and less light than before (was s+6, l+24 capped at 82%),
+      // which made the titles almost the same cream as the pill labels. Now they
+      // read as a heading IN their pillar's colour rather than as bigger body text.
+      fill: hsl(base.h, Math.min(base.s + 20, 88), Math.min(base.l + 10, 68)),
       'font-size': fs, class: 'w-pillar-label',
     }, g);
     t.textContent = ln;
@@ -530,7 +533,11 @@ function drawPill(it, fs, base, pillar) {
   el('rect', {
     x, y, width: it.w, height: it.h, rx, ry: rx,
     fill: fillRef,
-    stroke: '#fff', 'stroke-opacity': 0.85, 'stroke-width': 1.5,
+    // The white outline at 0.85 was what made keystones dominate the composition.
+    // Taken right down and tinted to the pillar hue: the luminous fill and dark
+    // ink label already read unmistakably as a hub.
+    stroke: hsl(base.h, Math.min(base.s + 20, 90), 88), 'stroke-opacity': 0.35,
+    'stroke-width': 1.5,
   }, g);
   // label: dark ink on the bright fill for contrast
   const t = el('text', {

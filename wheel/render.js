@@ -11,7 +11,7 @@ import {
 import { LOGO_DATA_URI } from './logo.js';
 import {
   SIZE, CX, CY, R_HUB, R_INNER, GAP_PILLAR, svg, SVGNS, el, polar, sectorPath,
-  setDefs, getCSS, estLabelWidth,
+  setDefs, getCSS, estLabelWidth, TITLE_FONT, TITLE_TRACKING,
 } from './svg.js';
 
 function render() {
@@ -86,12 +86,21 @@ function render() {
   let maxUsedR = discR;
 
   // ---- draw sector fills + faint zones ----
-  for (const job of sectorJobs) {
+  sectorJobs.forEach((job, i) => {
     const base = pillarBase(job.pillar);
-    // sector fill: faint tint of the pillar colour across the whole disc
+    // Sector tint as a radial gradient rather than a flat wash: fainter at the
+    // hub, stronger at the rim. Gives the disc depth and quietly carries the eye
+    // outward, which is where the content actually is.
+    const gid = `sect-${i}`;
+    const grad = el('radialGradient', {
+      id: gid, gradientUnits: 'userSpaceOnUse', cx: CX, cy: CY, r: discR,
+    }, defs);
+    const tint = hsl(base.h, base.s, base.l);
+    el('stop', { offset: R_HUB / discR, 'stop-color': tint, 'stop-opacity': 0.05 }, grad);
+    el('stop', { offset: 1, 'stop-color': tint, 'stop-opacity': 0.16 }, grad);
     el('path', {
       d: sectorPath(CX, CY, R_HUB, discR, job.a0, job.a1),
-      fill: hsl(base.h, base.s, base.l), opacity: 0.10,
+      fill: `url(#${gid})`,
       stroke: getCSS('--bg'), 'stroke-width': 3,
     }, svg);
     // hub sector (solid pillar colour) as the centre ring
@@ -99,7 +108,14 @@ function render() {
       d: sectorPath(CX, CY, 0, R_HUB, job.a0, job.a1),
       fill: pillarHubColour(job.pillar), stroke: getCSS('--bg'), 'stroke-width': 3,
     }, svg);
-  }
+  });
+
+  // Outer ring: the sectors used to just stop at the rim. A hairline frames the
+  // disc and echoes the ring around the hub medallion.
+  el('circle', {
+    cx: CX, cy: CY, r: discR, fill: 'none',
+    stroke: getCSS('--line'), 'stroke-width': 1.5, 'stroke-opacity': 0.45,
+  }, svg);
 
   // ---- pillar titles (horizontal) ----
   for (const job of sectorJobs) {
@@ -131,6 +147,99 @@ function render() {
   bgRect.setAttribute('x', vbX); bgRect.setAttribute('y', vbY);
   bgRect.setAttribute('width', vbSize); bgRect.setAttribute('height', vbSize);
   svg._vb = { x: vbX, y: vbY, size: vbSize };
+
+  // Masthead and legend go in LAST, once the viewBox is known, and they live
+  // inside the SVG so they travel with the PNG/SVG export. Before this the
+  // export was a wheel with nothing identifying it — the page masthead is HTML,
+  // outside the SVG. A circle inscribed in a square leaves ~21% of the canvas
+  // empty in the corners, so this costs no layout room.
+  drawMasthead(vbX, vbY, vbSize, discR);
+  drawLegend(sectorJobs, vbX, vbY, vbSize, discR);
+}
+
+// How far a corner block can extend before it touches the disc. The disc edge
+// runs diagonally across each corner, so the usable depth is measured along the
+// diagonal from the canvas corner to the circle.
+function cornerRoom(vbSize, discR) {
+  return (vbSize / 2) - discR / Math.SQRT2;
+}
+
+function drawMasthead(vbX, vbY, vbSize, discR) {
+  const pad = vbSize * 0.028;
+  const cx = vbX + vbSize / 2, cy = vbY + vbSize / 2;
+  // Two lines, because the space in a corner is a TRIANGLE — a tall narrow block
+  // fits it far better than one wide line, which ran straight into the disc.
+  const lines = ['The Ultimate', 'Mover'];
+  const sub = 'The Movement Collective · Newcastle';
+  const font = fs => `600 ${fs}px Fraunces, Georgia, serif`;
+
+  // Horizontal room left of the disc at a given height. The disc curves away as
+  // you go up, so every line of the block has a different amount of space.
+  const roomAt = (y, fs) => {
+    const dy = Math.abs(y - cy);
+    const inside = discR * discR - dy * dy;
+    const discHalf = inside > 0 ? Math.sqrt(inside) : 0;
+    return (cx - discHalf) - (vbX + pad) - fs * 0.5;
+  };
+
+  // Shrink until EVERY line clears — including the subtitle, which sits lowest
+  // and so has the least room. Checking only the title lines let the subtitle
+  // run into the disc.
+  let fs = vbSize * 0.045;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const lh = fs * 1.02, subFs = fs * 0.19;
+    const rows = lines.map((ln, i) => ({
+      text: ln, fs, y: vbY + pad + fs * 0.85 + i * lh, font: font(fs), tracking: 0,
+    }));
+    rows.push({
+      text: sub, fs: subFs, font: `500 ${subFs}px Archivo, sans-serif`, tracking: 0.22,
+      y: vbY + pad + fs * 0.85 + (lines.length - 1) * lh + subFs * 2.6,
+    });
+    if (rows.every(r => estLabelWidth(r.text, r.fs, r.font, r.tracking) <= roomAt(r.y, r.fs))) break;
+    fs *= 0.94;
+  }
+
+  const lh = fs * 1.02;
+  const g = el('g', {}, svg);
+  lines.forEach((ln, i) => {
+    const t = el('text', {
+      x: vbX + pad, y: vbY + pad + fs * 0.85 + i * lh,
+      fill: getCSS('--ink'), 'font-size': fs, class: 'w-mast',
+    }, g);
+    t.textContent = ln;
+  });
+  const subFs = fs * 0.19;
+  const st = el('text', {
+    x: vbX + pad, y: vbY + pad + fs * 0.85 + (lines.length - 1) * lh + subFs * 2.6,
+    fill: getCSS('--ink-faint'), 'font-size': subFs, class: 'w-mast-sub',
+  }, g);
+  st.textContent = sub;
+}
+
+function drawLegend(sectorJobs, vbX, vbY, vbSize, discR) {
+  const pad = vbSize * 0.028;
+  const room = cornerRoom(vbSize, discR);
+  const fs = Math.min(vbSize * 0.0115, room * 0.16);
+  const row = fs * 2.1;
+  const sw = fs * 0.85;                       // swatch size
+  const right = vbX + vbSize - pad;
+  // stack upward from the bottom-right corner so it hugs the corner
+  const bottom = vbY + vbSize - pad;
+  const g = el('g', {}, svg);
+  const pillars = sectorJobs.map(j => j.pillar);
+  pillars.forEach((pillar, i) => {
+    const y = bottom - (pillars.length - 1 - i) * row;
+    const base = pillarBase(pillar);
+    const label = el('text', {
+      x: right - sw - fs * 0.9, y, 'text-anchor': 'end', 'dominant-baseline': 'middle',
+      fill: getCSS('--ink-soft'), 'font-size': fs, class: 'w-legend',
+    }, g);
+    label.textContent = pillar;
+    el('rect', {
+      x: right - sw, y: y - sw / 2, width: sw, height: sw, rx: sw * 0.28, ry: sw * 0.28,
+      fill: hsl(base.h, base.s, base.l),
+    }, g);
+  });
 }
 
 // Draw just the pillar title for a sector (network handles the pills).
@@ -148,10 +257,15 @@ function drawSectorTitleForJob(job, discR) {
   // either side of it got squeezed. Now tunable; see TUNE.titlePos.
   const titleR = innerR + (discR - innerR) * TUNE.titlePos;
   const [tx, ty] = polar(CX, CY, titleR, mid);
-  const titleLines = wrapTitle(pillar);
+  // Uppercased HERE rather than via CSS text-transform, so the string we measure
+  // is the string we draw. A CSS-only transform would leave the collision box
+  // measuring the shorter mixed-case text and silently under-reserve space.
+  const titleLines = wrapTitle(pillar.toUpperCase());
+  const measured = titleLines.map(
+    l => estLabelWidth(l, titleFs, TITLE_FONT(titleFs), TITLE_TRACKING));
   job._title = { lines: titleLines, x: tx, y: ty, fs: titleFs, base,
-                 halfW: Math.max(...titleLines.map(l => estLabelWidth(l, titleFs))) / 2 + 14,
-                 halfH: (titleLines.length * (titleFs + 2)) / 2 + 10 };
+                 halfW: Math.max(...measured) / 2 + 18,
+                 halfH: (titleLines.length * (titleFs * 1.15)) / 2 + 14 };
 }
 
 function showStatus(html) {
@@ -200,11 +314,11 @@ function serialisedSVG() {
   const style = document.createElementNS(SVGNS, 'style');
   style.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Archivo:wght@400;500;600&display=swap');
-    .w-pillar-label{font-family:'Fraunces',Georgia,serif;font-weight:600;}
-    .w-disc-label{font-family:'Archivo',sans-serif;font-weight:600;}
-    .w-ex-label{font-family:'Archivo',sans-serif;}
-    .w-center-title{font-family:'Fraunces',Georgia,serif;}
-    .w-center-sub{font-family:'Archivo',sans-serif;letter-spacing:0.18em;}
+    .w-pillar-label{font-family:'Fraunces',Georgia,serif;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+    .w-ex-label{font-family:'Archivo',sans-serif;letter-spacing:0.01em;}
+    .w-mast{font-family:'Fraunces',Georgia,serif;font-weight:600;}
+    .w-mast-sub{font-family:'Archivo',sans-serif;font-weight:500;letter-spacing:0.22em;text-transform:uppercase;}
+    .w-legend{font-family:'Archivo',sans-serif;font-weight:500;letter-spacing:0.06em;}
   `;
   clone.insertBefore(style, clone.firstChild);
   return new XMLSerializer().serializeToString(clone);

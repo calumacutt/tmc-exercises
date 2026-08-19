@@ -87,6 +87,23 @@ been pulled forward out of Phase 3 because it is urgent and unblocked.
       0 pill/title overlaps at 492 pills, but only after raising the settle loop
       from 24 to 40 passes — at 24 there was still 1 overlap. Use
       `tools/serve.py`.
+- [x] **W9 Visual pass on the wheel.** Seven changes, all measured:
+      masthead + subtitle + pillar legend now drawn **inside the SVG** so the
+      export identifies itself (it previously carried only labels); pillar titles
+      **uppercased** and 30px → 48px (2.1:1 → 3.3:1 against body text) with
+      0.08em tracking; title colour from `s+6, l+24` to `s+20, l+10` so they read
+      as a heading in their pillar hue rather than as cream body text; keystone
+      white outline 0.85 → 0.35 and tinted to the pillar hue, since that outline
+      was what made them dominate; hairline outer ring at `discR`; sector wash
+      changed from a flat 0.10 to a radial gradient 0.05→0.16 hub→rim; +0.01em
+      tracking on pill labels; and the dead `.w-disc-label` / `.w-center-title` /
+      `.w-center-sub` CSS removed from both the page and every export.
+      **Two real bugs surfaced doing it:** the title collision box was measured in
+      Archivo while rendering in Fraunces, and `measureText` ignores
+      letter-spacing — so the box under-reserved space. `estLabelWidth` now takes
+      an explicit font and tracking. Verified at 492 pills: 0 pill overlaps,
+      0 title overlaps, masthead/subtitle/legend all clear of the disc, exports
+      still valid.
 - [ ] **W4 Legacy pillar aliases were dropped** from `PILLAR_COLOURS`, so old
       fixtures in `data/examples/` render grey. Fine under fail-fast, but decide
       before those become test fixtures.

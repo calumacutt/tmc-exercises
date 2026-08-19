@@ -16,7 +16,7 @@ const TUNE = {
   titlePos:      0.667, // title distance hub→rim (0..1)
   // sector sizing
   angleExp:      0.70,  // arc allocation exponent (1=∝count, <1 compresses big pillars)
-  titleSize:     30,    // fixed pillar title font size
+  titleSize:     48,    // fixed pillar title font size
 };
 
 // Slider definitions: [key, label, min, max, step, decimals]
@@ -30,7 +30,7 @@ const TUNE_DEFS = [
   ['titlePos',     '4a. Title distance hub→rim',              0.15, 0.9, 0.01, 2],
   ['__g7', 'Sector sizing'],
   ['angleExp',     'Sector arc allocation (1=∝count, <1 evens)', 0.4, 1.6, 0.05, 2],
-  ['titleSize',    'Pillar title size (fixed)',               16, 48, 1, 0],
+  ['titleSize',    'Pillar title size (fixed)',               16, 88, 2, 0],
   ['__g8', 'General'],
   ['pillScale',    'Exercise pill size',                      0.6, 1.6, 0.05, 2],
   ['iterations',   'Relaxation iterations (quality)',         80, 700, 20, 0],

@@ -48,10 +48,20 @@ function getDefs() { return defs; }
 
 const _measureCanvas = document.createElement('canvas');
 const _mctx = _measureCanvas.getContext('2d');
-function estLabelWidth(text, fs) {
-  _mctx.font = `${fs}px Archivo, sans-serif`;
-  return _mctx.measureText(text).width;
+// Measure a label. `font` takes a full CSS font shorthand so callers can measure
+// in the face they will actually RENDER in — the pillar titles are Fraunces while
+// the default here is Archivo, and measuring the wrong face under-reserved their
+// collision box. `tracking` is in em, because measureText ignores letter-spacing.
+function estLabelWidth(text, fs, font, tracking) {
+  _mctx.font = font || `${fs}px Archivo, sans-serif`;
+  const w = _mctx.measureText(text).width;
+  return w + (tracking || 0) * fs * Math.max(0, text.length - 1);
 }
+
+// The face + tracking the pillar titles are drawn in. Kept here so the measuring
+// and the drawing cannot drift apart.
+const TITLE_FONT = fs => `600 ${fs}px Fraunces, Georgia, serif`;
+const TITLE_TRACKING = 0.08;
 
 function getCSS(varName) {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || "#000";
@@ -60,5 +70,5 @@ function getCSS(varName) {
 export {
   SIZE, CX, CY, R_HUB, R_INNER, GAP_PILLAR,
   svg, SVGNS, el, polar, sectorPath,
-  setDefs, getDefs, estLabelWidth, getCSS,
+  setDefs, getDefs, estLabelWidth, TITLE_FONT, TITLE_TRACKING, getCSS,
 };
