@@ -334,7 +334,21 @@ way they never are in a spreadsheet.
       **Still to do:** retune and record defaults in `CLAUDE.md` §9 — largely
       done now that there are only 8.
 - [~] **2.6 Add discipline/line visual grouping.**
-      **Step 1 done — colour.** `shade()` in `shared/taxonomy.js` implements §8.1
+      **Step 1 done — colour, on the second attempt.** The first version put
+      discipline+line on the pill BORDER only and Calum could not see it at all: a
+      1.5px border has nowhere near enough area to register a 5-point lightness
+      step. Redone so the **fill** carries discipline across an absolute 15%→55%
+      ramp, the **outline** carries line, and the label flips to dark ink above 42%
+      fill lightness. 15 distinct fills, 48 distinct outlines, 0 legibility
+      failures, 0 overlaps.
+      **What unlocked it: keystones stopped being a different kind of object.**
+      They had a luminous fill + dark ink, which reserved the bright end of the
+      ramp; disciplines had to share the remainder, which is why they were
+      invisible. Keystones are now the same fill/outline rules, just a bigger pill
+      with a **crown above it** — Calum's idea, and it is what makes the full ramp
+      available. The crown is included in the collision box (`halfH` grows, pill is
+      drawn in the bottom of it) so crowns cannot land on neighbouring pills.
+      **Superseded step 1:** `shade()` in `shared/taxonomy.js` implements §8.1
       as decided: hue stays with the pillar, **lightness carries discipline (wide
       spread, 30) and line (fine spread, 9)**. The pill BORDER carries it, since
       on a dark pill that is the only element with enough area-to-contrast to read

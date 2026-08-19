@@ -583,12 +583,23 @@ shading**, and **hot/cold**.
 **Decision: heat is carried by GLOW.** Hue stays with the pillar, lightness with
 discipline/line. Hot regions of the wheel glow; cold regions do not.
 
-The lightness half is now implemented as `shade()` in `shared/taxonomy.js`:
-discipline gets a wide lightness spread (30) and line a fine one (9), carried on
-the pill **border** because on a dark pill that is the only element with enough
-area-to-contrast to read as colour. Indices come from an **alphabetical** ordering
-of the disciplines in a pillar and the lines in a discipline — *not* by exercise
-count, which would reshuffle every colour on the wheel each time the sheet grows.
+The lightness half is implemented as `shade()` in `shared/taxonomy.js`:
+
+- the pill **FILL** carries the discipline, across an **absolute** lightness ramp
+  of 15%→55% (absolute, not an offset from the pillar's own lightness, so a tone
+  means the same thing in every pillar);
+- the **OUTLINE** carries the line within that discipline, always 20–40 points
+  lighter than its fill so the signal survives at the dark end;
+- the label flips to **dark ink above 42% fill lightness**, which is what makes a
+  wide ramp usable at all.
+
+A first attempt put both signals on the outline only, and it was **invisible** —
+a 1.5px border is not enough area to register a 5-point lightness step. That is
+the lesson: on a dark ground, fill area carries lightness, borders carry hue.
+
+Indices come from an **alphabetical** ordering of the disciplines in a pillar and
+the lines in a discipline — *not* by exercise count, which would reshuffle every
+colour on the wheel each time the sheet grows.
 
 This required freeing the channel, because **keystones already used the glow**
 (`#ks-glow`) and one channel cannot carry two meanings — a hot keystone would
@@ -655,9 +666,19 @@ change both or neither.
 
 ### Pill rendering
 
-- Ordinary: rounded-rect, dark fill, faint pillar-coloured border.
-- **Keystone:** luminous pillar-colour fill + white glow halo
-  (`filter: url(#ks-glow)`), dark ink label, slightly larger.
+One treatment for every pill: rounded rect, fill from the discipline shade,
+outline from the line shade, label ink flipped for contrast.
+
+- **Keystones are not a different kind of object.** Same fill and outline rules,
+  just a larger pill (`fs + 3`, 2px outline) with a **crown above it**. They used
+  to own a luminous fill and dark ink, which reserved the bright end of the
+  lightness ramp and left disciplines fighting over the remainder — that is why
+  the discipline shading was invisible. Marking them by size and an icon instead
+  frees the whole ramp.
+- ⚠️ **The crown is inside the collision box.** `halfH` grows by the crown height
+  plus its gap, and the pill is drawn in the *bottom* of that box, so a crown can
+  never sit on a neighbouring pill. Same principle as the pillar titles: collide
+  on what is actually drawn.
 - **Boundary keystone** (keystone whose Also Appears In links to an *adjacent*
   pillar): **two-tone split fill** — own pillar colour on one half, bridged
   pillar's colour on the other — and pulled onto the shared seam angle.

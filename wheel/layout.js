@@ -114,12 +114,24 @@ function buildNetwork(sectorJobs, discR) {
 
   for (const job of sectorJobs) {
     for (const ex of job.exercises) {
-      const w = pillWidth(ex.name, (ex.keystone ? fs + 2 : fs)) * TUNE.pillScale;
-      const h = pillHeight(ex.keystone ? fs + 2 : fs) * TUNE.pillScale;
+      // Keystones are the same KIND of object as everything else now — just
+      // bigger, with a crown above them. They no longer get a luminous fill, which
+      // is what frees the whole lightness ramp for disciplines.
+      const kfs = ex.keystone ? fs + 3 : fs;
+      const w = pillWidth(ex.name, kfs) * TUNE.pillScale;
+      const pillH = pillHeight(kfs) * TUNE.pillScale;
+      // The crown sits ABOVE the pill, and the collision box grows to include it —
+      // otherwise crowns would sit on top of neighbouring pills. Same principle as
+      // the pillar titles: collide on what is actually drawn.
+      const crownH = ex.keystone ? pillH * 0.52 : 0;
+      const crownGap = ex.keystone ? pillH * 0.16 : 0;
+      const extra = crownH + crownGap;
+      const h = pillH + extra;
       const node = {
         ex, job, isKey: ex.keystone,
         x: 0, y: 0, halfW: w / 2, halfH: h / 2, w, h,
-        fs: (ex.keystone ? fs + 2 : fs) * TUNE.pillScale,
+        pillH, crownH, crownGap, extra,
+        fs: kfs * TUNE.pillScale,
       };
       nodes.push(node);
       nodeByName.set(ex.name, node);
@@ -476,8 +488,17 @@ function hardPass(nodes, titleBoxes, innerR, discR) {
 }
 
 function drawPillNode(node) {
-  const base = pillarBase(node.job.pillar);
-  drawPill({ lab: node.ex, x: node.x, y: node.y, w: node.w, h: node.h, node }, node.fs, base, node.job.pillar);
+  drawPill(node);
+}
+
+// A small three-point crown, flat-based, sitting on `yBottom` centred at `cx`.
+function crownPath(cx, yBottom, w, h) {
+  const x0 = cx - w / 2, x1 = cx + w / 2;
+  const shoulder = yBottom - h * 0.28;
+  const dip = yBottom - h * 0.46;
+  return `M${x0},${yBottom} L${x0},${shoulder} L${cx - w * 0.25},${dip} `
+       + `L${cx},${yBottom - h} L${cx + w * 0.25},${dip} L${x1},${shoulder} `
+       + `L${x1},${yBottom} Z`;
 }
 
 // wrap a long pillar name onto up to two lines
@@ -508,80 +529,72 @@ function drawSectorTitle(lines, x, y, fs, base) {
   });
 }
 
-function drawPill(it, fs, base, pillar) {
-  const lab = it.lab;
-  const node = it.node;
+// One treatment for every pill. Discipline sets the FILL lightness, line sets the
+// OUTLINE lightness, and the label flips to dark ink on the lighter fills so it
+// stays readable across the whole ramp.
+//
+// Keystones are not a different kind of object any more: same fill, same outline
+// rules, just a larger pill with a crown above it. That is what makes the full
+// lightness range usable for disciplines — previously keystones owned the bright
+// end and the disciplines had to share what was left, which was invisible.
+function drawPill(node) {
+  const lab = node.ex;
+  const base = pillarBase(node.job.pillar);
+  const sh = node.shade;
   const g = el('g', {}, svg);
-  const x = it.x - it.w / 2, y = it.y - it.h / 2;
-  const rx = it.h / 2;
 
-  if (!lab.keystone) {
-    // Ordinary pill. The BORDER carries the discipline/line shade — on a dark
-    // pill the border is the only part with enough area-to-contrast to read as
-    // colour, so it does the work. The fill gets a much smaller lift from the
-    // same shade so blocks of one discipline read as a faintly common tone.
-    const sh = node && node.shade ? node.shade : base;
-    el('rect', {
-      x, y, width: it.w, height: it.h, rx, ry: rx,
-      fill: hsl(sh.h, sh.s, 11 + (sh.l - base.l) * 0.10), 'fill-opacity': 0.92,
-      stroke: hsl(sh.h, sh.s, Math.max(24, Math.min(sh.l + 6, 72))),
-      'stroke-width': 1.5,
-    }, g);
-    const t = el('text', {
-      x: it.x, y: it.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
-      fill: getCSS('--ink'), 'font-size': fs, class: 'w-ex-label',
-    }, g);
-    t.textContent = lab.name;
-    return;
-  }
+  // The pill occupies the bottom of the collision box; the crown fills the rest.
+  const pillTop = node.y - node.halfH + node.extra;
+  const cyPill = pillTop + node.pillH / 2;
+  const x = node.x - node.halfW;
+  const rx = node.pillH / 2;
 
-  // ---- KEYSTONE: luminous, colour-filled hub pill ----
-  // Boundary keystones (straddle an adjacent pillar) get a split two-tone fill:
-  // their own pillar colour on one half, the bridged pillar's colour on the
-  // other — visually signalling they belong to both.
-  const isBoundary = node && node.isBoundaryKey && node.bridgePillar;
-  let fillRef;
+  // Boundary keystones keep the two-tone split fill: their own pillar colour on
+  // one half, the bridged pillar's on the other. That is the only visual for a
+  // cross-pillar bridge, so it wins over the discipline shade for those 2 nodes.
+  const isBoundary = node.isBoundaryKey && node.bridgePillar;
+  let fill = sh.fill;
+  let darkInk = sh.darkInk;
   if (isBoundary) {
     const other = pillarBase(node.bridgePillar);
-    // orient the gradient across the seam: own colour toward pillar interior,
-    // bridged colour toward the neighbour. Compute split direction from the
-    // angular position (perpendicular-ish to the radial seam reads best).
     const gid = 'ksg-' + Math.random().toString(36).slice(2, 9);
     const grad = el('linearGradient', {
       id: gid, x1: '0%', y1: '0%', x2: '100%', y2: '0%',
       gradientUnits: 'objectBoundingBox',
     }, getDefs());
-    el('stop', { offset: '0%',  'stop-color': hsl(base.h, base.s + 6, base.l) }, grad);
+    el('stop', { offset: '0%', 'stop-color': hsl(base.h, base.s + 6, base.l) }, grad);
     el('stop', { offset: '46%', 'stop-color': hsl(base.h, base.s + 6, base.l) }, grad);
     el('stop', { offset: '54%', 'stop-color': hsl(other.h, other.s + 6, other.l) }, grad);
-    el('stop', { offset: '100%','stop-color': hsl(other.h, other.s + 6, other.l) }, grad);
-    fillRef = `url(#${gid})`;
-  } else {
-    fillRef = hsl(base.h, Math.min(base.s + 10, 82), Math.min(base.l + 4, 60));
+    el('stop', { offset: '100%', 'stop-color': hsl(other.h, other.s + 6, other.l) }, grad);
+    fill = `url(#${gid})`;
+    darkInk = true;
   }
 
-  // NOTE: no glow halo here any more. Glow now means HEAT (CLAUDE.md §8.1) and
-  // cannot mean two things at once. Keystones stay distinct through the luminous
-  // fill, the larger pill and the dark ink label.
-  // solid pill body
   el('rect', {
-    x, y, width: it.w, height: it.h, rx, ry: rx,
-    fill: fillRef,
-    // The white outline at 0.85 was what made keystones dominate the composition.
-    // Taken right down and tinted to the pillar hue: the luminous fill and dark
-    // ink label already read unmistakably as a hub.
-    stroke: hsl(base.h, Math.min(base.s + 20, 90), 88), 'stroke-opacity': 0.35,
-    'stroke-width': 1.5,
+    x, y: pillTop, width: node.w, height: node.pillH, rx, ry: rx,
+    fill, 'fill-opacity': 0.94,
+    stroke: sh.stroke, 'stroke-width': node.isKey ? 2 : 1.5,
   }, g);
-  // label: dark ink on the bright fill for contrast
+
+  const ink = darkInk ? '#191410' : getCSS('--ink');
+
+  if (node.isKey) {
+    const cw = node.pillH * 0.78;
+    el('path', {
+      d: crownPath(node.x, pillTop - node.crownGap, cw, node.crownH),
+      fill: ink, 'fill-opacity': 0.92,
+    }, g);
+  }
+
   const t = el('text', {
-    x: it.x, y: it.y, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
-    fill: '#1a1410', 'font-size': fs, 'font-weight': '700', class: 'w-ex-label',
+    x: node.x, y: cyPill, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    fill: ink, 'font-size': node.fs,
+    'font-weight': node.isKey ? '600' : '400',
+    class: 'w-ex-label',
   }, g);
   t.textContent = lab.name;
 }
 
-// small deterministic PRNG so layout is stable across re-renders
 function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {
