@@ -378,7 +378,26 @@ way they never are in a spreadsheet.
       **Indices are ALPHABETICAL, not by exercise count** — deliberately. Count
       order would reshuffle every colour on the wheel whenever the sheet grows, so
       a discipline's tone would not be a stable identity.
-      **Step 2 — make them BLOBS, and remove the radial bias.** Measuring first
+      **Step 2 DONE — hierarchical blob seeding.** Clusters are built in the seed,
+      not coaxed out by an attractive force. The reason is architectural: the
+      spacing force is **contact-only**, so it can neither disperse a cluster nor
+      fill a void — whatever the seed forms is what you see. An attractive force
+      (Calum's alternative, with a taper) would have been fighting nothing while
+      opening gaps nothing can close. Three levels: wedge → discipline blobs →
+      line sub-blobs → even-area sunflower. Blobs sized from the area their pills
+      actually need; placement greedy, biggest-first, preferring the smallest
+      feasible radius, so **large disciplines drift outward on their own** because
+      a wedge is narrower near the hub.
+      **Measured at 492 pills:** cluster tightness **0.63 discipline / 0.49 line**
+      (1.0 = no clustering), 0 pill overlaps, 0 title overlaps, density CV 0.086
+      (from 0.064 — a real but small cost), radial banding gone (per-discipline
+      shape ratio now ~0.5–1.2, i.e. round, where a band reads ≫1).
+      ⚠️ **Reading the cluster metrics: exclude boundary keystones.** They are
+      deliberately yanked out of their blob onto a seam, and as single outliers they
+      dominate a small group's spread. `Loaded Lower Body Strength` measured shape
+      4.88 with `Dragon Squat` included and **0.46 without**; `Pressing Strength`
+      1.46 → 0.71. Both looked like placement failures and were not.
+      **Superseded plan (kept for the reasoning):** Measuring first
       showed the grouping already exists spatially but as the wrong shape:
       `collectExercises` returns exercises discipline-grouped and the seed maps
       sequential index → radius by equal area, so **disciplines are concentric

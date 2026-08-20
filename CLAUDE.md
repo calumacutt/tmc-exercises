@@ -708,11 +708,24 @@ were tuned by hand and are the current defaults:
 > box-aware spacing, an angular even-fill, and title/seam clearance. The only
 > property affecting placement is the pillar.
 >
-> ⚠️ **The seed is load-bearing.** The spacing force is contact-only — it fires
-> when boxes grown by `air` overlap — so it cannot feel a void and any
-> overlap-free arrangement is a stable equilibrium, holes included. Uniform
-> radial spread comes from the SEED spanning the full radius by equal area, not
-> from repulsion expanding to fill the disc. Do not narrow the seed range.
+> ⚠️ **The seed is load-bearing, and it is where the STRUCTURE lives.** The
+> spacing force is contact-only — it fires when boxes grown by `air` overlap — so
+> it cannot feel a void, cannot disperse a cluster, and any overlap-free
+> arrangement is a stable equilibrium. Two consequences:
+>
+> - uniform radial spread comes from the seed covering the full radius, not from
+>   repulsion expanding to fill the disc;
+> - **discipline and line clustering is BUILT in the seed**, not produced by an
+>   attractive force. Three levels: the pillar wedge holds discipline blobs, each
+>   holds line sub-blobs, each holds its pills on an even-area sunflower. Blobs are
+>   sized from the area their pills actually need, so relaxation barely moves them.
+>   An attractive force was considered and rejected — it would fight nothing while
+>   opening gaps that contact-only repulsion cannot close.
+>
+> Blob placement is greedy, biggest-first, preferring the smallest feasible radius.
+> **Large disciplines end up further out on their own** — a wedge is narrower near
+> the hub, so a big blob cannot fit there. That correlation falls out of the
+> geometry rather than being a rule.
 > **`TUNE` is down to 12 exposed parameters from 19.**
 
 | Panel label | Key | Default |

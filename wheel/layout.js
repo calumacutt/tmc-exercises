@@ -217,27 +217,66 @@ function buildNetwork(sectorJobs, discR) {
     if (seam != null) { node.seamAngle = seam; node.bridgePillar = bp; node.isBoundaryKey = true; }
   }
 
-  // ---- seed positions ----
-  // ordinary nodes: low-discrepancy seed inside their wedge.
-  // keystones: seeded near the boundary of their sector that faces the pillar
-  // they bridge to (so they settle on the shared edge).
+  // ---- seed positions: hierarchical blobs ----
+  // The clusters are BUILT here rather than coaxed out with an attractive force,
+  // and that is a deliberate consequence of how the spacing force works: it is
+  // CONTACT-ONLY, firing only when two air-grown boxes overlap. So it cannot
+  // disperse a cluster and it cannot fill a void — whatever the seed forms is
+  // what you see. (Same reason removing radialFill let the seed's radial spread
+  // show through unchanged.) An attractive force would be fighting nothing while
+  // opening gaps that nothing can close.
+  //
+  // Three levels: the pillar wedge holds discipline blobs, each discipline blob
+  // holds line sub-blobs, each sub-blob holds its exercises on an even-area
+  // sunflower. Blobs are sized from the area their pills actually need, so
+  // relaxation barely has to move anything and the blob keeps its shape.
   for (const job of sectorJobs) {
     const span = job.a1 - job.a0;
     const rng = mulberry32(hashStr(job.pillar));
-    const GOLDEN = 2.399963229728653;
-    let i = 0;
-    for (const ex of job.exercises) {
-      const node = nodeByName.get(ex.name);
-      const frac = (i + 0.5) / Math.max(job.exercises.length, 1);
-      const rr = Math.sqrt(innerR * innerR + frac * (discR * discR - innerR * innerR));
-      const baseFrac = ((i * GOLDEN) % TWO_PI) / TWO_PI;
-      let aa = job.a0 + 0.04 + baseFrac * (span - 0.08);
-      // boundary keystones: seed right on the shared seam
-      if (node.isBoundaryKey && node.seamAngle != null) aa = node.seamAngle;
-      node.x = CX + rr * Math.cos(aa);
-      node.y = CY + rr * Math.sin(aa);
-      node.span = span; node.a0 = job.a0; node.a1 = job.a1;
-      i++;
+    const jobNodes = job.exercises.map(ex => nodeByName.get(ex.name)).filter(Boolean);
+    for (const node of jobNodes) { node.span = span; node.a0 = job.a0; node.a1 = job.a1; }
+
+    // group into discipline -> line -> nodes, alphabetically for stability
+    const byDisc = new Map();
+    for (const n of jobNodes) {
+      const d = (n.ex.discipline || '(none)').trim();
+      const l = (n.ex.line || '(none)').trim();
+      if (!byDisc.has(d)) byDisc.set(d, new Map());
+      const lines = byDisc.get(d);
+      if (!lines.has(l)) lines.set(l, []);
+      lines.get(l).push(n);
+    }
+
+    const discBlobs = [...byDisc.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+      .map(([name, lines]) => {
+        const members = [...lines.values()].flat();
+        return { name, lines, members, br: packedRadius(members, TUNE.air) };
+      });
+
+    const wedgeArea = 0.5 * span * (discR * discR - innerR * innerR);
+    scaleBlobs(discBlobs, wedgeArea, 0.68);
+    placeBlobs(discBlobs, job.a0, job.a1, innerR, discR, false);
+
+    for (const blob of discBlobs) {
+      const lineBlobs = [...blob.lines.entries()].sort((x, y) => x[0].localeCompare(y[0]))
+        .map(([name, members]) => ({ name, members, br: packedRadius(members, TUNE.air) }));
+      if (lineBlobs.length === 1) {
+        lineBlobs[0].x = blob.x; lineBlobs[0].y = blob.y; lineBlobs[0].br = blob.br;
+      } else {
+        scaleBlobs(lineBlobs, Math.PI * blob.br * blob.br, 0.62);
+        // a discipline blob is a circle, so sub-blobs are placed in the full round
+        placeBlobs(lineBlobs, 0, TWO_PI, 0, blob.br, true, blob.x, blob.y);
+      }
+      for (const lb of lineBlobs) sunflower(lb.members, lb.x, lb.y, lb.br, rng);
+    }
+
+    // Boundary keystones are pulled out of their blob and onto the seam they
+    // bridge — that placement is the whole point of the treatment.
+    for (const node of jobNodes) {
+      if (!node.isBoundaryKey || node.seamAngle == null) continue;
+      const r = Math.hypot(node.x - CX, node.y - CY) || (innerR + discR) / 2;
+      node.x = CX + r * Math.cos(node.seamAngle);
+      node.y = CY + r * Math.sin(node.seamAngle);
     }
   }
 
@@ -392,6 +431,78 @@ const PAD_X = 12, PAD_Y = 8;   // desired clear space when resolving overlaps
 
 // Distance from the wheel centre to the NEAREST and FARTHEST point of a pill's
 // box. Used for the ring walls so they collide on the box, not the centre.
+// Radius of a circle big enough to hold these pills at their desired spacing.
+function packedRadius(members, air) {
+  let area = 0;
+  for (const n of members) area += (n.w + air) * (n.h + air);
+  return Math.sqrt(area / Math.PI);
+}
+
+// Scale a set of blob radii so they collectively occupy `fill` of the container
+// area. Circles cannot tile, so `fill` well under 1 is what actually packs. The
+// clamp stops a pathological data shape from inflating or crushing every blob.
+function scaleBlobs(blobs, containerArea, fill) {
+  let sum = 0;
+  for (const b of blobs) sum += Math.PI * b.br * b.br;
+  if (sum <= 0) return;
+  const k = Math.max(0.75, Math.min(1.7, Math.sqrt(fill * containerArea / sum)));
+  for (const b of blobs) b.br *= k;
+}
+
+// Greedily place blob circles inside a wedge (or a full circle when `full`).
+// Biggest first, and among feasible spots it prefers the SMALLEST radius — so
+// small blobs fill the middle and large ones are pushed outward. That is not a
+// rule I wrote: a wedge is narrower near the hub, so a large blob simply cannot
+// fit there. The size→radius correlation falls out of the geometry.
+function placeBlobs(blobs, a0, a1, rLo, rHi, full, ox = CX, oy = CY) {
+  const placed = [];
+  for (const b of [...blobs].sort((x, y) => y.br - x.br)) {
+    let best = null, bestScore = Infinity;
+    const RSTEPS = 30, ASTEPS = 30;
+    for (let i = 0; i < RSTEPS; i++) {
+      const rMin = rLo + b.br, rMax = rHi - b.br;
+      if (rMax < rMin) continue;
+      const r = rMin + (i + 0.5) / RSTEPS * (rMax - rMin);
+      const angPad = full ? 0 : Math.min(b.br / Math.max(r, 1), (a1 - a0) / 2);
+      if (!full && b.br > (a1 - a0) / 2 * r) continue;   // too wide for the wedge here
+      for (let k = 0; k < ASTEPS; k++) {
+        const lo = a0 + angPad, hi = a1 - angPad;
+        if (hi < lo) continue;
+        const ang = lo + (k + 0.5) / ASTEPS * (hi - lo);
+        const x = ox + r * Math.cos(ang), y = oy + r * Math.sin(ang);
+        let worst = 0;
+        for (const p of placed) {
+          worst = Math.max(worst, (b.br + p.br) - Math.hypot(x - p.x, y - p.y));
+        }
+        // no overlap dominates; ties broken toward the hub so the middle fills
+        const score = Math.max(0, worst) * 1000 + r;
+        if (score < bestScore) { bestScore = score; best = { x, y }; }
+      }
+    }
+    if (!best) {
+      // nothing feasible: park it at the outer edge on the centre line
+      const r = Math.max(rLo, rHi - b.br), ang = (a0 + a1) / 2;
+      best = { x: ox + r * Math.cos(ang), y: oy + r * Math.sin(ang) };
+    }
+    b.x = best.x; b.y = best.y;
+    placed.push(b);
+  }
+}
+
+// Even-area sunflower: radius by sqrt so density is uniform, angle by the golden
+// angle so successive members never line up. Deterministic.
+function sunflower(members, cx, cy, br, rng) {
+  const GOLD = 2.399963229728653;
+  const jitter = rng ? (rng() - 0.5) * 0.4 : 0;
+  members.forEach((n, i) => {
+    const f = (i + 0.5) / Math.max(members.length, 1);
+    const r = br * Math.sqrt(f);
+    const a = i * GOLD + jitter;
+    n.x = cx + r * Math.cos(a);
+    n.y = cy + r * Math.sin(a);
+  });
+}
+
 // How much of a pair's separation a node absorbs. 1 is fully mobile. A boundary
 // keystone is held toward its seam by the seam pull, so it cannot keep everything
 // it is given — it takes a reduced share and the mobile neighbour takes the rest.
