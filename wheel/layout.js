@@ -289,8 +289,10 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   //         spokes and rings, clear of the pillar titles, not overlapping another
   //         pill. Runs FIRST each iteration so walls and solid objects take
   //         priority over pills jostling each other.
-  //   SOFT  one force: pairwise repulsion between pills in the same pillar.
-  //         Nothing else is a force.
+  //   SOFT  two pairwise repulsions between pills in the same pillar, at two
+  //         different length scales: a strong CONTACT one (grown boxes must not
+  //         overlap) and a light LONG-RANGE one with a Student-t falloff. Nothing
+  //         else is a force.
   //
   // The one wrinkle is the boundary-keystone seam pull, which is soft but not
   // pairwise. It exists because those keystones are meant to sit ON a seam, and
@@ -351,18 +353,68 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     //
     // Overlap varies continuously, so unlike a min(gap) proximity term this
     // keeps a usable gradient instead of pinning every neighbour to a force cap.
+    // SECOND SOFT FORCE — a light long-range repulsion between every pair in the
+    // same sector, on top of (not instead of) the contact force above.
+    //
+    // Falloff is a STUDENT-T / CAUCHY kernel, 1 / (1 + (d/farLen)^2): peak at
+    // touching, half strength at farLen, and a HEAVY TAIL. That kernel is the one
+    // borrowed from t-SNE, and the heavy tail is the whole reason to borrow it —
+    // t-SNE swapped SNE's Gaussian for a Student-t in the low-dimensional space
+    // specifically to fix the "crowding problem", where a fast-decaying kernel left
+    // moderately-distant points feeling almost no repulsion and everything piled
+    // up. That is exactly the failure mode here, so an exponential or Gaussian
+    // falloff is the wrong instrument: it decays so fast it is contact-only again
+    // with extra arithmetic.
+    //
+    // One deliberate difference from real t-SNE. Its repulsive GRADIENT is
+    // proportional to d / (1 + d^2)^2, which vanishes as d -> 0, because in t-SNE
+    // the attractive term owns short range. Here the contact force owns short
+    // range, and the ask was a force that simply weakens with distance, so this
+    // uses the kernel VALUE rather than the gradient. Bonus: it is bounded at
+    // d = 0, so unlike a Coulomb 1/d^2 there is no singularity to guard.
+    //
+    // ⚠️ DEFAULT OFF, because the reasoning that motivated it turns out to be
+    // wrong in a way worth recording. The hope was density equalisation: deep in an
+    // even cloud the contributions cancel by symmetry, and only a node at the edge
+    // of a void feels a residual. The symmetry argument is fine — the boundary
+    // argument is not. A purely repulsive force is MONOTONE, so it has no interior
+    // equilibrium at all; the only place a node stops being pushed outward is the
+    // wall. Over 600 iterations even a tiny bias accumulates, so the wedge
+    // interior empties and the rim packs.
+    //
+    // Measured at 492 pills, against a baseline of CV 0.106 / outer ring 67 /
+    // nearest-neighbour gap CV 0.143:
+    //   farRepel 0.15, farLen 300 -> CV 0.184, outer ring 88, nn gap CV 0.432
+    //   farRepel 0.04, farLen 300 -> CV 0.219, outer ring 92
+    //   farRepel 0.15, farLen  75 -> CV 0.188, outer ring 86
+    // Weaker did not help and neither did a short length scale, so this is
+    // structural rather than a tuning miss. It also made LOCAL spacing markedly
+    // less even (that nn gap CV), which is the opposite of the intent.
+    //
+    // t-SNE gets away with this kernel because it always pairs it with an
+    // attractive term — attraction is what sets the scale and gives an interior
+    // equilibrium. So the knob stays, at 0, for use ALONGSIDE an attractor; on its
+    // own it is strictly worse than nothing.
     const AIR = TUNE.air;
+    const FAR = TUNE.farRepel;
+    const FAR_L2 = Math.max(1, TUNE.farLen * TUNE.farLen);
     for (let i = 0; i < nodes.length; i++) {
       const A = nodes[i];
       for (let k = i + 1; k < nodes.length; k++) {
         const B = nodes[k];
         if (!spacingApplies(A, B)) continue;
         const dx = B.x - A.x, dy = B.y - A.y;
+        let push = 0;
+        if (FAR > 0) push += FAR / (1 + (dx * dx + dy * dy) / FAR_L2);
+        // The contact force, unchanged — same grown boxes, same least-overlap
+        // push. It just can no longer `continue` out of the pair, because the far
+        // term above applies whether or not the boxes are in contact.
         const overX = (A.halfW + B.halfW + AIR) - Math.abs(dx);
-        if (overX <= 0) continue;
-        const overY = (A.halfH + B.halfH + AIR) - Math.abs(dy);
-        if (overY <= 0) continue;
-        const push = Math.min(overX, overY) * 0.5 * TUNE.charge;
+        if (overX > 0) {
+          const overY = (A.halfH + B.halfH + AIR) - Math.abs(dy);
+          if (overY > 0) push += Math.min(overX, overY) * 0.5 * TUNE.charge;
+        }
+        if (push === 0) continue;
         const dist = Math.hypot(dx, dy) || 1;
         const ux = dx / dist, uy = dy / dist;
         // Split the separation by MOBILITY rather than 50/50. A boundary keystone

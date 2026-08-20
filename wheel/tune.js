@@ -10,6 +10,12 @@ const TUNE = {
   // 1. pill spacing (same pillar): keep roughly equal air around every pill
   charge:        2.50,  // how hard crowded pills push apart
   air:           26,    // desired clear space around each pill, px
+  // 1b. light long-range repulsion, Student-t falloff (see layout.js).
+  // DEFAULT OFF: measured harmful on its own — a purely repulsive force has no
+  // interior equilibrium, so it evacuates the middle and packs the rim. It needs
+  // an attractive counterweight before it earns a non-zero default.
+  farRepel:      0,     // peak push at zero distance, px/iteration. 0 = off
+  farLen:        300,   // half-strength distance, px
   // 2. keystone-to-seam attraction (boundary keystones only)
   keystoneSeam:  0.30,  // how strongly boundary keystones snap to the seam
   // 3. pillar title placement
@@ -21,9 +27,11 @@ const TUNE = {
 
 // Slider definitions: [key, label, min, max, step, decimals]
 const TUNE_DEFS = [
-  ['__g2', 'Pill spacing (the only soft force)'],
+  ['__g2', 'Pill spacing (soft forces)'],
   ['charge',       '2a. Spacing push strength',               0, 2.5, 0.05, 2],
   ['air',          '2b. Desired space around each pill (px)', 4, 120, 2, 0],
+  ['farRepel',     '2c. Long-range repulsion strength',       0, 1.5, 0.01, 2],
+  ['farLen',       '2d. Long-range half-strength dist (px)',  50, 1200, 25, 0],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Pillar titles'],
