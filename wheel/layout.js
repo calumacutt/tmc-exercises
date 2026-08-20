@@ -303,14 +303,16 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   //         pill. Runs FIRST each iteration so walls and solid objects take
   //         priority over pills jostling each other.
   //   SOFT  a HIERARCHY of forces, each on a scheduled trapezoid gain over the
-  //         run (see SCHED). Structure forms first, spacing is polished last:
+  //         run (see SCHED). EVERY ONE IS PAIRWISE — same shape, one strength
+  //         each, no rest lengths, no thresholds. Structure forms first, spacing
+  //         is polished last:
   //
-  //           optional    long-range Student-t repulsion (default 0; when on,
-  //                       it drops out with the edge springs, never after)
-  //           first out   discipline cohesion  — pull to discipline centroid
-  //           then        line cohesion        — pull to line centroid
-  //           then        edge springs         — prog/reg/variant pairs, same line
-  //           (with them) the long-range repulsion
+  //           counterweight parabolic repulsion, all pairs in a sector — the only
+  //                       thing preventing the attractions collapsing a group
+  //           first out   discipline attraction — all same-discipline pairs
+  //           then        line attraction       — all same-line pairs
+  //           then        edge springs          — prog/reg/variant pairs, same line
+  //           (with them) the parabolic repulsion
   //           relaxes     keystone seam pull   — to a floor, never to zero
   //           switch ON   pill-vs-pill collisions (TUNE.collideAt) — off before
   //                       then, so pills can pass through each other while
@@ -365,21 +367,11 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   const allLinks = collectLinks(nodes, nodeByName, allNames);
   const forceEdges = allLinks.filter(({ a, b }) =>
     discKey(a) === discKey(b) && (a.ex.line || '') === (b.ex.line || ''));
-  // Each group carries its PACKED RADIUS — the circle its pills genuinely need at
-  // the desired spacing. Cohesion is a flat-bottom spring against that radius:
-  // it reels strays in but never compresses a group below the space it needs.
-  // The first version pulled straight at the centroid, and it over-collapsed
-  // every group to hard-pad density — leaving voids that nothing downstream can
-  // refill (contact forces cannot feel a void, and the long-range repulsion
-  // re-expands rim-biased). Density CV 0.114 -> 0.19+ traced to exactly this.
-  const lineGroups = groupNodes(nodes, n => discKey(n) + '||' + (n.ex.line || ''));
-  // Discipline cohesion acts on LINE GROUPS, not on individual pills. Pulling
-  // each pill straight at its discipline centroid drags it away from its own
-  // line-mates, so the coarse force actively dismantles the fine structure —
-  // measured, activating it that way took line purity 0.550 -> 0.476. Moving each
-  // line group RIGIDLY toward the discipline centroid gathers the discipline
-  // while leaving every line intact, which is what a hierarchy should do.
-  const discGroups = groupClusters(lineGroups, m => discKey(m[0]));
+  // Every attraction is a PAIR LIST, and every force in this model is pairwise.
+  // A same-line pair appears in both lists and so feels both pulls, which is what
+  // makes the hierarchy a hierarchy.
+  const discPairs = pairsWithin(nodes, discKey);
+  const linePairs = pairsWithin(nodes, n => discKey(n) + '||' + (n.ex.line || ''));
 
   // The whole relaxation — iterations AND settle — is a GENERATOR, yielding once
   // per iteration/pass. driveLayout() below pulls steps inside a per-frame time
@@ -434,12 +426,13 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     // everything piles up. Kernel VALUE rather than t-SNE's gradient, because
     // here the contact force owns short range; bounded at d = 0, no singularity.
     //
-    // ⚠️ Never runs alone. On its own a monotone repulsion has no interior
-    // equilibrium — the only place a node stops being pushed outward is the wall,
-    // so it evacuates the wedge and packs the rim (measured: CV 0.106 -> 0.19+
-    // at every strength and length scale tried). t-SNE pairs it with attraction
-    // for exactly this reason. The SCHEDULE enforces the pairing: its gain decays
-    // with the edge springs and never survives them.
+    // ⚠️ Never runs alone, and it is not optional: this is the ONLY thing stopping
+    // the pairwise attractions collapsing every group to a point. Attraction grows
+    // with separation, this is strongest at contact, so a pair settles where they
+    // balance. Alone it would be the opposite failure — a monotone repulsion has no
+    // interior equilibrium and packs the rim (measured CV 0.106 -> 0.19+). t-SNE
+    // pairs the kernel with attraction for the same reason. The SCHEDULE keeps the
+    // pairing: its gain decays with the edge springs and never survives them.
     const AIR = TUNE.air;
     const FAR = TUNE.farRepel;
     const FAR_L2 = Math.max(1, TUNE.farLen * TUNE.farLen);
@@ -475,47 +468,14 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
       }
     }
 
-    // ---- the attraction hierarchy, lowest priority first, so the force that
-    // matters most gets the last word within the iteration ----
-    // Cohesions are centroid pulls: exactly the AVERAGE of a linear spring to
-    // every group partner (sum of (p_j - p_i) over n partners = n*(centroid -
-    // p_i)), written this way because it is O(n) and because a 60-exercise group
-    // must not pull 60x harder than a 3-exercise one. Scaled by mobility so a
-    // boundary keystone is not dragged off its seam by its group.
-    if (gDisc > 0) applyClusterCohesion(discGroups, TUNE.discPull * gDisc);
-    if (gLine > 0) applyCohesion(lineGroups, TUNE.linePull * gLine);
-
-    // Edge springs: prog/reg/variant pairs in the same line, pulled toward each
-    // other hard. The hard pass keeps them from interpenetrating, so "extremely
-    // tight" resolves to pad distance, which is the intent.
-    if (gEdge > 0 && TUNE.edgePull > 0) {
-      const k = TUNE.edgePull * gEdge;
-      for (const e of forceEdges) {
-        const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
-        const d = Math.hypot(dx, dy);
-        if (d <= 0.001) continue;
-        // REST LENGTH — touching distance, not zero. Without collisions to stop
-        // them (see TUNE.collideAt) a plain spring drags a linked pair to exactly
-        // coincident, and the separation direction when collisions switch on is
-        // then decided by floating-point noise rather than by the layout.
-        //
-        // It has to be DIRECTION-AWARE. Two boxes are clear if EITHER axis is
-        // clear, so the touching distance along the line between centres is the
-        // smaller of the two axis requirements projected onto that line. A fixed
-        // halfW-based rest treats a vertically stacked pair as if it were
-        // side-by-side, which for wide pills is hugely too far: measured, it took
-        // the median link from 214px to 282px.
-        const ux = Math.abs(dx) / d, uy = Math.abs(dy) / d;
-        const restX = ux > 1e-6 ? (e.a.halfW + e.b.halfW + PAD_X) / ux : Infinity;
-        const restY = uy > 1e-6 ? (e.a.halfH + e.b.halfH + PAD_Y) / uy : Infinity;
-        const rest = Math.min(restX, restY);
-        if (d <= rest) continue;
-        const pull = k * (d - rest) / d;
-        const mA = mobility(e.a), mB = mobility(e.b), tot = mA + mB;
-        e.a.x += dx * pull * mA / tot; e.a.y += dy * pull * mA / tot;
-        e.b.x -= dx * pull * mB / tot; e.b.y -= dy * pull * mB / tot;
-      }
-    }
+    // ---- the attraction hierarchy: three pairwise springs, weakest first ----
+    // Nothing here has a rest length or a cutoff. A pair is pulled together by
+    // `strength x separation`, full stop. What stops a group collapsing to a point
+    // is the parabolic repulsion above, which is exactly the job it has in the
+    // hierarchy — the two are a matched pair and neither works alone.
+    if (gDisc > 0) attractPairs(discPairs, TUNE.discPull * gDisc);
+    if (gLine > 0) attractPairs(linePairs, TUNE.linePull * gLine);
+    if (gEdge > 0) attractPairs(forceEdges, TUNE.edgePull * gEdge);
 
     // boundary keystones: gentle pull toward their shared seam angle so they
     // settle exactly on the pillar border they bridge.
@@ -835,10 +795,9 @@ const SCHED = {
   edge:  { hold: 0.55, end: 0.75 },
   repel: { hold: 0.55, end: 0.75 },
   seam:  { hold: 0.75, end: 0.90, floor: 0.15 },
-  // ⚠️ Do NOT overlap the air phase further back into the cohesion phases. Tried
-  // 0.38-0.55 on the theory that flat-bottom cohesion would not resist it; it
-  // dropped line purity from 0.550 to 0.487. Even spacing genuinely does fight
-  // clustering, flat bottom or not — the sequencing is the point.
+  // ⚠️ Do NOT overlap the air phase further back into the attraction phases.
+  // Tried 0.38-0.55 and it dropped line purity from 0.550 to 0.487: even spacing
+  // genuinely fights clustering, so the sequencing is the point.
   air:   { start: 0.55, full: 0.70 },
 };
 
@@ -861,105 +820,41 @@ function discKey(node) {
   return node.job.pillar + '||' + (node.ex.discipline || '');
 }
 
-// Tried and REJECTED: SLACK on targetR (>1, gathering groups only to 1.25x their
-// packed radius) to stop them shrinking the occupied area. Wrong direction
-// entirely — at 1.0 cohesion was already inert, so slack made an inactive force
-// more inactive. TUNE.cohesionFloor goes the other way.
-function groupNodes(nodes, keyFn) {
+// All same-group pairs, as a flat list. Built once: membership never changes, only
+// positions do.
+function pairsWithin(nodes, keyFn) {
   const m = new Map();
   for (const n of nodes) {
     const k = keyFn(n);
     if (!m.has(k)) m.set(k, []);
     m.get(k).push(n);
   }
-  return [...m.values()].map(members => ({
-    members,
-    // The flat bottom is a FRACTION of the group's packed radius, and it is the ONLY
-    // thing stopping the groups collapsing to a point. Neither attraction in this
-    // model is attractive all the way down: cohesion switches off entirely inside
-    // targetR, and the edge springs stop at touching distance. So the equilibrium
-    // of a group is a DISC of radius targetR, not a point — which is why pills do
-    // not pile up during the collision-free phase even though nothing repels them.
-    //
-    // Instrumented at 492 pills, collisions off for the first 35%:
-    //   floor 1.0 (default)      line spread 94 -> 85px, overlapping pairs 441 -> 607
-    //   floor 0, cohesion maxed  line spread 41 -> 4px,  overlapping pairs 1956 -> 10214
-    // So the force is real and does bunch; the flat bottom is what bounds it.
-    //
-    // 1.0 is the right default because it makes cohesion a STRAY-CATCHER: only
-    // 1-3% of pills are ever outside targetR, so it reels in the few flung clear of
-    // their group and touches nothing else. Tightening measured worse at every
-    // setting — a collapse to 4px destroys all relative position, and the air phase
-    // then re-expands the group essentially at random (final line spread 255px vs
-    // 179px). Clustering comes from the seed and the edge springs; cohesion only
-    // catches what they missed.
-    targetR: packedRadius(members, TUNE.air) * TUNE.cohesionFloor,
-  }));
-}
-
-// Flat-bottom spring toward the group centroid: a pill inside the group's packed
-// radius feels NOTHING; outside it, only the excess distance is pulled in. So
-// cohesion gathers a group without ever crushing it below the area it needs —
-// see the note at discGroups for why crushing was a measured failure.
-// Groups of line-groups, one per discipline, with the radius the whole discipline
-// needs. Members are the line groups themselves, so cohesion can move them as
-// units rather than as loose pills.
-function groupClusters(lineGroups, keyFn) {
-  const m = new Map();
-  for (const lg of lineGroups) {
-    const k = keyFn(lg.members);
-    if (!m.has(k)) m.set(k, []);
-    m.get(k).push(lg);
-  }
-  return [...m.values()].map(subs => {
-    const all = subs.flatMap(sg => sg.members);
-    return { subs, targetR: packedRadius(all, TUNE.air) * TUNE.cohesionFloor };
-  });
-}
-
-// Flat-bottom spring on line-group CENTROIDS, applied as a rigid translation of
-// each whole line group. Same shape as applyCohesion, one level up.
-function applyClusterCohesion(clusters, k) {
-  if (k <= 0) return;
-  for (const { subs, targetR } of clusters) {
-    if (subs.length < 2) continue;
-    let sx = 0, sy = 0, n = 0;
-    const cents = subs.map(sg => {
-      let ax = 0, ay = 0;
-      for (const p of sg.members) { ax += p.x; ay += p.y; }
-      ax /= sg.members.length; ay /= sg.members.length;
-      sx += ax * sg.members.length; sy += ay * sg.members.length; n += sg.members.length;
-      return { sg, ax, ay };
-    });
-    const cx = sx / n, cy = sy / n;
-    for (const { sg, ax, ay } of cents) {
-      const dx = cx - ax, dy = cy - ay;
-      const d = Math.hypot(dx, dy);
-      if (d <= targetR) continue;
-      const kk = k * (d - targetR) / d;
-      for (const p of sg.members) {
-        const km = kk * mobility(p);
-        p.x += dx * km; p.y += dy * km;
-      }
+  const out = [];
+  for (const mem of m.values()) {
+    for (let i = 0; i < mem.length; i++) {
+      for (let k = i + 1; k < mem.length; k++) out.push({ a: mem[i], b: mem[k] });
     }
   }
+  return out;
 }
 
-function applyCohesion(groups, k) {
+// Pairwise linear attraction: each pair closes by `k x separation`, along the line
+// between them, split by MOBILITY exactly as the repulsion is — so a boundary
+// keystone is not dragged off its seam by its group and the pair's total closure
+// is unchanged.
+//
+// Deliberately plain, and it must stay that way. An earlier version was a centroid
+// pull with a threshold radius below which it did nothing; the effect was that it
+// silently did nothing to 97-99% of pills, and no amount of tuning could reveal
+// that from the outside. A pairwise spring has one behaviour and one number.
+function attractPairs(pairs, k) {
   if (k <= 0) return;
-  for (const { members, targetR } of groups) {
-    if (members.length < 2) continue;  // a lone pill is already its own centroid
-    let sx = 0, sy = 0;
-    for (const n of members) { sx += n.x; sy += n.y; }
-    const cx = sx / members.length, cy = sy / members.length;
-    for (const n of members) {
-      const dx = cx - n.x, dy = cy - n.y;
-      const d = Math.hypot(dx, dy);
-      if (d <= targetR) continue;
-      const kk = k * mobility(n) * (d - targetR) / d;
-      n.x += dx * kk;
-      n.y += dy * kk;
-    }
+  for (const { a, b } of pairs) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const mA = mobility(a), mB = mobility(b), tot = mA + mB;
+    const kA = k * 2 * mA / tot, kB = k * 2 * mB / tot;
+    a.x += dx * kA; a.y += dy * kA;
+    b.x -= dx * kB; b.y -= dy * kB;
   }
 }
 

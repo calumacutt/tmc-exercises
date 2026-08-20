@@ -755,37 +755,33 @@ Sector walls and pillar titles stay hard throughout — titles never move, so th
 cause no entanglement, and a pill tunnelling a title would draw on top of it
 (verified 0 title overlaps).
 
-⚠️ **Neither attraction is attractive all the way down, and that is what stops the
-groups collapsing.** Cohesion switches off *entirely* inside the group's packed
-radius (`TUNE.cohesionFloor` = 1.0), and the edge springs stop at touching
-distance. So a group's equilibrium is a **disc of radius targetR, not a point** —
-which is the answer to "why don't pills pile up when collisions are off and nothing
-repels them". Instrumented over the run at 492 pills, collisions off for the first
-35%:
+**EVERY soft force is PAIRWISE** — same shape, one strength each, no rest lengths,
+no thresholds, no special cases. Three attractions (all same-discipline pairs, all
+same-line pairs, all edge pairs), one parabolic repulsion (all pairs in a sector),
+one contact spacing force. A same-line pair is also a same-discipline pair, so it
+feels both pulls: that is what makes it a hierarchy.
 
-| | line spread | overlapping pairs |
-|---|---|---|
-| floor 1.0 (default) | 94 → 85px | 441 → 607 |
-| floor 0, cohesion maxed | 41 → **4px** | 1956 → **10214** |
+⚠️ **The parabolic repulsion is load-bearing, not optional.** It is the ONLY thing
+stopping the attractions collapsing each group to a point — attraction grows with
+separation, repulsion is strongest at contact, so a pair settles where they balance.
+`farRepel` 0.07 is that balance point at the current attraction defaults. Too high
+and it wins at long range and packs the rim (CV 0.26 at 0.5); too low and groups
+collapse and the air phase re-spreads them at random (line purity drops to 0.49).
 
-They **do** bunch at the default — 441 to 607 overlapping pairs — it is just bounded.
-Remove the flat bottom and they collapse to a 4px smear, so the flat bottom is the
-sole limiter; nothing else holds them apart. (The seed itself already starts with
-441 overlapping pairs; always-on collisions used to resolve those in the first pass.)
+⚠️ **Per-pair strength scales as 1/n and that is inherent.** A pill in the 51-member
+Strength & Capacity discipline gets 50 pulls; one in a 3-member discipline gets 2.
+So the value that suits the big groups is ~17x too weak for the small ones. This is
+a property of pairwise linear springs, not a tuning problem — dividing by the
+partner count would fix it and would also stop the force being pairwise.
 
-**1.0 is the right default because it makes cohesion a stray-catcher.** Only 1-3% of
-pills are ever outside targetR, so it reels in the few flung clear of their group and
-disturbs nothing else. Tightening measured worse at every setting (line purity 0.550
-→ 0.44-0.53; final line spread 255px vs 179px), because a collapse to 4px destroys
-all relative position and the air phase then re-expands the group essentially at
-random. Clustering comes from **the seed and the edge springs** — with cohesion off
-entirely purity is 0.525, so stray-catching is worth ~0.025 and no more.
-
-Discipline cohesion moves **whole line groups rigidly**, never individual pills.
-Pulling each pill at its discipline centroid drags it away from its own line-mates,
-so the coarse force dismantles the fine one — measured, 0.550 → 0.476. Nesting it
-costs ~40 lines for a force acting on a few percent of pills, and is kept only
-because it makes `discPull` safe to turn up.
+**Rejected, and do not reintroduce without evidence:** centroid pulls with a
+threshold radius (a "flat bottom" at the group's packed radius). It silently did
+nothing to 97-99% of pills, which no amount of tuning could reveal from outside,
+and it needed a second nested variant to stop the discipline level dismantling the
+line level. Also rejected: a rest length on the edge springs (the repulsion already
+provides the short-range floor), and starting the air phase earlier (line purity
+0.550 → 0.487 — even spacing genuinely fights clustering, so the sequencing is the
+point).
 
 **This is a real trade, not a tuning miss.** At 492 pills, `collideAt` 0.35 vs 0:
 line-neighbourhood purity **0.514 → 0.550**, mean line spread 189 → 176px, median

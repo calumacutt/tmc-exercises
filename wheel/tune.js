@@ -10,29 +10,25 @@ const TUNE = {
   // 1. pill spacing (same pillar): keep roughly equal air around every pill
   charge:        2.50,  // how hard crowded pills push apart
   air:           26,    // desired clear space around each pill, px
-  // 1b. long-range repulsion, Student-t falloff. DEFAULT 0: measured harmful in
-  // every configuration tried — from the blob seed it has no job (the seed
-  // already fills the space) and it drags density CV 0.095 -> 0.238; from a
-  // random seed it recovers some structure but still wrecks the even fill. The
-  // schedule keeps it paired with the edge springs whenever it IS enabled.
-  farRepel:      0,     // peak push at zero distance, px/iteration
+  // 1b. parabolic (Student-t) repulsion between all pairs in a sector. NOT
+  // optional any more: it is the counterweight that stops the pairwise
+  // attractions collapsing each group to a point.
+  // 0.07 is the balance point against the attraction defaults below. Too high and
+  // it wins at long range and packs the rim (CV 0.26 at 0.5); too low and the
+  // attractions collapse each group and the air phase re-spreads it at random.
+  farRepel:      0.07,  // peak push at zero distance, px/iteration
   farLen:        300,   // half-strength distance, px
   // 1c. the attraction hierarchy (see SCHED in layout.js for the ramps).
-  // Half-strength cohesions measured best: the blob seed already builds the
-  // structure, so cohesion only needs to gather strays — CV 0.073 at these
-  // values vs 0.102 at double. Pulling both cohesions to 0 trades a little
-  // density (CV 0.095) for the shortest links (median 173 vs 214).
-  // How tight cohesion gathers a group, as a FRACTION of the radius its pills need
-  // at `air` spacing. At 1.0 only 1-3% of pills are outside it, so cohesion acts
-  // purely as a STRAY-CATCHER — and that measured best (line purity 0.550, vs
-  // 0.525 with cohesion off entirely and 0.44-0.53 at floor 0.35). The blob seed
-  // already does the clustering; turning cohesion into a clumping force fights the
-  // arrangement the seed made instead of helping it. Lower this only when
-  // exploring with seedMode 1, where there is no seed structure to preserve.
-  cohesionFloor: 1.0,
-  discPull:      0.04,  // pull toward the discipline centroid — first to fade
-  linePull:      0.06,  // pull toward the line centroid — fades second
-  edgePull:      0.15,  // prog/reg/variant same-line pairs — fades last
+  // These are PER-PAIR strengths, so a pill in a 51-member discipline feels 50
+  // pulls. That is the point — the parabolic repulsion scales with partner count
+  // the same way, so the two stay in balance as groups grow.
+  // ⚠️ Useful per-pair strength scales as 1/n: a pill in the 51-member Strength &
+  // Capacity discipline gets 50 pulls, one in a 3-member discipline gets 2. So the
+  // value that suits the big groups is ~17x too weak for the small ones. That is
+  // inherent to a pairwise linear spring, not a tuning problem.
+  discPull:      0.0002, // every same-discipline pair — first to fade
+  linePull:      0.002,  // every same-line pair — fades second
+  edgePull:      0.060,  // prog/reg/variant same-line pairs — fades last
   // 1c-bis. when pill-vs-pill collisions switch on, as a fraction of the run.
   // Before this point pills pass through each other so they can reach their group
   // without getting entangled; sector walls and titles stay hard throughout.
@@ -66,12 +62,11 @@ const TUNE_DEFS = [
   ['farRepel',     '2c. Long-range repulsion strength',       0, 1.5, 0.01, 2],
   ['farLen',       '2d. Long-range half-strength dist (px)',  50, 1200, 25, 0],
   ['__g2b', 'Attraction hierarchy (scheduled)'],
-  ['cohesionFloor','2e. Cohesion tightness (frac of packed)', 0, 1.2, 0.05, 2],
-  ['discPull',     '2f. Discipline cohesion (fades first)',   0, 0.30, 0.005, 3],
-  ['linePull',     '2g. Line cohesion (fades second)',        0, 0.40, 0.005, 3],
-  ['edgePull',     '2h. Edge springs (fades last)',           0, 0.50, 0.005, 3],
-  ['collideAt',    '2i. Pill collisions start at (run frac)', 0, 1, 0.05, 2],
-  ['seedMode',     '2j. Seed (0 = blobs, 1 = random)',        0, 1, 1, 0],
+  ['discPull',     '2e. Discipline attraction (per pair)',    0, 0.004, 0.0001, 4],
+  ['linePull',     '2f. Line attraction (per pair)',          0, 0.02, 0.0005, 4],
+  ['edgePull',     '2g. Edge springs (per pair)',             0, 0.30, 0.005, 3],
+  ['collideAt',    '2h. Pill collisions start at (run frac)', 0, 1, 0.05, 2],
+  ['seedMode',     '2i. Seed (0 = blobs, 1 = random)',        0, 1, 1, 0],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Pillar titles'],
