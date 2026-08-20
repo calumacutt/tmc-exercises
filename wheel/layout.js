@@ -1,24 +1,23 @@
 // Force-directed layout for the exercise scatter, plus the pill drawing it
 // drives.
 //
-// THE LAYOUT KNOWS NOTHING ABOUT LINES, AND NOTHING ABOUT LINKS.
+// NO FORCE COMES FROM DISCIPLINE, LINE, OR LINKS.
 //
-// Both were removed deliberately. Links used to be generated because two
-// exercises shared a Discipline+Line, which produced a mass of meaningless
-// connections and made the force model fight its own data. The line-derived
-// forces went the same way: inter-line repulsion, the per-line arc slots, and
-// the angular "fan lines across the arc" pull.
+// The only soft force is pairwise repulsion between pills. Everything else is a
+// hard constraint. Two things that LOOK like forces are not:
 //
-// What remains is a pure scatter within each pillar wedge: per-node charge
-// repulsion, an even-density radial fill, and clearance from the pillar titles
-// and sector seams. Nothing about an exercise other than its pillar affects
-// where it lands. Getting THAT to look right is the current focus — see
-// PROGRESS 2.5.
+//  • Discipline and line CLUSTERING is built in the seed — hierarchical blobs —
+//    not produced by attraction. The spacing force is contact-only, so it can
+//    neither disperse a cluster nor fill a void, which makes the seed the right
+//    and only place for structure. See the seed section.
+//  • The relationship LINKS drawn from Progressions / Regressions / Variant Of
+//    are purely descriptive. They are collected and stroked after the layout has
+//    settled and had no say in where anything went. Task 2.4 is where they start
+//    driving the layout, and that is a separate decision.
 //
-// Task 2.3/2.4 will reintroduce links from a real typed edge list
-// (progressions / regressions / components / related). Discipline and Line still
-// exist in the data and still drive colour and grouping elsewhere; they simply
-// exert no force here.
+// The line-derived forces that used to exist were all removed deliberately:
+// spurious links from merely sharing a Discipline+Line, inter-line repulsion,
+// per-line arc slots, and the angular "fan lines across the arc" pull.
 //
 // NOTE: buildNetwork() both computes positions and draws. Separating those is
 // task 2.5 work.
@@ -92,14 +91,14 @@ function inWedge(x, y, a0, a1, innerR, outerR, bleedPx, bleedAng) {
 // SCATTER ENGINE
 // ============================================================
 // Places every exercise inside its pillar wedge:
-//  • an even-density areal grid provides the target position
+//  • hierarchical blob seeding places it near its discipline and its line
 //  • force-directed relaxation spreads nodes apart from there, keeping them
 //    inside the wedge and clear of the pillar titles and sector seams
 //  • boundary keystones are pulled onto the seam they bridge
 //
-// The ONLY property of an exercise that affects where it lands is its pillar.
-// Not its line, not its level, not its progressions.
-function buildNetwork(sectorJobs, discR) {
+// Level and progressions still affect nothing. Discipline and line affect the
+// SEED only, never a force.
+function buildNetwork(sectorJobs, discR, allNames) {
   const innerR = R_INNER;
   const TWO_PI = Math.PI * 2;
 
@@ -399,7 +398,12 @@ function buildNetwork(sectorJobs, discR) {
   // last win.
   for (let pass = 0; pass < 40; pass++) hardPass(nodes, titleBoxes, innerR, discR);
 
-  // ---- draw pills, then titles on top ----
+  // ---- draw links behind everything, then pills, then titles on top ----
+  // Purely descriptive at this stage: these lines exert NO force and had no say
+  // in where anything was placed. Task 2.4 is where they start driving the
+  // layout, and that is a separate decision.
+  drawLinks(collectLinks(nodes, nodeByName, allNames));
+
   for (const node of nodes) {
     drawPillNode(node);
   }
@@ -431,6 +435,76 @@ const PAD_X = 12, PAD_Y = 8;   // desired clear space when resolving overlaps
 
 // Distance from the wheel centre to the NEAREST and FARTHEST point of a pill's
 // box. Used for the ring walls so they collide on the box, not the centre.
+// Real relationships between exercises, from the sheet: Progressions,
+// Regressions and Variant Of.
+//
+// Deduplicated by unordered PAIR, because the same relationship is usually stated
+// twice — A lists B as a progression and B lists A as a regression — and drawing
+// it from both ends would double the stroke and make it read heavier than a
+// one-sided link.
+//
+// An endpoint that is filtered out (a hidden variant, or below the importance
+// threshold) simply drops the link. A name that matches NOTHING is reported
+// loudly: silent non-resolution is the exact trap CLAUDE.md §6.4 records.
+function collectLinks(nodes, nodeByName, allNames) {
+  const seen = new Set();
+  const links = [];
+  const broken = new Map();
+
+  const add = (from, rawName, field) => {
+    const name = (rawName || '').trim();
+    if (!name) return;
+    const to = nodeByName.get(name);
+    if (!to) {
+      // Two very different cases, and conflating them made the default view log
+      // an error on every render. A name that exists in the sheet but is not on
+      // the wheel is simply filtered out — a hidden variant, or below the
+      // importance threshold — and that is expected, so stay quiet. A name that
+      // exists NOWHERE is a typo, and that is worth shouting about.
+      if (!allNames || !allNames.has(name)) {
+        broken.set(field + ' → ' + name, from.ex.name);
+      }
+      return;
+    }
+    if (to === from) return;
+    // '::' as the separator rather than an escape: exercise names never contain
+    // it, and it keeps this file plain text. An earlier attempt used a NUL, which
+    // is legal JS but makes the source binary to git, grep and diff.
+    const key = [from.ex.name, name].sort().join('::');
+    if (seen.has(key)) return;
+    seen.add(key);
+    links.push({ a: from, b: to });
+  };
+
+  for (const node of nodes) {
+    for (const t of (node.ex.progressions || [])) add(node, t, 'Progressions');
+    for (const t of (node.ex.regressions || [])) add(node, t, 'Regressions');
+    add(node, node.ex.variantOf, 'Variant Of');
+  }
+
+  if (broken.size) {
+    console.error(
+      '[movement-wheel] ' + broken.size + ' relationship target(s) match no exercise '
+      + 'in the sheet at all — likely typos: '
+      + [...broken.entries()].slice(0, 12).map(([k, owner]) => k + ' (on "' + owner + '")').join('; ')
+      + (broken.size > 12 ? '; …' : ''));
+  }
+  return links;
+}
+
+// Thin, quiet strokes. Drawn first so the pills sit on top and each line appears
+// to emerge from a pill edge rather than crossing over the label.
+function drawLinks(links) {
+  if (!links.length) return;
+  const g = el('g', {}, svg);
+  for (const { a, b } of links) {
+    el('line', {
+      x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+      stroke: '#fff', 'stroke-opacity': 0.22, 'stroke-width': 1,
+    }, g);
+  }
+}
+
 // Radius of a circle big enough to hold these pills at their desired spacing.
 function packedRadius(members, air) {
   let area = 0;

@@ -254,7 +254,24 @@ way they never are in a spreadsheet.
       **Boundary keystones survived**: the bridge analysis used to read the cross
       edges and now reads `Also Appears In` directly, which is where that
       information came from anyway.
-      **Step 2 (blocked): reintroduce links from the typed edge list.** Needs
+      **Links are now DRAWN, with no force.** `Progressions`, `Regressions` and
+      `Variant Of` are collected into an edge list and stroked as thin white lines
+      (1px, 22% opacity) behind the pills, after the layout has settled. They had
+      no say in placement — verified: density CV and overlap count are identical
+      with links on.
+      Deduplicated by unordered **pair**, because the same relationship is usually
+      stated from both ends (A lists B as a progression, B lists A as a
+      regression) and drawing it twice doubles the stroke. **148 distinct edges**
+      from 20 Progressions rows, 12 Regressions rows and 135 Variant Of rows —
+      cross-checked independently against the CSV, same number.
+      ⚠️ **The default view shows ZERO links.** Nearly every edge has a variant at
+      one end, and variants are hidden by default — so links only appear with
+      "Show variants" on. Not a bug, but surprising if you are looking for them.
+      Unresolved targets distinguish a **typo** (name matches nothing in the whole
+      sheet — reported loudly) from an endpoint merely **filtered out** of this
+      render (expected, silent). Conflating them made the default view log an
+      error every time.
+      **Step 2 (blocked): let the edge list drive the layout.** Needs
       `Progressions`/`Regressions` filled — still 0. Spring strength and stroke
       style then vary by edge type.
 - [~] **2.5 Simplify the force model.** Well under way, and it did turn out to be
