@@ -10,10 +10,12 @@
 //    not produced by attraction. The spacing force is contact-only, so it can
 //    neither disperse a cluster nor fill a void, which makes the seed the right
 //    and only place for structure. See the seed section.
-//  • The relationship LINKS drawn from Progressions / Regressions / Variant Of
-//    are purely descriptive. They are collected and stroked after the layout has
-//    settled and had no say in where anything went. Task 2.4 is where they start
-//    driving the layout, and that is a separate decision.
+//  • The relationship LINKS from Progressions / Regressions / Variant Of are a
+//    purely descriptive overlay behind the "Show links" toggle, off by default.
+//    They are collected and stroked after the layout has settled and had no say in
+//    where anything went — which is exactly why they sprawl across the wheel.
+//    Task 2.4 is where they start driving the layout, and that is a separate
+//    decision.
 //
 // The line-derived forces that used to exist were all removed deliberately:
 // spurious links from merely sharing a Discipline+Line, inter-line repulsion,
@@ -98,7 +100,8 @@ function inWedge(x, y, a0, a1, innerR, outerR, bleedPx, bleedAng) {
 //
 // Level and progressions still affect nothing. Discipline and line affect the
 // SEED only, never a force.
-function buildNetwork(sectorJobs, discR, allNames) {
+function buildNetwork(sectorJobs, discR, opts = {}) {
+  const { allNames, showLinks } = opts;
   const innerR = R_INNER;
   const TWO_PI = Math.PI * 2;
 
@@ -402,7 +405,7 @@ function buildNetwork(sectorJobs, discR, allNames) {
   // Purely descriptive at this stage: these lines exert NO force and had no say
   // in where anything was placed. Task 2.4 is where they start driving the
   // layout, and that is a separate decision.
-  drawLinks(collectLinks(nodes, nodeByName, allNames));
+  if (showLinks) drawLinks(collectLinks(nodes, nodeByName, allNames));
 
   for (const node of nodes) {
     drawPillNode(node);

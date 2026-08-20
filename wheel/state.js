@@ -7,6 +7,7 @@ const state = {
   RAW: [],            // all parsed rows (the exercise model)
   impMax: 2,          // show importance <= this
   showVariants: false,
+  showLinks: false,     // relationship overlay; see wheel/index.html
 };
 
 const IMP_SLIDER_MAX = 3;  // matches the slider's max attribute

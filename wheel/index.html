@@ -244,6 +244,9 @@
     <label class="toggle">
       <input type="checkbox" id="variants"> Show variants
     </label>
+    <label class="toggle">
+      <input type="checkbox" id="links"> Show links
+    </label>
     <div class="control-group">
       <span class="label">Save</span>
       <button class="btn" id="btn-png" disabled>PNG</button>
@@ -345,6 +348,14 @@ impSlider.addEventListener('input', () => {
 
 document.getElementById('variants').addEventListener('change', (e) => {
   state.showVariants = e.target.checked;
+  rerender();
+});
+
+// Relationship links are a diagnostic overlay, off by default: drawn straight
+// from the data they cross the whole wheel, because the layout does not consider
+// them yet (task 2.4).
+document.getElementById('links').addEventListener('change', (e) => {
+  state.showLinks = e.target.checked;
   rerender();
 });
 

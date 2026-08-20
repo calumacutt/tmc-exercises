@@ -123,9 +123,13 @@ function render() {
   }
 
   // ---- build + draw the exercise network across all sectors ----
-  // The full name set lets the link builder tell a TYPO from an exercise that is
-  // merely filtered out of this render, so only the former is reported.
-  buildNetwork(sectorJobs, discR, new Set(state.RAW.map(r => r.name)));
+  // An options bag rather than positional args, so the next layout experiment has
+  // an obvious place to plug in. `allNames` lets the link builder tell a TYPO from
+  // an exercise that is merely filtered out of this render.
+  buildNetwork(sectorJobs, discR, {
+    allNames: new Set(state.RAW.map(r => r.name)),
+    showLinks: state.showLinks,
+  });
 
   // ---- centre medallion: gym logo ----
   el('circle', { cx: CX, cy: CY, r: R_HUB - 8, fill: getCSS('--bg'), stroke: getCSS('--line'), 'stroke-width': 1.5 }, svg);
