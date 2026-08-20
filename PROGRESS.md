@@ -277,6 +277,25 @@ way they never are in a spreadsheet.
       sheet — reported loudly) from an endpoint merely **filtered out** of this
       render (expected, silent). Conflating them made the default view log an
       error every time.
+      **Discipline cohesion is now a FORCE (2.6 step 2).** Each pill is pulled
+      `discPull` of the way toward its own discipline's centroid — the average of a
+      linear spring to every same-discipline partner, so a big discipline does not
+      pull proportionally harder. Needed because contact-only repulsion cannot
+      close a gap, which left the seed as the only thing clustering anything.
+      To keep the disc uniformly filled, repulsion's RANGE was split from its
+      target spacing: `air` is the clear air a pill wants, `spacingRange` multiplies
+      the interaction radius, and the push divides by it. `spacingRange = 1` is
+      verified to reproduce the old layout exactly. Raising `air` — the obvious
+      counterweight — provably does not work: it inflates clusters by the same
+      mechanism it uses to reach further (spread 227px → 404px).
+      At 492 pills, `spacingRange` 4 / `discPull` 0.10 improves everything at once:
+      density CV 0.106 → 0.094, discipline spread 291px → 233px, link median
+      381px → 349px, overlaps 0 → 0, ~8% slower.
+      Two hard-constraint bugs fell out of it: the settle ended on a wall clamp
+      that could re-break overlaps with nothing left to fix them, and the new
+      convergence test keyed on the 12/8px pad, which is unsatisfiable at this
+      density and so always reported failure. Both fixed — see CLAUDE.md §9.
+
       **Step 2 (blocked): let the edge list drive the layout.** Needs
       `Progressions`/`Regressions` filled — still 0. Spring strength and stroke
       style then vary by edge type.

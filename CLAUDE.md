@@ -726,12 +726,15 @@ were tuned by hand and are the current defaults:
 > **Large disciplines end up further out on their own** — a wedge is narrower near
 > the hub, so a big blob cannot fit there. That correlation falls out of the
 > geometry rather than being a rule.
-> **`TUNE` is down to 12 exposed parameters from 19.**
+> **`TUNE` exposes 10 sliders** (was 8 before discipline cohesion; 19 before
+> the force-model simplification).
 
 | Panel label | Key | Default |
 |---|---|---|
 | 2a Spacing push strength | `charge` | 2.5 |
-| 2b Desired space around each pill (px) | `air` | 26 |
+| 2b Clear air each pill wants (px) | `air` | 26 |
+| 2c Spacing reach (× air, 1 = contact only) | `spacingRange` | 4.0 |
+| 2d Discipline cohesion | `discPull` | 0.10 |
 | 3 Keystone→seam attraction | `keystoneSeam` | 0.3 |
 | 4a Title distance hub→rim | `titlePos` | 0.667 |
 | Sector arc allocation | `angleExp` | 0.7 |
@@ -741,11 +744,55 @@ were tuned by hand and are the current defaults:
 
 ### The layout is HARD and SOFT, and nothing else
 
-**SOFT — one force only: pairwise repulsion** between pills in the same pillar.
-Each pill claims a box grown by `air`; two pills push apart by the smaller of
-their two axis overlaps, along the vector between their CENTRES. Pushing along an
-axis instead locks pills onto whichever axis they already share and builds
-columns — that was measured at 10:1 vertical over horizontal.
+**SOFT — two forces, deliberately opposed.**
+
+**1. Pairwise repulsion** between pills in the same pillar. Two pills push apart
+by the smaller of their two axis overlaps, along the vector between their
+CENTRES. Pushing along an axis instead locks pills onto whichever axis they
+already share and builds columns — that was measured at 10:1 vertical over
+horizontal.
+
+⚠️ **`air` used to be both the target spacing AND the force's range**, and that
+made it useless as a counterweight to anything: reaching further and demanding
+more personal space were the same knob, so raising it inflated the very clusters
+it was supposed to spread apart. Measured — `air` 26→72 pushed discipline spread
+*up* from 227px to 404px, i.e. it cancelled the cohesion force rather than
+balancing it. The interaction radius is now `air × spacingRange`, with the push
+divided by `spacingRange`.
+
+That division is load-bearing twice over. Peak overlap is the margin itself, so
+without it the push grows with the range and flings pills further than the hard
+pass can pull back — at `air` 72 with no cohesion at all that alone took overlaps
+from 0 to 11. With it, peak push is `air × charge / 2` regardless of range, so no
+separate cap is needed. An absolute px cap was tried and **rejected**: it bound at
+the default `air` too, silently changing the baseline layout (density CV 0.106 →
+0.139). A parameter documented as a no-op at 1 has to actually be one — and
+`spacingRange = 1` is verified to reproduce the pre-cohesion layout exactly.
+
+**2. Discipline cohesion** — each pill steps `discPull` of the way toward the mean
+position of its own discipline. This is exactly the *average* of a linear spring
+to every same-discipline partner (the sum of `(p_j − p_i)` over n partners is
+`n × (centroid − p_i)`), written as a centroid pull because that is O(n) rather
+than O(n²) and because a 60-exercise discipline must not pull 60× harder than a
+3-exercise one.
+
+It is needed because repulsion is **contact-only and therefore cannot close a
+gap**: before this force the seed was the *only* thing holding a discipline
+together, and any overlap-free arrangement was a stable equilibrium, so clustering
+could never improve on its starting guess. The long-range repulsion tail is what
+makes cohesion usable — cohesion acts only *within* a discipline while the tail
+acts between everything, so blobs pull themselves together and push each other
+apart. Contact-only repulsion could not do the second job.
+
+Grouping is keyed on **pillar AND discipline**, not discipline alone: a stray
+`Uncategorised` (library.js's fallback for a blank Discipline) would otherwise be
+one group spanning every pillar, and cohesion would haul those pills at each other
+through the hard spoke walls.
+
+At 492 pills, `spacingRange` 4 + `discPull` 0.10 beats the pre-cohesion layout on
+every measure at once — radial density CV **0.106 → 0.094**, mean discipline
+spread **291px → 233px**, median relationship-link length **381px → 349px**,
+overlaps **0 → 0** — for about 8% more render time.
 
 **HARD — snaps a pill fully back into a valid position.** All of it collides on
 the pill's *actual bounding box*:
@@ -763,6 +810,25 @@ the pill's *actual bounding box*:
 takes priority over pills jostling each other. After the loop, 40 hard-only
 passes settle it — soft ran last inside the loop, and repeating the constraints
 converges on satisfying all of them rather than letting whichever ran last win.
+
+⚠️ **Then a solids-only finisher, because a hard pass ends with `clampNode` and so
+a WALL gets the last word** — it can shove a pill back into a neighbour with
+nothing left to undo it. Not a convergence tail but structural: whatever the final
+clamp breaks, stays broken. The tell was a handful of overlaps all of the same
+shape — 0.3–4.3px of *vertical* graze between pills sitting almost exactly on top
+of each other, the signature of a radial clamp nudging one pill into the one above.
+So the last word goes to "pills do not touch": a pill may finish a few px outside
+its spoke, which is invisible on a 3000px disc, where two pills sharing a rounded
+corner is not.
+
+⚠️ **That finisher loops until nothing is TOUCHING, not until nothing moved.**
+`resolveOverlap` aims for the 12/8px pad, but 492 pills in a fixed disc cannot all
+hold that clearance, so "nothing needed moving" is unsatisfiable — as a convergence
+test it ran the full 200-pass cap every render and then reported failure on a
+layout with **zero actual overlaps**. Genuine contact is satisfiable, so that is
+what it tests and what the warning reports. Fixing the criterion also made it
+exit in a handful of passes, which paid back most of the cost of the wider
+spacing range.
 
 **The one exception:** boundary keystones get a soft pull toward their seam and an
 exemption from the spoke walls, because they are meant to straddle it. 2 nodes.
