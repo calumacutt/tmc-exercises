@@ -41,13 +41,17 @@ function normaliseRows(objs) {
 
 function filterRows(rows, { impMax, showVariants, impSliderMax }) {
   return rows.filter(r => {
+    // Completeness gate: a row missing pillar, discipline, line or importance is
+    // OMITTED, not pseudo-grouped. The owner fills the sheet incrementally, and a
+    // half-entered exercise must not appear as an "Uncategorised" clump or an
+    // unrated pill — it simply is not part of the picture until it is complete.
+    // Deliberately quieter than validateRows(): incompleteness is a normal
+    // mid-edit state, not corrupt data. (Note the row still exists upstream in
+    // the RAW set, so a link pointing at it reads as "filtered out", not "typo".)
+    if (!r.pillar || !r.discipline || !r.line || r.importance == null) return false;
     if (r.status && /^retired$/i.test(r.status)) return false;
     if (!showVariants && r.variantOf) return false;
-    if (impMax < impSliderMax) {
-      // rows with no importance are treated as "unrated" -> show only at max
-      if (r.importance == null) return false;
-      if (r.importance > impMax) return false;
-    }
+    if (impMax < impSliderMax && r.importance > impMax) return false;
     return true;
   });
 }
