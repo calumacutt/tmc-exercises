@@ -101,7 +101,7 @@ function inWedge(x, y, a0, a1, innerR, outerR, bleedPx, bleedAng) {
 // Level and progressions still affect nothing. Discipline and line affect the
 // SEED only, never a force.
 function buildNetwork(sectorJobs, discR, opts = {}) {
-  const { allNames, showLinks } = opts;
+  const { allNames, showLinks, onDone } = opts;
   const innerR = R_INNER;
   const TWO_PI = Math.PI * 2;
 
@@ -326,6 +326,12 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
         ' — check TUNE.titlePos and TUNE.titleSize are set.');
     }
   }
+  // The whole relaxation — iterations AND settle — is a GENERATOR, yielding once
+  // per iteration/pass. driveLayout() below pulls steps inside a per-frame time
+  // budget and updates the already-drawn pills, so the wheel is WATCHED settling
+  // instead of freezing the page for the full run. Same math, same order, same
+  // final picture: chunking changes when the work happens, not what it computes.
+  const relaxSteps = function* () {
   for (let it = 0; it < ITER; it++) {
     // ---- HARD first: walls and solid objects take priority ----
     hardPass(nodes, titleBoxes, innerR, discR);
@@ -445,13 +451,14 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
       node.x = CX + r * Math.cos(na);
       node.y = CY + r * Math.sin(na);
     }
+    yield;
   }
 
   // ---- settle ----
   // Soft ran last inside the loop, so finish on hard constraints only. Repeating
   // converges on satisfying all of them at once instead of letting whichever ran
   // last win.
-  for (let pass = 0; pass < 40; pass++) hardPass(nodes, titleBoxes, innerR, discR);
+  for (let pass = 0; pass < 40; pass++) { hardPass(nodes, titleBoxes, innerR, discR); yield; }
 
   // ...but a hard pass ends with clampNode, so a WALL gets the last word and can
   // shove a pill back into a neighbour with nothing left to undo it. That is not
@@ -471,6 +478,7 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   while (solidsPasses < SETTLE_SOLIDS_MAX) {
     solidsPasses++;
     if (solidsPass(nodes, titleBoxes) === 0) break;
+    yield;
   }
   if (solidsPasses >= SETTLE_SOLIDS_MAX && solidsPass(nodes, titleBoxes) > 0) {
     // Not fatal — the residue is sub-pixel in practice — but silence here would
@@ -479,18 +487,60 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
       SETTLE_SOLIDS_MAX + ' passes; some pills may touch.');
   }
 
-  // ---- draw links behind everything, then pills, then titles on top ----
-  // Purely descriptive at this stage: these lines exert NO force and had no say
-  // in where anything was placed. Task 2.4 is where they start driving the
-  // layout, and that is a separate decision.
-  if (showLinks) drawLinks(collectLinks(nodes, nodeByName, allNames));
+  };  // end of relaxSteps
 
+  // ---- draw first, settle LIVE ----
+  // Everything is drawn ONCE, at seed positions: links behind, then pills, then
+  // titles on top — same z-order as before. Each pill lives in its own
+  // <g transform>, so a frame update is ~500 attribute writes, which is cheap.
+  // Links are purely descriptive at this stage: they exert NO force and have no
+  // say in where anything goes. Task 2.4 is where that changes.
+  const linkEls = showLinks ? drawLinks(collectLinks(nodes, nodeByName, allNames)) : [];
   for (const node of nodes) {
     drawPillNode(node);
   }
   for (const job of sectorJobs) {
     if (job._title) drawSectorTitle(job._title.lines, job._title.x, job._title.y, job._title.fs, job._title.base);
   }
+
+  const sync = () => {
+    for (const node of nodes) {
+      node._g.setAttribute('transform',
+        'translate(' + node.x.toFixed(2) + ' ' + node.y.toFixed(2) + ')');
+    }
+    for (const l of linkEls) {
+      l.el.setAttribute('x1', l.a.x.toFixed(1)); l.el.setAttribute('y1', l.a.y.toFixed(1));
+      l.el.setAttribute('x2', l.b.x.toFixed(1)); l.el.setAttribute('y2', l.b.y.toFixed(1));
+    }
+  };
+  sync();
+  return driveLayout(relaxSteps(), sync, onDone);
+}
+
+// Pull generator steps inside a per-frame time budget, paint, repeat. Returns a
+// handle whose cancel() stops the run — render() calls it before starting a new
+// layout so a slider drag cannot leave two relaxations fighting over the DOM.
+function driveLayout(gen, onFrame, onDone) {
+  let cancelled = false;
+  const BUDGET_MS = 12;  // leaves ~4ms of a 60fps frame for painting
+  // A HIDDEN tab gets no animation frames and clamps setTimeout to ~1/sec, so
+  // chunking there would stretch a 6s layout into minutes. Nobody can see the
+  // animation in a hidden tab anyway — run the whole generator in one blocking
+  // pass instead. Checked per tick, so fronting the tab mid-run resumes the
+  // smooth version and hiding it mid-run finishes the work immediately.
+  const schedule = fn => document.hidden ? setTimeout(fn, 0) : requestAnimationFrame(fn);
+  const tick = () => {
+    if (cancelled) return;
+    const hidden = document.hidden;
+    const t0 = performance.now();
+    let done = gen.next().done;
+    while (!done && (hidden || performance.now() - t0 < BUDGET_MS)) done = gen.next().done;
+    onFrame();
+    if (done) { if (onDone) onDone(); return; }
+    schedule(tick);
+  };
+  schedule(tick);
+  return { cancel() { cancelled = true; } };
 }
 
 
@@ -575,15 +625,18 @@ function collectLinks(nodes, nodeByName, allNames) {
 
 // Thin, quiet strokes. Drawn first so the pills sit on top and each line appears
 // to emerge from a pill edge rather than crossing over the label.
+// Returns {el, a, b} handles so the live sync can move the endpoints each frame.
 function drawLinks(links) {
-  if (!links.length) return;
+  const out = [];
+  if (!links.length) return out;
   const g = el('g', {}, svg);
   for (const { a, b } of links) {
-    el('line', {
+    out.push({ a, b, el: el('line', {
       x1: a.x, y1: a.y, x2: b.x, y2: b.y,
       stroke: '#fff', 'stroke-opacity': 0.22, 'stroke-width': 1,
-    }, g);
+    }, g) });
   }
+  return out;
 }
 
 // Radius of a circle big enough to hold these pills at their desired spacing.
@@ -870,12 +923,18 @@ function drawPill(node) {
   const lab = node.ex;
   const base = pillarBase(node.job.pillar);
   const sh = node.shade;
-  const g = el('g', {}, svg);
+  // Drawn RELATIVE to the origin inside a translated group, so the live layout
+  // can move the whole pill (rect, star, label) with one transform write per
+  // frame instead of redrawing it.
+  const g = el('g', {
+    transform: 'translate(' + node.x.toFixed(2) + ' ' + node.y.toFixed(2) + ')',
+  }, svg);
+  node._g = g;
 
-  // The pill occupies the bottom of the collision box; the crown fills the rest.
-  const pillTop = node.y - node.halfH + node.extra;
+  // The pill occupies the bottom of the collision box; the star fills the rest.
+  const pillTop = -node.halfH + node.extra;
   const cyPill = pillTop + node.pillH / 2;
-  const x = node.x - node.halfW;
+  const x = -node.halfW;
   const rx = node.pillH / 2;
 
   // Boundary keystones keep the two-tone split fill: their own pillar colour on
@@ -914,7 +973,7 @@ function drawPill(node) {
     // whole wheel, which a colour that flipped with the fill could not do.
     const r = node.iconH / 2;
     el('path', {
-      d: starPath(node.x, pillTop - node.iconGap - r, r),
+      d: starPath(0, pillTop - node.iconGap - r, r),
       fill: getCSS('--accent'),
     }, g);
   }
@@ -922,7 +981,7 @@ function drawPill(node) {
   // Weight comes from the CLASS, not a font-weight attribute: in SVG a CSS rule
   // beats a presentation attribute, so .w-ex-label's 400 silently won.
   const t = el('text', {
-    x: node.x, y: cyPill, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    x: 0, y: cyPill, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
     fill: ink, 'font-size': node.fs,
     class: node.isKey ? 'w-ex-label w-ex-key' : 'w-ex-label',
   }, g);

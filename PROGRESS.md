@@ -277,6 +277,17 @@ way they never are in a spreadsheet.
       sheet — reported loudly) from an endpoint merely **filtered out** of this
       render (expected, silent). Conflating them made the default view log an
       error every time.
+      **The layout now settles LIVE (prep for the scheduled force hierarchy).**
+      The relaxation is a generator; a driver pulls steps inside a 12ms/frame
+      budget and updates one transform per pill, so the wheel is watched settling
+      instead of freezing the page. Same math, same order — verified byte-identical
+      metrics (CV 0.106, same ring counts, link median 381, 0 overlaps). Pills are
+      drawn ONCE at the origin inside translated groups; links keep {el,a,b}
+      handles and follow each frame. Exports stay disabled until settled, so a
+      PNG can never capture a half-relaxed wheel; a re-render cancels the
+      in-flight run via state.layoutRun. Hidden tabs (no rAF, throttled timers)
+      run the generator to completion in one blocking pass instead.
+
       **Step 2 (blocked): let the edge list drive the layout.** Needs
       `Progressions`/`Regressions` filled — still 0. Spring strength and stroke
       style then vary by edge type.

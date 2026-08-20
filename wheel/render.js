@@ -15,6 +15,10 @@ import {
 } from './svg.js';
 
 function render() {
+  // A layout may still be settling from the previous render (slider drag,
+  // toggle); stop it before wiping the SVG it is updating.
+  if (state.layoutRun) { state.layoutRun.cancel(); state.layoutRun = null; }
+
   const rows = filterRows(state.RAW, { ...state, impSliderMax: IMP_SLIDER_MAX });
 
   // Fail fast on data that would silently produce a broken layout. Exercise
@@ -126,9 +130,18 @@ function render() {
   // An options bag rather than positional args, so the next layout experiment has
   // an obvious place to plug in. `allNames` lets the link builder tell a TYPO from
   // an exercise that is merely filtered out of this render.
-  buildNetwork(sectorJobs, discR, {
+  // Exports stay disabled until the layout finishes settling, so a PNG/SVG can
+  // never capture a half-relaxed wheel.
+  document.getElementById('btn-png').disabled = true;
+  document.getElementById('btn-svg').disabled = true;
+  state.layoutRun = buildNetwork(sectorJobs, discR, {
     allNames: new Set(state.RAW.map(r => r.name)),
     showLinks: state.showLinks,
+    onDone: () => {
+      state.layoutRun = null;
+      document.getElementById('btn-png').disabled = false;
+      document.getElementById('btn-svg').disabled = false;
+    },
   });
 
   // ---- centre medallion: gym logo ----
@@ -140,10 +153,6 @@ function render() {
     width: logoSize, height: logoSize,
     preserveAspectRatio: 'xMidYMid meet',
   }, svg);
-
-  // enable downloads
-  document.getElementById('btn-png').disabled = false;
-  document.getElementById('btn-svg').disabled = false;
 
   // Crop the viewBox to the actual content so the wheel fills the frame.
   const margin = 80;

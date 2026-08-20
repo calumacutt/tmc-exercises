@@ -8,6 +8,7 @@ const state = {
   impMax: 2,          // show importance <= this
   showVariants: false,
   showLinks: false,     // relationship overlay; see wheel/index.html
+  layoutRun: null,      // handle for the in-flight live layout; see driveLayout
 };
 
 const IMP_SLIDER_MAX = 3;  // matches the slider's max attribute
