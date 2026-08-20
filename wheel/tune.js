@@ -18,6 +18,13 @@ const TUNE = {
   // attractions collapse each group and the air phase re-spreads it at random.
   farRepel:      0.07,  // peak push at zero distance, px/iteration
   farLen:        300,   // half-strength distance, px
+  // 1b-bis. wall repulsion: the same kernel against the sector boundaries, via
+  // image pills. Multiplies farRepel, standing in for how many neighbours the
+  // truncated medium is missing at a wall. 0 = walls are hard-only.
+  // 4 measured a fairly sharp optimum: 3 and 4 both beat walls-off on every
+  // metric, 5 starts giving back the clustering, 8+ makes local spacing worse
+  // than having no wall force at all (nn-gap CV 0.135 -> 0.263 -> 0.348).
+  wallRepel:     4,
   // 1c. the attraction hierarchy (see SCHED in layout.js for the ramps).
   // These are PER-PAIR strengths, so a pill in a 51-member discipline feels 50
   // pulls. That is the point — the parabolic repulsion scales with partner count
@@ -61,6 +68,7 @@ const TUNE_DEFS = [
   ['air',          '2b. Desired space around each pill (px)', 4, 120, 2, 0],
   ['farRepel',     '2c. Long-range repulsion strength',       0, 1.5, 0.01, 2],
   ['farLen',       '2d. Long-range half-strength dist (px)',  50, 1200, 25, 0],
+  ['wallRepel',    '2d2. Wall repulsion (x pill repulsion)',  0, 40, 1, 0],
   ['__g2b', 'Attraction hierarchy (scheduled)'],
   ['discPull',     '2e. Discipline attraction (per pair)',    0, 0.004, 0.0001, 4],
   ['linePull',     '2f. Line attraction (per pair)',          0, 0.02, 0.0005, 4],

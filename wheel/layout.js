@@ -309,6 +309,8 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   //
   //           counterweight parabolic repulsion, all pairs in a sector — the only
   //                       thing preventing the attractions collapsing a group
+  //           constant    the SAME kernel against the sector walls, via image
+  //                       pills — stops the walls spiking the density
   //           first out   discipline attraction — all same-discipline pairs
   //           then        line attraction       — all same-line pairs
   //           then        edge springs          — prog/reg/variant pairs, same line
@@ -389,6 +391,7 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     const gRepel = gainDown(t, SCHED.repel.hold, SCHED.repel.end);
     const gSeam  = gainDown(t, SCHED.seam.hold,  SCHED.seam.end, SCHED.seam.floor);
     const gAir   = gainUp(t, SCHED.air.start, SCHED.air.full);
+    const gWall  = gainDown(t, SCHED.wall.hold, SCHED.wall.end);
     // Pills only start colliding with each other once structure has formed, so
     // that until then they can pass through one another to reach their group.
     const collide = t >= TUNE.collideAt;
@@ -465,6 +468,60 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
         const pA = push * 2 * mA / tot, pB = push * 2 * mB / tot;
         A.x -= ux * pA; A.y -= uy * pA;
         B.x += ux * pB; B.y += uy * pB;
+      }
+    }
+
+    // WALL REPULSION — the same parabolic kernel, applied to the sector's own
+    // boundaries as IMAGE pills.
+    //
+    // A hard wall spikes the density against it, and the reason is not that pills
+    // want to be there: a pill at a wall is MISSING every neighbour that would
+    // have been on the other side, so its own repulsion is unbalanced while its
+    // motion is blocked, and it accumulates. Reflecting the pill across the wall
+    // and repelling it from its own image supplies exactly the neighbours the
+    // truncated medium lost — the standard boundary condition for holding density
+    // uniform, rather than a correction bolted on afterwards.
+    //
+    // The image sits 2w away for a wall at distance w, so the kernel is
+    // FAR / (1 + (2w/farLen)^2) — both constants inherited from the pill-pill
+    // force. It needs ONE multiplier on top, and the reason is not tuning taste:
+    // a pill at a wall is missing a whole HALF-NEIGHBOURHOOD, not one neighbour.
+    // Reflecting only the pill itself supplies a single partner's worth of push
+    // against the ~80 same-sector partners the pairwise force sums over, which
+    // measured far too weak to close the gap (pinned pills only 26% -> 18%).
+    // `wallRepel` stands in for the count of missing neighbours; mirroring every
+    // nearby pill instead would derive it, at the cost of a second O(n^2) pass.
+    //
+    // All four boundaries act, summed — nearest-wall-only would put a
+    // discontinuity along the locus where the nearest wall changes, and a pill
+    // crossing it would see its force direction jump. Clearances come from the
+    // pill's BOX via the same helpers the hard clamp uses, so soft and hard can
+    // never disagree about where a wall is.
+    if (FAR > 0 && gWall > 0) {
+      for (const node of nodes) {
+        const dx = node.x - CX, dy = node.y - CY;
+        const r = Math.hypot(dx, dy) || 1;
+        const ux = dx / r, uy = dy / r;
+        const { near, far } = boxRadii(node);
+        const k = FAR * TUNE.wallRepel * gWall * mobility(node);
+        const kern = w => k / (1 + 4 * w * w / FAR_L2);
+
+        // inner ring pushes outward, outer ring pushes inward
+        const fIn = kern(Math.max(0, near - innerR));
+        const fOut = kern(Math.max(0, discR - far));
+        node.x += ux * (fIn - fOut);
+        node.y += uy * (fIn - fOut);
+
+        // Spokes. Boundary keystones are meant to straddle their seam and already
+        // skip the hard spoke clamp, so they skip this too — otherwise it would
+        // fight the seam pull that puts them there. 2 nodes.
+        if (!node.isBoundaryKey) {
+          for (const [nx, ny] of spokeNormals(node)) {
+            const f = kern(Math.max(0, spokeClearance(node, nx, ny)));
+            node.x += nx * f;
+            node.y += ny * f;
+          }
+        }
       }
     }
 
@@ -795,6 +852,11 @@ const SCHED = {
   edge:  { hold: 0.55, end: 0.75 },
   repel: { hold: 0.55, end: 0.75 },
   seam:  { hold: 0.75, end: 0.90, floor: 0.15 },
+  // Wall repulsion runs at CONSTANT full gain, unlike the pill-pill repulsion it
+  // borrows its kernel from. It is a boundary condition, not a structural force:
+  // if it decayed with the others, the air phase would simply re-pack everything
+  // against the walls and undo it.
+  wall:  { hold: 1.0, end: 1.0 },
   // ⚠️ Do NOT overlap the air phase further back into the attraction phases.
   // Tried 0.38-0.55 and it dropped line purity from 0.550 to 0.487: even spacing
   // genuinely fights clustering, so the sequencing is the point.
@@ -891,10 +953,11 @@ function boxRadii(node) {
   };
 }
 
-// Push a pill inside one spoke. The spoke is the ray from the centre at `ang`;
-// `inward` is the unit normal pointing into the sector. Returns the distance it
-// had to move (0 if it was already clear).
-function clampToSpoke(node, ang, inwardX, inwardY) {
+// Signed clearance from a spoke to the NEAREST CORNER of the pill's box. Negative
+// means the box crosses the spoke. `inward` is the unit normal pointing into the
+// sector. Shared by the hard clamp and the soft wall repulsion, so the two can
+// never disagree about where the wall is.
+function spokeClearance(node, inwardX, inwardY) {
   let worst = Infinity;
   for (const sx of [-1, 1]) {
     for (const sy of [-1, 1]) {
@@ -903,10 +966,25 @@ function clampToSpoke(node, ang, inwardX, inwardY) {
       worst = Math.min(worst, px * inwardX + py * inwardY);
     }
   }
+  return worst;
+}
+
+// Push a pill inside one spoke. Returns the distance it had to move (0 if it was
+// already clear).
+function clampToSpoke(node, inwardX, inwardY) {
+  const worst = spokeClearance(node, inwardX, inwardY);
   if (worst >= 0) return 0;
   node.x += inwardX * -worst;
   node.y += inwardY * -worst;
   return -worst;
+}
+
+// The two spoke normals of a pill's own sector, pointing inward.
+function spokeNormals(node) {
+  return [
+    [-Math.sin(node.a0), Math.cos(node.a0)],
+    [Math.sin(node.a1), -Math.cos(node.a1)],
+  ];
 }
 
 function clampNode(node, innerR, discR) {
@@ -929,11 +1007,10 @@ function clampNode(node, innerR, discR) {
   // ---- spokes, on the box ----
   // Boundary keystones straddle their seam on purpose, so they skip this.
   if (!node.isBoundaryKey) {
-    const n0x = -Math.sin(node.a0), n0y = Math.cos(node.a0);
-    const n1x = Math.sin(node.a1), n1y = -Math.cos(node.a1);
+    const [[n0x, n0y], [n1x, n1y]] = spokeNormals(node);
     for (let pass = 0; pass < 6; pass++) {
-      const m0 = clampToSpoke(node, node.a0, n0x, n0y);
-      const m1 = clampToSpoke(node, node.a1, n1x, n1y);
+      const m0 = clampToSpoke(node, n0x, n0y);
+      const m1 = clampToSpoke(node, n1x, n1y);
       if (m0 === 0 && m1 === 0) break;
       if (pass >= 2) {
         // The two spokes are fighting: the pill is wider than the sector at this

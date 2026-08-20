@@ -761,6 +761,37 @@ same-line pairs, all edge pairs), one parabolic repulsion (all pairs in a sector
 one contact spacing force. A same-line pair is also a same-discipline pair, so it
 feels both pulls: that is what makes it a hierarchy.
 
+**WALL REPULSION — the same kernel against the sector boundaries, via image pills.**
+A hard wall spikes the density against it, and not because pills want to be there:
+a pill at a wall is missing every neighbour that *would* have been on the other
+side, so its own repulsion is unbalanced while its motion is blocked. Reflecting it
+across the wall and repelling it from its own image supplies what the truncated
+medium lost. All four boundaries act, summed — nearest-wall-only would put a
+discontinuity where the nearest wall changes. Clearances come from the pill's BOX
+through the same helpers the hard clamp uses, so soft and hard cannot disagree about
+where a wall is. Boundary keystones skip the spokes, as they already skip the hard
+spoke clamp. It runs at CONSTANT gain, unlike the pill-pill repulsion it borrows the
+kernel from: it is a boundary condition, and if it decayed the air phase would
+re-pack everything against the walls.
+
+⚠️ **It needs `wallRepel` (default 4) and that is not tuning taste.** A pill at a
+wall is missing a half-NEIGHBOURHOOD, not one neighbour, so a single self-image is
+about an order of magnitude too weak against the ~80 partners the pairwise force
+sums over — measured, it only took pinned pills from 26% to 18%. At 492 pills:
+
+| `wallRepel` | density CV | pills pinned to a wall | nn-gap CV | line purity | link median |
+|---|---|---|---|---|---|
+| 0 (hard walls only) | 0.090 | 26% | 0.177 | 0.547 | 178 |
+| **4** | **0.053** | **7%** | **0.135** | **0.590** | **165** |
+| 8 | 0.109 | 13% | 0.263 | 0.555 | 176 |
+| 20 | 0.177 | 12% | 0.348 | 0.476 | 237 |
+
+4 improves *every* metric at once and is the best result the layout has produced. It
+is a fairly sharp optimum — 3 is also good, 5 starts giving back the clustering, and
+by 8 local spacing is worse than having no wall force at all. Deriving the strength
+instead of tuning it would mean mirroring every nearby pill rather than only itself,
+at the cost of a second O(n²) pass.
+
 ⚠️ **The parabolic repulsion is load-bearing, not optional.** It is the ONLY thing
 stopping the attractions collapsing each group to a point — attraction grows with
 separation, repulsion is strongest at contact, so a pair settles where they balance.
