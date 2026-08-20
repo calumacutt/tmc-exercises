@@ -289,10 +289,8 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   //         spokes and rings, clear of the pillar titles, not overlapping another
   //         pill. Runs FIRST each iteration so walls and solid objects take
   //         priority over pills jostling each other.
-  //   SOFT  two forces: pairwise repulsion between pills in the same pillar,
-  //         and cohesion pulling each pill toward its own discipline's centre.
-  //         They are deliberately opposed — repulsion sets the spacing, cohesion
-  //         decides who is next to whom. Nothing else is a force.
+  //   SOFT  one force: pairwise repulsion between pills in the same pillar.
+  //         Nothing else is a force.
   //
   // The one wrinkle is the boundary-keystone seam pull, which is soft but not
   // pairwise. It exists because those keystones are meant to sit ON a seam, and
@@ -353,45 +351,18 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     //
     // Overlap varies continuously, so unlike a min(gap) proximity term this
     // keeps a usable gradient instead of pinning every neighbour to a force cap.
-    // RANGE vs TARGET SPACING are different things, and `air` used to be both.
-    // The force only fired once boxes grown by `air` overlapped, so the only way
-    // to make it reach further was to demand more personal space per pill — which
-    // inflates every cluster by exactly the mechanism meant to spread clusters
-    // apart. Measured: raising `air` from 26 to 72 pushed discipline spread from
-    // 227px to 404px, i.e. it undid the cohesion force rather than balancing it.
-    //
-    // So the interaction radius is now `air * spacingRange`, with the push scaled
-    // by 1/spacingRange. Two consequences that matter:
-    //  • at spacingRange = 1 this is algebraically the OLD force, unchanged, so
-    //    the parameter is a true extension rather than a re-tune;
-    //  • the 1/range scaling is not cosmetic, and it is also what keeps the force
-    //    STABLE. Peak overlap is the margin itself, so an unscaled push would grow
-    //    with the range and fling pills further than the hard pass can pull back —
-    //    measured, at air 72 with no cohesion at all that alone took overlaps from
-    //    0 to 11. Dividing by range makes the peak push air*charge/2 regardless of
-    //    range, so no separate cap is needed. An absolute px cap was tried and
-    //    rejected: it bound at the DEFAULT air too, which silently changed the
-    //    baseline layout (density CV 0.106 -> 0.139) — a parameter that is supposed
-    //    to be a no-op at 1 must actually be one.
-    //
-    // The far tail is what makes cohesion usable: cohesion acts only WITHIN a
-    // discipline, while the tail acts between everything, so blobs pull themselves
-    // together and push each other apart. Contact-only repulsion could not do the
-    // second job — it cannot feel anything it is not already touching.
     const AIR = TUNE.air;
-    const RANGE = Math.max(1, TUNE.spacingRange);
-    const MARGIN = AIR * RANGE;
     for (let i = 0; i < nodes.length; i++) {
       const A = nodes[i];
       for (let k = i + 1; k < nodes.length; k++) {
         const B = nodes[k];
         if (!spacingApplies(A, B)) continue;
         const dx = B.x - A.x, dy = B.y - A.y;
-        const overX = (A.halfW + B.halfW + MARGIN) - Math.abs(dx);
+        const overX = (A.halfW + B.halfW + AIR) - Math.abs(dx);
         if (overX <= 0) continue;
-        const overY = (A.halfH + B.halfH + MARGIN) - Math.abs(dy);
+        const overY = (A.halfH + B.halfH + AIR) - Math.abs(dy);
         if (overY <= 0) continue;
-        const push = Math.min(overX, overY) * 0.5 * TUNE.charge / RANGE;
+        const push = Math.min(overX, overY) * 0.5 * TUNE.charge;
         const dist = Math.hypot(dx, dy) || 1;
         const ux = dx / dist, uy = dy / dist;
         // Split the separation by MOBILITY rather than 50/50. A boundary keystone
@@ -405,43 +376,6 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
         const pA = push * 2 * mA / tot, pB = push * 2 * mB / tot;
         A.x -= ux * pA; A.y -= uy * pA;
         B.x += ux * pB; B.y += uy * pB;
-      }
-    }
-
-    // DISCIPLINE COHESION — the second soft force, and the counterweight to the
-    // first. Every pill steps a fraction of the way toward the mean position of
-    // its own discipline.
-    //
-    // This is exactly the AVERAGE of a linear spring to every same-discipline
-    // partner: the sum of (p_j - p_i) over n partners is n * (centroid - p_i), so
-    // dividing by n gives the mean. Two reasons to write it as a centroid pull
-    // rather than the pairwise sum it is equivalent to:
-    //  • O(n) per discipline instead of O(n^2);
-    //  • a 60-exercise discipline does not pull 60x harder than a 3-exercise one,
-    //    which a raw pairwise sum would, and which would crush the big ones.
-    //
-    // Why it is needed at all: repulsion is CONTACT-ONLY, so it cannot close a
-    // gap. Before this force the only thing holding a discipline together was the
-    // seed, and any overlap-free arrangement was a stable equilibrium — the
-    // clustering could never improve on its starting guess. Now the seed is a
-    // starting guess and cohesion is what actually holds a discipline together.
-    if (TUNE.discPull > 0) {
-      const cen = new Map();
-      for (const node of nodes) {
-        const key = discKey(node);
-        let c = cen.get(key);
-        if (!c) { c = { sx: 0, sy: 0, n: 0 }; cen.set(key, c); }
-        c.sx += node.x; c.sy += node.y; c.n++;
-      }
-      for (const node of nodes) {
-        const c = cen.get(discKey(node));
-        if (!c || c.n < 2) continue;   // a lone pill is already its own centroid
-        // Scaled by mobility for the same reason the spacing force is: a boundary
-        // keystone is meant to stay on its seam, and its discipline centroid is
-        // generally not on it.
-        const k = TUNE.discPull * mobility(node);
-        node.x += (c.sx / c.n - node.x) * k;
-        node.y += (c.sy / c.n - node.y) * k;
       }
     }
 
@@ -466,35 +400,6 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   // converges on satisfying all of them at once instead of letting whichever ran
   // last win.
   for (let pass = 0; pass < 40; pass++) hardPass(nodes, titleBoxes, innerR, discR);
-
-  // ...but a hard pass ends with clampNode, so a WALL gets the last word and can
-  // shove a pill back into a neighbour with nothing left to undo it. That is not a
-  // convergence tail, it is structural: whatever the final clamp breaks, stays
-  // broken. It showed up as a handful of overlaps that were all but identical in
-  // shape — 0.3-4.3px of VERTICAL graze between pills sitting almost exactly on
-  // top of each other, i.e. exactly the signature of a radial clamp nudging one
-  // pill into the one above it.
-  //
-  // So give the last word to "pills do not touch". A pill can finish a few px
-  // outside its spoke, which is invisible on a 3000px disc; two pills sharing a
-  // rounded corner is not. Cheap either way — solids-only, no wall arithmetic.
-  // Gauss-Seidel: resolving one pair can nudge another, so run until nothing is
-  // touching rather than a fixed count. A fixed count is a guess that goes stale
-  // the moment a force changes — 8 passes was clean before cohesion existed and
-  // left 3 overlaps after it. Solids-only passes are cheap (no walls, no forces),
-  // and this normally exits in a handful.
-  let solidsPasses = 0;
-  while (solidsPasses < SETTLE_SOLIDS_MAX) {
-    solidsPasses++;
-    if (solidsPass(nodes, titleBoxes) === 0) break;
-  }
-  if (solidsPasses >= SETTLE_SOLIDS_MAX && solidsPass(nodes, titleBoxes) > 0) {
-    // Not fatal — the residue is sub-pixel in practice — but silence here would
-    // hide a real regression if a future force makes it structural.
-    console.warn('[movement-wheel] overlap settle did not converge in ' +
-      SETTLE_SOLIDS_MAX + ' passes; some pills may touch. Try a lower discPull ' +
-      'or a larger spacingRange.');
-  }
 
   // ---- draw links behind everything, then pills, then titles on top ----
   // Purely descriptive at this stage: these lines exert NO force and had no say
@@ -680,19 +585,6 @@ function sunflower(members, cx, cy, br, rng) {
 // it is given — it takes a reduced share and the mobile neighbour takes the rest.
 // Deliberately NOT zero: at zero it would be glued in place like a pillar title,
 // and it still needs to slide along the seam and drift a little off it to settle.
-// Which cohesion group a pill belongs to. Keyed on pillar AND discipline, not
-// discipline alone: a stray "Uncategorised" (library.js's fallback for a blank
-// Discipline) otherwise becomes one group spanning every pillar, and cohesion
-// would haul those pills across the wheel into each other — straight through the
-// hard spoke walls, which would win, leaving them mashed against a seam.
-function discKey(node) {
-  return node.job.pillar + '||' + (node.ex.discipline || '');
-}
-
-// Cap on the convergence loop, purely a runaway guard: it normally exits in far
-// fewer, and a pass is O(n^2) box tests with no forces or wall arithmetic.
-const SETTLE_SOLIDS_MAX = 200;
-
 const PINNED_MOBILITY = 0.25;
 function mobility(node) {
   return node.isBoundaryKey ? PINNED_MOBILITY : 1;
@@ -784,22 +676,12 @@ function clampNode(node, innerR, discR) {
 // Resolve a real overlap between two boxes along the axis of least penetration —
 // the cheapest way out. `share` splits the correction between them; pass 0 to
 // move only the first.
-// Resolves to the PADDED box, but reports whether the boxes were genuinely
-// touching — i.e. overlapping with no pad at all.
-//
-// The distinction is the whole point. The 12/8px pad is a preference: 492 pills in
-// a fixed disc cannot all hold that much clearance, so "nothing needed moving" is
-// simply unsatisfiable and is useless as a convergence test — it reported failure
-// on a layout with zero actual overlaps. Genuine contact IS satisfiable, and is
-// the thing that looks broken, so that is what callers get told about.
 function resolveOverlap(A, B, share) {
   const dx = B.x - A.x, dy = B.y - A.y;
   const ox = (A.halfW + B.halfW + PAD_X) - Math.abs(dx);
-  if (ox <= 0) return false;
+  if (ox <= 0) return;
   const oy = (A.halfH + B.halfH + PAD_Y) - Math.abs(dy);
-  if (oy <= 0) return false;
-  const touching = Math.abs(dx) < A.halfW + B.halfW
-                && Math.abs(dy) < A.halfH + B.halfH;
+  if (oy <= 0) return;
   if (ox < oy) {
     const push = ox * (dx <= 0 ? 1 : -1);
     A.x += push * (1 - share); B.x -= push * share;
@@ -807,32 +689,22 @@ function resolveOverlap(A, B, share) {
     const push = oy * (dy <= 0 ? 1 : -1);
     A.y += push * (1 - share); B.y -= push * share;
   }
-  return touching;
 }
 
-// Solid objects only: pill vs pill, then pill vs title. No walls.
-// Returns the number of pairs that were genuinely touching, NOT the number of
-// nudges applied — see resolveOverlap.
-function solidsPass(nodes, titleBoxes) {
-  let touching = 0;
-  // pills vs pills — a hard constraint, not a force. Soft repulsion alone does
-  // not prevent overlaps: measured, it left 14 of them at 492 pills.
+// One full hard pass: solid objects first, then the walls that contain them.
+function hardPass(nodes, titleBoxes, innerR, discR) {
+  // pills vs pills — still a hard constraint, not a force. Soft repulsion alone
+  // does not prevent overlaps: measured, it left 14 of them at 492 pills.
   for (let i = 0; i < nodes.length; i++) {
     for (let k = i + 1; k < nodes.length; k++) {
-      if (resolveOverlap(nodes[i], nodes[k], 0.5)) touching++;
+      resolveOverlap(nodes[i], nodes[k], 0.5);
     }
   }
   // pills vs titles — titles do not move, so the pill takes the whole push.
   // This replaces the old soft `titleRepel`, which was doing the same job twice.
   for (const node of nodes) {
-    for (const t of titleBoxes) if (resolveOverlap(node, t, 0)) touching++;
+    for (const t of titleBoxes) resolveOverlap(node, t, 0);
   }
-  return touching;
-}
-
-// One full hard pass: solid objects first, then the walls that contain them.
-function hardPass(nodes, titleBoxes, innerR, discR) {
-  solidsPass(nodes, titleBoxes);
   // walls last, so a pill shoved by a neighbour still ends up inside its sector
   for (const node of nodes) clampNode(node, innerR, discR);
 }

@@ -9,17 +9,7 @@ const TUNE = {
   pillScale:     1.20,  // exercise pill size multiplier
   // 1. pill spacing (same pillar): keep roughly equal air around every pill
   charge:        2.50,  // how hard crowded pills push apart
-  air:           26,    // clear space each pill wants around it, px. This used to
-                        // double as the force's RANGE, which made it useless as a
-                        // counterweight to cohesion — reaching further and
-                        // demanding more personal space were the same knob, so
-                        // raising it inflated the very clusters it was meant to
-                        // spread apart. Range is `spacingRange` now.
-  spacingRange:  4.0,   // interaction radius = air * this. 1 = contact-only (the
-                        // original force, algebraically unchanged — verified: it
-                        // reproduces the pre-cohesion layout exactly)
-  // 1b. discipline cohesion: pull each pill toward its own discipline's centre
-  discPull:      0.10,  // 0 = disciplines held together by the seed alone
+  air:           26,    // desired clear space around each pill, px
   // 2. keystone-to-seam attraction (boundary keystones only)
   keystoneSeam:  0.30,  // how strongly boundary keystones snap to the seam
   // 3. pillar title placement
@@ -31,11 +21,9 @@ const TUNE = {
 
 // Slider definitions: [key, label, min, max, step, decimals]
 const TUNE_DEFS = [
-  ['__g2', 'Soft forces'],
+  ['__g2', 'Pill spacing (the only soft force)'],
   ['charge',       '2a. Spacing push strength',               0, 2.5, 0.05, 2],
-  ['air',          '2b. Spacing range / clear air per pill (px)', 4, 120, 2, 0],
-  ['spacingRange', '2c. Spacing reach (x air, 1=contact only)', 1, 5, 0.1, 1],
-  ['discPull',     '2d. Discipline cohesion',                 0, 0.30, 0.005, 3],
+  ['air',          '2b. Desired space around each pill (px)', 4, 120, 2, 0],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Pillar titles'],
