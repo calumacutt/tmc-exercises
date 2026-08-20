@@ -755,20 +755,31 @@ Sector walls and pillar titles stay hard throughout — titles never move, so th
 cause no entanglement, and a pill tunnelling a title would draw on top of it
 (verified 0 title overlaps).
 
-⚠️ **Cohesion is a STRAY-CATCHER, not a clumping force, and that is deliberate.**
-Its flat bottom sits at the group's packed radius (`TUNE.cohesionFloor` = 1.0), and
-instrumenting the run showed **only 1-3% of pills are ever outside it** — so 97-99%
-feel no cohesion at all. That is where its value is: it reels in the few pills
-flung clear of their group and disturbs nothing else. Tightening the floor to make
-it genuinely clump measured **worse at every setting** (line purity 0.550 → 0.44-0.53),
-because the blob seed has already arranged the groups and an isotropic centroid
-pull is a blunt instrument that mixes siblings at their boundaries. Clustering here
-comes from **the seed and the edge springs**; with cohesion off entirely purity is
-0.525, so stray-catching is worth ~0.025 and nothing more.
+⚠️ **Neither attraction is attractive all the way down, and that is what stops the
+groups collapsing.** Cohesion switches off *entirely* inside the group's packed
+radius (`TUNE.cohesionFloor` = 1.0), and the edge springs stop at touching
+distance. So a group's equilibrium is a **disc of radius targetR, not a point** —
+which is the answer to "why don't pills pile up when collisions are off and nothing
+repels them". Instrumented over the run at 492 pills, collisions off for the first
+35%:
 
-Consequence worth knowing: **during the collision-free window almost nothing pulls
-pills together**, which is why they do not visibly bunch up. Only the 142 edge
-springs and the 1-3% stray pulls are active.
+| | line spread | overlapping pairs |
+|---|---|---|
+| floor 1.0 (default) | 94 → 85px | 441 → 607 |
+| floor 0, cohesion maxed | 41 → **4px** | 1956 → **10214** |
+
+They **do** bunch at the default — 441 to 607 overlapping pairs — it is just bounded.
+Remove the flat bottom and they collapse to a 4px smear, so the flat bottom is the
+sole limiter; nothing else holds them apart. (The seed itself already starts with
+441 overlapping pairs; always-on collisions used to resolve those in the first pass.)
+
+**1.0 is the right default because it makes cohesion a stray-catcher.** Only 1-3% of
+pills are ever outside targetR, so it reels in the few flung clear of their group and
+disturbs nothing else. Tightening measured worse at every setting (line purity 0.550
+→ 0.44-0.53; final line spread 255px vs 179px), because a collapse to 4px destroys
+all relative position and the air phase then re-expands the group essentially at
+random. Clustering comes from **the seed and the edge springs** — with cohesion off
+entirely purity is 0.525, so stray-catching is worth ~0.025 and no more.
 
 Discipline cohesion moves **whole line groups rigidly**, never individual pills.
 Pulling each pill at its discipline centroid drags it away from its own line-mates,

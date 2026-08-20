@@ -874,17 +874,25 @@ function groupNodes(nodes, keyFn) {
   }
   return [...m.values()].map(members => ({
     members,
-    // The flat bottom is a FRACTION of the group's packed radius. At the default
-    // 1.0 it equals an already-spread group, so only 1-3% of pills are ever
-    // outside it (instrumented) and cohesion is a pure STRAY-CATCHER: it reels in
-    // the few pills flung clear of their group and touches nothing else.
+    // The flat bottom is a FRACTION of the group's packed radius, and it is the ONLY
+    // thing stopping the groups collapsing to a point. Neither attraction in this
+    // model is attractive all the way down: cohesion switches off entirely inside
+    // targetR, and the edge springs stop at touching distance. So the equilibrium
+    // of a group is a DISC of radius targetR, not a point — which is why pills do
+    // not pile up during the collision-free phase even though nothing repels them.
     //
-    // That is not an accident of tuning, it is where the value is. Tightening the
-    // floor to make cohesion CLUMP measured worse at every setting tried, because
-    // the blob seed has already arranged the groups and an isotropic centroid pull
-    // is a blunt instrument that disturbs that arrangement while mixing siblings
-    // at their boundaries. Clustering here comes from the seed and the edge
-    // springs; cohesion's job is only to catch what they missed.
+    // Instrumented at 492 pills, collisions off for the first 35%:
+    //   floor 1.0 (default)      line spread 94 -> 85px, overlapping pairs 441 -> 607
+    //   floor 0, cohesion maxed  line spread 41 -> 4px,  overlapping pairs 1956 -> 10214
+    // So the force is real and does bunch; the flat bottom is what bounds it.
+    //
+    // 1.0 is the right default because it makes cohesion a STRAY-CATCHER: only
+    // 1-3% of pills are ever outside targetR, so it reels in the few flung clear of
+    // their group and touches nothing else. Tightening measured worse at every
+    // setting — a collapse to 4px destroys all relative position, and the air phase
+    // then re-expands the group essentially at random (final line spread 255px vs
+    // 179px). Clustering comes from the seed and the edge springs; cohesion only
+    // catches what they missed.
     targetR: packedRadius(members, TUNE.air) * TUNE.cohesionFloor,
   }));
 }
