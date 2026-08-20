@@ -104,6 +104,26 @@ been pulled forward out of Phase 3 because it is urgent and unblocked.
       an explicit font and tracking. Verified at 492 pills: 0 pill overlaps,
       0 title overlaps, masthead/subtitle/legend all clear of the disc, exports
       still valid.
+- [x] **W10 Boundary keystones were cramping their neighbours.** Calum spotted it
+      by eye; measured, their mean gap to the 5 nearest was **50 vs 60** for every
+      other pill — and worse than it looks, because a seam position predicts ~69
+      (the seam region is *looser*, not denser: 69 within 60px of a seam against
+      57 in the interior, an edge effect from having neighbours on one side only).
+      **Two causes, both fixed.** Confirmed by ablation — switching the seam pull
+      off restored them to exactly 60, which isolated the dominant cause:
+      1. the seam pull runs *after* the spacing force, so the keystone gave back
+         its half of every separation while the neighbour kept its own. Separation
+         is now split by **mobility** (`PINNED_MOBILITY` 0.25), so the mobile
+         neighbour takes most of it. Not zero — they must still be able to slide
+         along the seam and drift slightly off it, unlike a pillar title.
+      2. the spacing force was **same-pillar only**, so neighbours across the seam
+         felt nothing and crowded to the hard 12/8px pad. A boundary keystone
+         belongs to both pillars it straddles and now spaces against both.
+      **Result at 194 pills: 50 → 77** (ordinary 60), and the treatment is intact —
+      both keystones sit 5–9px from their true seam with boxes still straddling it,
+      verified against the seam angles parsed out of the drawn sector paths rather
+      than inferred from pill positions, which the keystone itself skews.
+      At 492 pills: boundary 51, plainKey 47, ordinary 43 — no longer the outlier.
 - [ ] **W4 Legacy pillar aliases were dropped** from `PILLAR_COLOURS`, so old
       fixtures in `data/examples/` render grey. Fine under fail-fast, but decide
       before those become test fixtures.

@@ -315,7 +315,7 @@ function buildNetwork(sectorJobs, discR) {
       const A = nodes[i];
       for (let k = i + 1; k < nodes.length; k++) {
         const B = nodes[k];
-        if (A.job.pillar !== B.job.pillar) continue;
+        if (!spacingApplies(A, B)) continue;
         const dx = B.x - A.x, dy = B.y - A.y;
         const overX = (A.halfW + B.halfW + AIR) - Math.abs(dx);
         if (overX <= 0) continue;
@@ -324,8 +324,17 @@ function buildNetwork(sectorJobs, discR) {
         const push = Math.min(overX, overY) * 0.5 * TUNE.charge;
         const dist = Math.hypot(dx, dy) || 1;
         const ux = dx / dist, uy = dy / dist;
-        A.x -= ux * push; A.y -= uy * push;
-        B.x += ux * push; B.y += uy * push;
+        // Split the separation by MOBILITY rather than 50/50. A boundary keystone
+        // is partly pinned — the seam pull drags it back after this force runs, so
+        // any ground it wins here is given away again, and its neighbours ended up
+        // measurably cramped (mean gap to 5 nearest: 50 against 60 for everything
+        // else). It still takes a share, so it can slide along the seam and drift
+        // slightly off it to find room; it just stops absorbing separation it
+        // cannot keep. Total separation per pair is unchanged.
+        const mA = mobility(A), mB = mobility(B), tot = mA + mB;
+        const pA = push * 2 * mA / tot, pB = push * 2 * mB / tot;
+        A.x -= ux * pA; A.y -= uy * pA;
+        B.x += ux * pB; B.y += uy * pB;
       }
     }
 
@@ -383,6 +392,31 @@ const PAD_X = 12, PAD_Y = 8;   // desired clear space when resolving overlaps
 
 // Distance from the wheel centre to the NEAREST and FARTHEST point of a pill's
 // box. Used for the ring walls so they collide on the box, not the centre.
+// How much of a pair's separation a node absorbs. 1 is fully mobile. A boundary
+// keystone is held toward its seam by the seam pull, so it cannot keep everything
+// it is given — it takes a reduced share and the mobile neighbour takes the rest.
+// Deliberately NOT zero: at zero it would be glued in place like a pillar title,
+// and it still needs to slide along the seam and drift a little off it to settle.
+const PINNED_MOBILITY = 0.25;
+function mobility(node) {
+  return node.isBoundaryKey ? PINNED_MOBILITY : 1;
+}
+
+// Does the pairwise spacing force apply to this pair?
+//
+// Normally same-pillar only — pills in different pillars are separated by the
+// hard spoke walls, so spacing them softly across a seam would just fight the
+// walls. The exception is a boundary keystone: it deliberately straddles a seam
+// and belongs to BOTH pillars, so it must space against the pillar it bridges as
+// well. Without this its neighbours on the far side of the seam felt no force at
+// all and crowded right up to the hard 12/8px pad.
+function spacingApplies(A, B) {
+  if (A.job.pillar === B.job.pillar) return true;
+  if (A.isBoundaryKey && A.bridgePillar === B.job.pillar) return true;
+  if (B.isBoundaryKey && B.bridgePillar === A.job.pillar) return true;
+  return false;
+}
+
 function boxRadii(node) {
   const dx = Math.abs(node.x - CX), dy = Math.abs(node.y - CY);
   const nearX = Math.max(0, dx - node.halfW), nearY = Math.max(0, dy - node.halfH);

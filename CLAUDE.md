@@ -753,6 +753,19 @@ converges on satisfying all of them rather than letting whichever ran last win.
 
 **The one exception:** boundary keystones get a soft pull toward their seam and an
 exemption from the spoke walls, because they are meant to straddle it. 2 nodes.
+Two consequences of that pinning, both measured and both corrected:
+
+- **They absorb only a reduced share of a pair's separation** (`PINNED_MOBILITY`
+  0.25, split by mobility so the pair's total separation is unchanged). The seam
+  pull runs *after* the spacing force and drags them back, so any ground they win
+  is given away again — while the neighbour keeps its half. That left them
+  measurably cramped: mean gap to the 5 nearest was **50 against 60** for
+  everything else, on a seam whose position predicts ~69. Deliberately not zero,
+  or they would be glued like a title and could not slide along the seam to settle.
+- **They space against BOTH pillars they straddle** (`spacingApplies`). The
+  spacing force is otherwise same-pillar only, so their neighbours across the seam
+  felt no force at all and crowded to the hard 12/8px pad. For `Dragon Squat`, 6 of
+  its 8 nearest neighbours were in the adjacent pillar.
 
 This replaced a system with five soft forces. Removing `angularFill`,
 `titleRepel`/`titleRange` and `boundaryRepel`/`boundaryRange` — the last two
