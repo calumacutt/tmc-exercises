@@ -25,6 +25,13 @@ const TUNE = {
   discPull:      0.04,  // pull toward the discipline centroid — first to fade
   linePull:      0.06,  // pull toward the line centroid — fades second
   edgePull:      0.15,  // prog/reg/variant same-line pairs — fades last
+  // 1c-bis. when pill-vs-pill collisions switch on, as a fraction of the run.
+  // Before this point pills pass through each other so they can reach their group
+  // without getting entangled; sector walls and titles stay hard throughout.
+  // 0 = collide from the start (the old behaviour).
+  // 0.35 measured best for clustering (line purity peaks there); 0 gives the most
+  // even fill. See CLAUDE.md — this is a real trade, not a tuning miss.
+  collideAt:     0.35,
   // 1d. seed: 0 = hierarchical blob seed, 1 = random scatter (tests whether the
   // forces can recover the structure from nothing)
   seedMode:      0,
@@ -54,7 +61,8 @@ const TUNE_DEFS = [
   ['discPull',     '2e. Discipline cohesion (fades first)',   0, 0.30, 0.005, 3],
   ['linePull',     '2f. Line cohesion (fades second)',        0, 0.40, 0.005, 3],
   ['edgePull',     '2g. Edge springs (fades last)',           0, 0.50, 0.005, 3],
-  ['seedMode',     '2h. Seed (0 = blobs, 1 = random)',        0, 1, 1, 0],
+  ['collideAt',    '2h. Pill collisions start at (run frac)', 0, 1, 0.05, 2],
+  ['seedMode',     '2i. Seed (0 = blobs, 1 = random)',        0, 1, 1, 0],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Pillar titles'],

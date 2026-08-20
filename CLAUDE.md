@@ -747,6 +747,24 @@ their two axis overlaps, along the vector between their CENTRES. Pushing along a
 axis instead locks pills onto whichever axis they already share and builds
 columns — that was measured at 10:1 vertical over horizontal.
 
+⚠️ **Pill-vs-pill collision is SCHEDULED (`TUNE.collideAt`, default 0.35).** For
+the first third of the run pills pass straight through each other, because with
+collisions on from the start two pills that need to swap places cannot, and a pill
+separated from its group by a wall of others stays stranded for the whole run.
+Sector walls and pillar titles stay hard throughout — titles never move, so they
+cause no entanglement, and a pill tunnelling a title would draw on top of it
+(verified 0 title overlaps).
+
+**This is a real trade, not a tuning miss.** At 492 pills, `collideAt` 0.35 vs 0:
+line-neighbourhood purity **0.514 → 0.550**, mean line spread 189 → 176px, median
+link 232 → 198px — but radial density CV **0.075 → 0.139**. Gating lets cohesion
+collapse groups, which undoes the seed's space-filling, and the contact-only air
+phase cannot refill a void. Purity peaks at 0.35 and falls again by 0.50.
+Two attempts to get both, both rejected and both recorded in `layout.js`: starting
+the air phase earlier (purity 0.550 → 0.487 — even spacing fights clustering
+whatever the phase overlap), and slack on the cohesion radius (buys the density
+back but gives up the purity it was added for).
+
 **HARD — snaps a pill fully back into a valid position.** All of it collides on
 the pill's *actual bounding box*:
 

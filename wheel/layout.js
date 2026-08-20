@@ -312,6 +312,9 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   //           then        edge springs         — prog/reg/variant pairs, same line
   //           (with them) the long-range repulsion
   //           relaxes     keystone seam pull   — to a floor, never to zero
+  //           switch ON   pill-vs-pill collisions (TUNE.collideAt) — off before
+  //                       then, so pills can pass through each other while
+  //                       finding their group instead of getting entangled
   //           ramps IN    the contact air-spacing that evens the final picture
   //
   //         Sequencing is the whole trick. Cohesion and even-spacing FIGHT when
@@ -388,9 +391,12 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     const gRepel = gainDown(t, SCHED.repel.hold, SCHED.repel.end);
     const gSeam  = gainDown(t, SCHED.seam.hold,  SCHED.seam.end, SCHED.seam.floor);
     const gAir   = gainUp(t, SCHED.air.start, SCHED.air.full);
+    // Pills only start colliding with each other once structure has formed, so
+    // that until then they can pass through one another to reach their group.
+    const collide = t >= TUNE.collideAt;
 
     // ---- HARD first: walls and solid objects take priority ----
-    hardPass(nodes, titleBoxes, innerR, discR);
+    hardPass(nodes, titleBoxes, innerR, discR, collide);
 
     // ---- SOFT: pairwise repulsion, and nothing else ----
     // SPACING FORCE — aim for roughly equal clear air around every pill.
@@ -480,9 +486,28 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
       const k = TUNE.edgePull * gEdge;
       for (const e of forceEdges) {
         const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
+        const d = Math.hypot(dx, dy);
+        if (d <= 0.001) continue;
+        // REST LENGTH — touching distance, not zero. Without collisions to stop
+        // them (see TUNE.collideAt) a plain spring drags a linked pair to exactly
+        // coincident, and the separation direction when collisions switch on is
+        // then decided by floating-point noise rather than by the layout.
+        //
+        // It has to be DIRECTION-AWARE. Two boxes are clear if EITHER axis is
+        // clear, so the touching distance along the line between centres is the
+        // smaller of the two axis requirements projected onto that line. A fixed
+        // halfW-based rest treats a vertically stacked pair as if it were
+        // side-by-side, which for wide pills is hugely too far: measured, it took
+        // the median link from 214px to 282px.
+        const ux = Math.abs(dx) / d, uy = Math.abs(dy) / d;
+        const restX = ux > 1e-6 ? (e.a.halfW + e.b.halfW + PAD_X) / ux : Infinity;
+        const restY = uy > 1e-6 ? (e.a.halfH + e.b.halfH + PAD_Y) / uy : Infinity;
+        const rest = Math.min(restX, restY);
+        if (d <= rest) continue;
+        const pull = k * (d - rest) / d;
         const mA = mobility(e.a), mB = mobility(e.b), tot = mA + mB;
-        e.a.x += dx * k * mA / tot; e.a.y += dy * k * mA / tot;
-        e.b.x -= dx * k * mB / tot; e.b.y -= dy * k * mB / tot;
+        e.a.x += dx * pull * mA / tot; e.a.y += dy * pull * mA / tot;
+        e.b.x -= dx * pull * mB / tot; e.b.y -= dy * pull * mB / tot;
       }
     }
 
@@ -795,12 +820,19 @@ function sunflower(members, cx, cy, br, rng) {
 // The seam pull relaxes to a FLOOR, not zero: it is a positional lerp applied
 // every iteration, so even a small factor keeps a boundary keystone near its
 // seam while letting it give ground during the final spacing.
+// TUNE.collideAt sits alongside these as the point where pill-vs-pill collisions
+// switch on; it is a slider rather than a SCHED entry because it is the parameter
+// under active investigation.
 const SCHED = {
   disc:  { hold: 0.15, end: 0.35 },
   line:  { hold: 0.35, end: 0.55 },
   edge:  { hold: 0.55, end: 0.75 },
   repel: { hold: 0.55, end: 0.75 },
   seam:  { hold: 0.75, end: 0.90, floor: 0.15 },
+  // ⚠️ Do NOT overlap the air phase further back into the cohesion phases. Tried
+  // 0.38-0.55 on the theory that flat-bottom cohesion would not resist it; it
+  // dropped line purity from 0.550 to 0.487. Even spacing genuinely does fight
+  // clustering, flat bottom or not — the sequencing is the point.
   air:   { start: 0.55, full: 0.70 },
 };
 
@@ -823,6 +855,12 @@ function discKey(node) {
   return node.job.pillar + '||' + (node.ex.discipline || '');
 }
 
+// Tried and REJECTED: slack on targetR (gather groups to 1.25x their packed
+// radius) to stop them shrinking the occupied area. It buys density back only
+// when collisions are gated (CV 0.139 -> 0.094 at collideAt 0.35) and pays for it
+// in the clustering that gating was added to get (line purity 0.550 -> 0.505);
+// with collisions always on it is worse on every axis. The honest trade lives on
+// TUNE.collideAt instead, where it is visible.
 function groupNodes(nodes, keyFn) {
   const m = new Map();
   for (const n of nodes) {
@@ -982,13 +1020,23 @@ function resolveOverlap(A, B, share) {
 
 // Solid objects only: pill vs pill, then pill vs title. No walls. Returns the
 // number of pairs in genuine contact — see resolveOverlap.
-function solidsPass(nodes, titleBoxes) {
+//
+// `pillCollisions` gates ONLY the pill-vs-pill half. While structure is forming
+// pills are allowed to pass straight through each other: with collisions on from
+// the start, two pills that need to swap places cannot, so a pill separated from
+// its group by a wall of others is stuck outside it for the whole run. That is
+// the entanglement failure. Titles stay solid throughout — they never move, so
+// they cause no entanglement, and a pill tunnelling through a title would be
+// drawn on top of it.
+function solidsPass(nodes, titleBoxes, pillCollisions = true) {
   let touching = 0;
   // pills vs pills — a hard constraint, not a force. Soft repulsion alone does
   // not prevent overlaps: measured, it left 14 of them at 492 pills.
-  for (let i = 0; i < nodes.length; i++) {
-    for (let k = i + 1; k < nodes.length; k++) {
-      if (resolveOverlap(nodes[i], nodes[k], 0.5)) touching++;
+  if (pillCollisions) {
+    for (let i = 0; i < nodes.length; i++) {
+      for (let k = i + 1; k < nodes.length; k++) {
+        if (resolveOverlap(nodes[i], nodes[k], 0.5)) touching++;
+      }
     }
   }
   // pills vs titles — titles do not move, so the pill takes the whole push.
@@ -1000,8 +1048,8 @@ function solidsPass(nodes, titleBoxes) {
 }
 
 // One full hard pass: solid objects first, then the walls that contain them.
-function hardPass(nodes, titleBoxes, innerR, discR) {
-  solidsPass(nodes, titleBoxes);
+function hardPass(nodes, titleBoxes, innerR, discR, pillCollisions = true) {
+  solidsPass(nodes, titleBoxes, pillCollisions);
   // walls last, so a pill shoved by a neighbour still ends up inside its sector
   for (const node of nodes) clampNode(node, innerR, discR);
 }
