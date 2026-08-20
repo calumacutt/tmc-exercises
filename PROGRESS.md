@@ -254,7 +254,13 @@ way they never are in a spreadsheet.
       **Boundary keystones survived**: the bridge analysis used to read the cross
       edges and now reads `Also Appears In` directly, which is where that
       information came from anyway.
-      **Links are now DRAWN, with no force.** `Progressions`, `Regressions` and
+      **Links are DRAWN behind a "Show links" toggle, OFF by default, with no
+      force.** Drawn straight from the data they sprawl (median 381px, max 1167px,
+      25 of 148 over 600px) because nothing in the layout considers them — so the
+      overlay earns its keep as a diagnostic while trying force models, not as a
+      default view. `buildNetwork` takes an options bag rather than a third
+      positional argument so the next experiment has an obvious place to plug in.
+      `Progressions`, `Regressions` and
       `Variant Of` are collected into an edge list and stroked as thin white lines
       (1px, 22% opacity) behind the pills, after the layout has settled. They had
       no say in placement — verified: density CV and overlap count are identical
