@@ -372,8 +372,14 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   // every group to hard-pad density — leaving voids that nothing downstream can
   // refill (contact forces cannot feel a void, and the long-range repulsion
   // re-expands rim-biased). Density CV 0.114 -> 0.19+ traced to exactly this.
-  const discGroups = groupNodes(nodes, discKey);
   const lineGroups = groupNodes(nodes, n => discKey(n) + '||' + (n.ex.line || ''));
+  // Discipline cohesion acts on LINE GROUPS, not on individual pills. Pulling
+  // each pill straight at its discipline centroid drags it away from its own
+  // line-mates, so the coarse force actively dismantles the fine structure —
+  // measured, activating it that way took line purity 0.550 -> 0.476. Moving each
+  // line group RIGIDLY toward the discipline centroid gathers the discipline
+  // while leaving every line intact, which is what a hierarchy should do.
+  const discGroups = groupClusters(lineGroups, m => discKey(m[0]));
 
   // The whole relaxation — iterations AND settle — is a GENERATOR, yielding once
   // per iteration/pass. driveLayout() below pulls steps inside a per-frame time
@@ -476,7 +482,7 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     // p_i)), written this way because it is O(n) and because a 60-exercise group
     // must not pull 60x harder than a 3-exercise one. Scaled by mobility so a
     // boundary keystone is not dragged off its seam by its group.
-    if (gDisc > 0) applyCohesion(discGroups, TUNE.discPull * gDisc);
+    if (gDisc > 0) applyClusterCohesion(discGroups, TUNE.discPull * gDisc);
     if (gLine > 0) applyCohesion(lineGroups, TUNE.linePull * gLine);
 
     // Edge springs: prog/reg/variant pairs in the same line, pulled toward each
@@ -855,12 +861,10 @@ function discKey(node) {
   return node.job.pillar + '||' + (node.ex.discipline || '');
 }
 
-// Tried and REJECTED: slack on targetR (gather groups to 1.25x their packed
-// radius) to stop them shrinking the occupied area. It buys density back only
-// when collisions are gated (CV 0.139 -> 0.094 at collideAt 0.35) and pays for it
-// in the clustering that gating was added to get (line purity 0.550 -> 0.505);
-// with collisions always on it is worse on every axis. The honest trade lives on
-// TUNE.collideAt instead, where it is visible.
+// Tried and REJECTED: SLACK on targetR (>1, gathering groups only to 1.25x their
+// packed radius) to stop them shrinking the occupied area. Wrong direction
+// entirely — at 1.0 cohesion was already inert, so slack made an inactive force
+// more inactive. TUNE.cohesionFloor goes the other way.
 function groupNodes(nodes, keyFn) {
   const m = new Map();
   for (const n of nodes) {
@@ -870,7 +874,18 @@ function groupNodes(nodes, keyFn) {
   }
   return [...m.values()].map(members => ({
     members,
-    targetR: packedRadius(members, TUNE.air),
+    // The flat bottom is a FRACTION of the group's packed radius. At the default
+    // 1.0 it equals an already-spread group, so only 1-3% of pills are ever
+    // outside it (instrumented) and cohesion is a pure STRAY-CATCHER: it reels in
+    // the few pills flung clear of their group and touches nothing else.
+    //
+    // That is not an accident of tuning, it is where the value is. Tightening the
+    // floor to make cohesion CLUMP measured worse at every setting tried, because
+    // the blob seed has already arranged the groups and an isotropic centroid pull
+    // is a blunt instrument that disturbs that arrangement while mixing siblings
+    // at their boundaries. Clustering here comes from the seed and the edge
+    // springs; cohesion's job is only to catch what they missed.
+    targetR: packedRadius(members, TUNE.air) * TUNE.cohesionFloor,
   }));
 }
 
@@ -878,6 +893,50 @@ function groupNodes(nodes, keyFn) {
 // radius feels NOTHING; outside it, only the excess distance is pulled in. So
 // cohesion gathers a group without ever crushing it below the area it needs —
 // see the note at discGroups for why crushing was a measured failure.
+// Groups of line-groups, one per discipline, with the radius the whole discipline
+// needs. Members are the line groups themselves, so cohesion can move them as
+// units rather than as loose pills.
+function groupClusters(lineGroups, keyFn) {
+  const m = new Map();
+  for (const lg of lineGroups) {
+    const k = keyFn(lg.members);
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(lg);
+  }
+  return [...m.values()].map(subs => {
+    const all = subs.flatMap(sg => sg.members);
+    return { subs, targetR: packedRadius(all, TUNE.air) * TUNE.cohesionFloor };
+  });
+}
+
+// Flat-bottom spring on line-group CENTROIDS, applied as a rigid translation of
+// each whole line group. Same shape as applyCohesion, one level up.
+function applyClusterCohesion(clusters, k) {
+  if (k <= 0) return;
+  for (const { subs, targetR } of clusters) {
+    if (subs.length < 2) continue;
+    let sx = 0, sy = 0, n = 0;
+    const cents = subs.map(sg => {
+      let ax = 0, ay = 0;
+      for (const p of sg.members) { ax += p.x; ay += p.y; }
+      ax /= sg.members.length; ay /= sg.members.length;
+      sx += ax * sg.members.length; sy += ay * sg.members.length; n += sg.members.length;
+      return { sg, ax, ay };
+    });
+    const cx = sx / n, cy = sy / n;
+    for (const { sg, ax, ay } of cents) {
+      const dx = cx - ax, dy = cy - ay;
+      const d = Math.hypot(dx, dy);
+      if (d <= targetR) continue;
+      const kk = k * (d - targetR) / d;
+      for (const p of sg.members) {
+        const km = kk * mobility(p);
+        p.x += dx * km; p.y += dy * km;
+      }
+    }
+  }
+}
+
 function applyCohesion(groups, k) {
   if (k <= 0) return;
   for (const { members, targetR } of groups) {

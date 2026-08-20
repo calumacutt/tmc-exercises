@@ -22,6 +22,14 @@ const TUNE = {
   // structure, so cohesion only needs to gather strays — CV 0.073 at these
   // values vs 0.102 at double. Pulling both cohesions to 0 trades a little
   // density (CV 0.095) for the shortest links (median 173 vs 214).
+  // How tight cohesion gathers a group, as a FRACTION of the radius its pills need
+  // at `air` spacing. At 1.0 only 1-3% of pills are outside it, so cohesion acts
+  // purely as a STRAY-CATCHER — and that measured best (line purity 0.550, vs
+  // 0.525 with cohesion off entirely and 0.44-0.53 at floor 0.35). The blob seed
+  // already does the clustering; turning cohesion into a clumping force fights the
+  // arrangement the seed made instead of helping it. Lower this only when
+  // exploring with seedMode 1, where there is no seed structure to preserve.
+  cohesionFloor: 1.0,
   discPull:      0.04,  // pull toward the discipline centroid — first to fade
   linePull:      0.06,  // pull toward the line centroid — fades second
   edgePull:      0.15,  // prog/reg/variant same-line pairs — fades last
@@ -58,11 +66,12 @@ const TUNE_DEFS = [
   ['farRepel',     '2c. Long-range repulsion strength',       0, 1.5, 0.01, 2],
   ['farLen',       '2d. Long-range half-strength dist (px)',  50, 1200, 25, 0],
   ['__g2b', 'Attraction hierarchy (scheduled)'],
-  ['discPull',     '2e. Discipline cohesion (fades first)',   0, 0.30, 0.005, 3],
-  ['linePull',     '2f. Line cohesion (fades second)',        0, 0.40, 0.005, 3],
-  ['edgePull',     '2g. Edge springs (fades last)',           0, 0.50, 0.005, 3],
-  ['collideAt',    '2h. Pill collisions start at (run frac)', 0, 1, 0.05, 2],
-  ['seedMode',     '2i. Seed (0 = blobs, 1 = random)',        0, 1, 1, 0],
+  ['cohesionFloor','2e. Cohesion tightness (frac of packed)', 0, 1.2, 0.05, 2],
+  ['discPull',     '2f. Discipline cohesion (fades first)',   0, 0.30, 0.005, 3],
+  ['linePull',     '2g. Line cohesion (fades second)',        0, 0.40, 0.005, 3],
+  ['edgePull',     '2h. Edge springs (fades last)',           0, 0.50, 0.005, 3],
+  ['collideAt',    '2i. Pill collisions start at (run frac)', 0, 1, 0.05, 2],
+  ['seedMode',     '2j. Seed (0 = blobs, 1 = random)',        0, 1, 1, 0],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Pillar titles'],

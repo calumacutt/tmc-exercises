@@ -755,6 +755,27 @@ Sector walls and pillar titles stay hard throughout — titles never move, so th
 cause no entanglement, and a pill tunnelling a title would draw on top of it
 (verified 0 title overlaps).
 
+⚠️ **Cohesion is a STRAY-CATCHER, not a clumping force, and that is deliberate.**
+Its flat bottom sits at the group's packed radius (`TUNE.cohesionFloor` = 1.0), and
+instrumenting the run showed **only 1-3% of pills are ever outside it** — so 97-99%
+feel no cohesion at all. That is where its value is: it reels in the few pills
+flung clear of their group and disturbs nothing else. Tightening the floor to make
+it genuinely clump measured **worse at every setting** (line purity 0.550 → 0.44-0.53),
+because the blob seed has already arranged the groups and an isotropic centroid
+pull is a blunt instrument that mixes siblings at their boundaries. Clustering here
+comes from **the seed and the edge springs**; with cohesion off entirely purity is
+0.525, so stray-catching is worth ~0.025 and nothing more.
+
+Consequence worth knowing: **during the collision-free window almost nothing pulls
+pills together**, which is why they do not visibly bunch up. Only the 142 edge
+springs and the 1-3% stray pulls are active.
+
+Discipline cohesion moves **whole line groups rigidly**, never individual pills.
+Pulling each pill at its discipline centroid drags it away from its own line-mates,
+so the coarse force dismantles the fine one — measured, 0.550 → 0.476. Nesting it
+costs ~40 lines for a force acting on a few percent of pills, and is kept only
+because it makes `discPull` safe to turn up.
+
 **This is a real trade, not a tuning miss.** At 492 pills, `collideAt` 0.35 vs 0:
 line-neighbourhood purity **0.514 → 0.550**, mean line spread 189 → 176px, median
 link 232 → 198px — but radial density CV **0.075 → 0.139**. Gating lets cohesion
