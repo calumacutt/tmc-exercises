@@ -48,6 +48,8 @@ directly. See §3 for the constraint this imposes.
 │   ├── lists.csv                Lists tab — the authoritative taxonomy
 │   ├── breakdowns.csv           Breakdowns tab — component edges
 │   ├── examples/                dated manual exports, kept as fixtures
+│   ├── programs/                one file per program, the heat input
+│   ├── PROGRAM_FORMAT.md        THE program file contract (export == import)
 │   └── SHEET.md                 THE verified column contract, all 3 tabs
 ├── shared/                      used by BOTH sites — no duplication
 │   ├── csv.js                   tolerant CSV parsing (parseCSV, field)
@@ -196,9 +198,8 @@ rationale in `data/SHEET.md` §3.
 
 ### Source of truth
 
-The Google Sheet, published to web as CSV. Only the `Exercises` tab is
-published so far — `Lists` and `Breakdowns` still need publishing before they
-can be fetched live:
+The Google Sheet, published to web as CSV. **All three tabs are now published**
+and fetch live — the `Exercises` URL is below, all three are in `data/SHEET.md`:
 
 ```
 https://docs.google.com/spreadsheets/d/e/2PACX-1vQDrwHw-jGM7r3ZO_i8orZWvJ_wxmMdfnUy3lvdsqwZeJGv_EyEvsiB1HxG1qrXIyzgtMrlZMhirtcI/pub?gid=955669041&single=true&output=csv
@@ -227,6 +228,18 @@ exports in `data/examples/` are kept as fixtures.
 
 `Status` is read (a row matching `/^retired$/i` is filtered out) but is not
 present in the current sheet.
+
+**`Session Role` exists in the sheet but is NOT yet read** — see §7.2 for the
+decided vocabulary. Live columns as of 2026-08-21: `Name`, `Pillar (auto)`,
+`Discipline`, `Line`, `Regressions`, `Progressions`, `Also Appears In`,
+`Importance`, `Level`, `Keystone`, `Variant Of`, `Session Role`, `Notes`.
+
+⚠️ **Incomplete rows are OMITTED, not pseudo-grouped.** `filterRows()` drops any
+row missing `Pillar`, `Discipline`, `Line` or `Importance`, so the owner's
+half-entered rows never distort the picture or get clumped by an attractive
+force. 29 of the live sheet's 521 rows are currently in that state. The row stays
+in the RAW set, so a relationship link pointing at one reads as "filtered out"
+(silent) rather than "typo" (loud).
 
 ### Columns confirmed NOT read — ✅ ALREADY DELETED
 
@@ -266,11 +279,17 @@ exercises, follow it.
 ### Pillars (live)
 
 `Flocomotion`, `Strength & Capacity`, `Handstands & Balance`, `Object Play`,
-`Mobility` — plus a **`Games` pillar recently added as a stopgap**.
+`Mobility`. **Five, and the code and the sheet agree** — verified against the
+live sheet 2026-08-21.
 
-**`Games` is scheduled for removal.** It is not a category of movement, it is a
-*role in a class*. It becomes a value of the new `Session Role` field (§7).
-Until then it is coloured orange: `{ h: 25, s: 62, l: 54 }`.
+✅ **The `Games` pillar is GONE, and this is done, not pending.** It was never a
+category of movement, only a *role in a class*. Its 51 exercises have been
+re-homed into real pillars and tagged `Session Role = Game`; the pillar and its
+orange stopgap colour are out of both the sheet and `shared/taxonomy.js`. The
+`Rough Housing` / `Team Work & Connection` homelessness problem was solved the
+same way — there is now a **`Partner & Connection`** discipline
+(`Zen Archer`, `Circle Stick Game`, `Drop Stick Game`, …), which also closes
+§7.2's missing-partner-value gap that 4.13 needed for scoring "partner work".
 
 ### Pillar colours (`shared/taxonomy.js`)
 
@@ -280,21 +299,16 @@ Until then it is coloured orange: `{ h: 25, s: 62, l: 54 }`.
 "Handstands & Balance": { h: 42,  s: 70, l: 54 }   // amber gold
 "Flocomotion":          { h: 268, s: 32, l: 58 }   // muted violet
 "Object Play":          { h: 198, s: 46, l: 52 }   // teal blue
-"Games":                { h: 25,  s: 62, l: 54 }   // orange (temporary)
 ```
 
 Legacy aliases `Strength/Capacity`, `Handstands/Balance`, `Acro/Flow` were
 previously mapped so old demo CSVs still coloured correctly. **They have since
 been removed** — old fixtures now render grey. See §6.3.
 
-`Games` is a pillar *and* a discipline, with 5 lines (`Ball Games`,
-`Floor & Flow Games`, `Rough Housing`, `Stick Games`,
-`Team Work & Connection`) and **51 exercises — 11% of the library.** Dissolving
-it into `Session Role` is therefore not a small stopgap removal; it means
-re-homing 51 rows, and `Rough Housing` / `Team Work & Connection` have no
-obvious movement home. Note also that §7.2's proposed `Session Role` values have
-**no partner/connection value**, while 4.13 wants to score "partner work" —
-settle that before closing the field.
+**Historical note, kept because it explains the shape of the data:** Games used
+to be a pillar *and* a discipline with 5 lines and 51 exercises (11% of the
+library), so dissolving it was never a small stopgap removal — it meant re-homing
+51 rows. That work is done in the sheet.
 
 ### Taxonomy v2 — designed, delivered, NOT ADOPTED, and PARTLY SUPERSEDED
 
@@ -306,7 +320,7 @@ settle that before closing the field.
 
 A full restructure was worked out and shipped as `library_v2.csv` +
 `TAXONOMY_V2.md`. **The live sheet does not use it.** The live sheet has the
-cleaned *names* but the *old* taxonomy, plus the new Games pillar.
+cleaned *names* but the *old* taxonomy (minus the Games pillar, since removed).
 
 v2 goes from 11 disciplines / 22 lines → **13 disciplines / 32 lines**, and
 gives all 370 exercises a home with zero orphans. Its key findings:
@@ -414,7 +428,7 @@ in the recommended adjacency:
 
 ```js
 ["Handstands & Balance", "Strength & Capacity", "Mobility",
- "Flocomotion", "Object Play", "Games"]
+ "Flocomotion", "Object Play"]
 ```
 
 The reason this mattered beyond cosmetics — **boundary-keystone detection
@@ -461,9 +475,16 @@ Harmless. Fonts fall back to system. Not a bug.
 
 ---
 
-## 7. Schema decisions already made (not yet implemented)
+## 7. Schema decisions already made (NOT YET IMPLEMENTED IN CODE)
 
 These were worked out deliberately. Implement them as described.
+
+⚠️ **Read this section as a specification, not as a description of the running
+code.** Nothing here is wired up yet. In particular **there is no heat engine and
+no heat map** — no `shared/heat.js`, no program history loaded, and the `#ks-glow`
+filter that §8.1 reserves for heat is defined but unused. The two items marked
+DECIDED / LOCKED below (7.2 `Session Role`, 7.6 program format) are settled
+*contracts*; the code still does not read either.
 
 ### 7.1 Typed edge list — replaces line-chaining
 
@@ -501,14 +522,37 @@ as the duplicate-name gate.
 **inferred by topological rank** instead of hand-filling ~400 rows. Seed a few
 anchors, derive the rest, allow manual override.
 
-### 7.2 `Session Role` — multi-value
+### 7.2 `Session Role` — ✅ DECIDED (2026-08-21)
 
-Values: `warm-up/game`, `skill`, `strength`, `mobility`, `conditioning`.
-An exercise can hold several; most will.
+**Vocabulary: the `Lists` tab's `Session Types`, extended.** Seven values:
 
-Does three jobs at once: dissolves the Games pillar, groups the Program Builder
-shortlist the way a programmer actually reaches for exercises, and feeds the
-balance metric (§7.5).
+`Warm Up` · `Skill` · `Strength` · `Game` · `Prehab` · `Mobility` · `Conditioning`
+
+**Multi-value, and at least one role is REQUIRED on every exercise.** An exercise
+may hold several; the field is never blank.
+
+Three earlier drafts disagreed and all three are superseded by the above:
+
+| source | values | status |
+|---|---|---|
+| this file's old §7.2 | warm-up/game, skill, strength, mobility, conditioning | superseded |
+| `Lists` tab `Session Types` | Warm Up, Skill, Strength, Game | **the base** |
+| what was already in the sheet | Game (51), Prehab (19) | folded in |
+
+Two things that fell out of reconciling them. `Warm Up` and `Game` stay
+**separate** — the old draft merged them, but they are different jobs and the
+sheet already used `Game` alone. And `Prehab` was invented in the sheet, in
+neither draft; it is the home for the banded prehab/rehab work, which is exactly
+the case the field exists to capture.
+
+It still does three jobs at once: it dissolved the Games pillar (done, §5), it
+groups the Program Builder shortlist the way a programmer actually reaches for
+exercises (4.5), and it feeds the balance metric (§7.5).
+
+⚠️ **Not yet a completeness-gate field.** Only 70 of 521 rows are filled, so
+adding `Session Role` to `filterRows()`'s gate today would hide 451 exercises.
+Add it to the gate once the column is populated — and that is the point of
+requiring at least one role: the gate becomes the thing that keeps it populated.
 
 ### 7.3 `cook` and `burn` — two fields, not three systems
 
@@ -538,18 +582,29 @@ end-of-program score. The score is literally *"what would this discipline's
 heat be after the program currently being designed is run?"*
 
 **Write it once in `shared/heat.js`.** Three copies is how the three views end
-up disagreeing.
+up disagreeing. **Not built** — Phase 3, and it needs the program history entered
+in the now-locked format first.
 
-### 7.6 Program format — export must equal import
+### 7.6 Program format — ✅ LOCKED (2026-08-21), see `data/PROGRAM_FORMAT.md`
 
-Locking this is **urgent**, because there are three 6-week blocks of history to
-enter by hand. It must include **program date or block index, section, and
-concurrent slot**, or heat cannot be computed from it. Back-filling twice would
-be miserable.
+Markdown, one file per program, so the file is simultaneously the record, the
+machine-readable history and the **poster source**. Export equals import.
+Hierarchy is **Program (dated) → Class → Session (numbered, with a duration) →
+Exercise**, and the bullet ORDER within a session *is* the concurrent slot, so the
+slot requirement is met with no extra syntax. Full grammar, fail-fast rules and a
+validated example are in `data/PROGRAM_FORMAT.md` and
+`data/programs/2026-08-21-example.md`.
+
+This was urgent because three 6-week blocks of history are waiting to be entered
+by hand and back-filling twice would be miserable. It is now safe to enter them.
 
 ### 7.7 Program structure (replaces 3×20min / 3 concurrent)
 
-| Section | Duration | Notes |
+⚠️ **These are `Session`s, not `Section`s.** Renamed to match Calum's
+terminology and the program format: a **class contains sessions**. Older notes
+below and in PROGRESS may still say "section" — same thing.
+
+| Session | Duration | Notes |
 |---|---|---|
 | 1 | 10 min | Warm-up or game |
 | 2 | 5 min | Personal goals — **not programmed by the teacher** |
@@ -557,7 +612,7 @@ be miserable.
 | 4 | 15 min | " |
 | 5 | 15 min | " |
 
-Up to **4 concurrent exercises** per section.
+Up to **4 concurrent exercises** per session.
 
 ### 7.8 Program Blocks
 
@@ -726,7 +781,9 @@ were tuned by hand and are the current defaults:
 > **Large disciplines end up further out on their own** — a wedge is narrower near
 > the hub, so a big blob cannot fit there. That correlation falls out of the
 > geometry rather than being a rule.
-> **`TUNE` is down to 12 exposed parameters from 19.**
+> **`TUNE` exposes 17 sliders.** It went 19 → 8 when the force model was
+> simplified, then back up as the scheduled hierarchy, the wall repulsion and the
+> live-animation controls were added. Every default was set by ablation.
 
 | Panel label | Key | Default |
 |---|---|---|

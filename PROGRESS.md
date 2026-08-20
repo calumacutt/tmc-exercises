@@ -18,9 +18,27 @@ Auditing the real artifacts against these docs found that several recorded
 "blockers" were already fixed and **two diagnoses were simply wrong** — see the
 decision log and `CLAUDE.md` §6.4 / §5. Corrections are folded in below.
 
-**Immediate next action:** Phase 1 — the schema decisions. They are all `[?]`
-and all need Calum. 1.6 is now much cheaper than it was (see below), and 3.1 has
-been pulled forward out of Phase 3 because it is urgent and unblocked.
+**Reconciled against the live sheet 2026-08-21.** Three items recorded here as
+open or blocked were already done, and several force-model notes had gone stale —
+all corrected below. Specifically:
+
+- **All three tabs are published** and fetch live. This unblocks 1.8 / 2.8.
+- **The Games pillar is gone from the sheet.** Five pillars, and the code agrees.
+  A `Partner & Connection` discipline now exists, which also closes the
+  missing-partner-value gap 4.13 needed.
+- **`Session Role` is decided** (1.2) and **the program format is locked** (3.1 /
+  1.9) — see `data/PROGRAM_FORMAT.md`.
+- ⚠️ **The committed snapshot is stale: 492 rows against 521 live.** Exactly 29
+  live rows are incomplete and the completeness gate drops them, which is working
+  as intended — but the wheel's tuned defaults were all fitted at 492 pills.
+
+**Immediate next action:** enter the three 6-week blocks of history in the locked
+format (3.4), and fill `Session Role` across the library. Both are data work in
+the sheet. The unblocked *code* work is 1.8 / 2.8 — validate the taxonomy against
+`Lists` rather than against exercise rows.
+
+⚠️ **There is still no heat engine and no heat map.** Phase 3 is untouched; §7 of
+CLAUDE.md is a specification, not a description of the running code.
 
 ---
 
@@ -144,15 +162,17 @@ been pulled forward out of Phase 3 because it is urgent and unblocked.
 - [ ] **B2 Remove dead `dragover` logic.** `e.dataTransfer.getData ? 'copy' :
       'move'` always yields `'copy'`; `getData()` returns `""` during `dragover`
       by design. Use `types.includes('application/x-source-class')`. Part of 4.2.
-- [ ] **B3 Introduce a `SECTIONS` array.** The 3×20min / 3-lane structure is
+- [ ] **B3 Introduce a `SESSIONS` array.** The 3×20min / 3-lane structure is
       hard-coded across ~6 sites. Do this *with* 4.1 rather than making six
-      parallel edits. Section 2 needs a non-droppable flag.
+      parallel edits. Session 2 (personal goals) needs a non-droppable flag.
+      Use the names from `data/PROGRAM_FORMAT.md` so the builder and the program
+      files cannot drift.
 
 ### Open Phase 0 asks for Calum
 
-- [ ] **Publish the `Lists` and `Breakdowns` tabs to web** and paste the CSV
-      URLs into `data/SHEET.md`. Only `Exercises` is published, so the other two
-      snapshots cannot be refreshed automatically.
+- [x] **Publish the `Lists` and `Breakdowns` tabs to web.** ✅ Done — all three
+      URLs are in `data/SHEET.md` and all three fetch live (verified 2026-08-21:
+      Exercises, Lists 58 rows, Breakdowns 15 rows). This is what unblocks 1.8.
 - [ ] **Confirm `archive/columns/`.** `pillars/index.html` as committed was
       **byte-identical to `movement_columns.html`** — the A3 columns view, not
       the out-of-scope Pillars visualisation — so it was filed under
@@ -169,16 +189,20 @@ spreadsheet, not code. Full specifications in `CLAUDE.md` §7.
       alongside existing `Progressions` / `Regressions`; normalise to a typed
       graph at load. Confirm the four types are right:
       `progression` / `variant` / `component` / `related`.
-- [?] **1.2 Decide `Session Role`** values and confirm it replaces the Games
-      pillar. Proposed: `warm-up/game`, `skill`, `strength`, `mobility`,
-      `conditioning`. Multi-value.
-      **Two new constraints.** (a) The `Lists` tab **already declares
-      `Session Types`** = `Warm Up` / `Skill` / `Strength` / `Game` — reconcile
-      with that vocabulary instead of inventing a parallel one. (b) Games is
-      **51 exercises, 11% of the library**, including `Rough Housing` and
-      `Team Work & Connection`, which have no obvious movement home; and the
-      proposed values contain **no partner/connection role** even though 4.13
-      wants to score "partner work". Settle that before closing the field.
+- [x] **1.2 `Session Role` — DECIDED 2026-08-21.** Vocabulary is the `Lists`
+      tab's `Session Types` extended to seven values: `Warm Up`, `Skill`,
+      `Strength`, `Game`, `Prehab`, `Mobility`, `Conditioning`. Multi-value, and
+      **at least one role is required on every exercise** — never blank.
+      Three drafts had disagreed; full reconciliation in `CLAUDE.md` §7.2.
+      `Warm Up` and `Game` stay separate (the old draft wrongly merged them), and
+      `Prehab` came from the sheet rather than either draft.
+      Both of the old blockers are resolved: Games is re-homed and gone, and the
+      missing partner/connection value is answered by the new
+      `Partner & Connection` **discipline**, not by a role.
+      **Follow-on work, not blocking:** Calum is adding `Prehab` / `Mobility` /
+      `Conditioning` to the `Lists` tab, then the column needs filling —
+      **70 of 521 rows** are done. It joins the completeness gate only once
+      populated, or it would hide 451 exercises.
 - [?] **1.3 Decide `cook` / `burn`** semantics and defaults.
 - [?] **1.4 Decide Line and Discipline importance** — new columns or a separate
       tab? These are set manually, not derived.
@@ -212,10 +236,22 @@ spreadsheet, not code. Full specifications in `CLAUDE.md` §7.
       `Lists` is an error and should fail loudly. A declared LineKey with no
       exercises is a **gap to fill**, not an error. Getting this backwards is
       what produced the wrong v2 findings. Also covers 2.8.
-- [ ] **1.9 Pull 3.1 (lock the program format) forward into this phase.** It is
-      marked urgent, three 6-week blocks of history are waiting, and it depends
-      only on §7.7's section structure — which is already decided. It has no
-      dependency on the wheel rebuild, so it should not sit behind Phase 2.
+- [x] **1.9 / 3.1 Program format LOCKED 2026-08-21.** `data/PROGRAM_FORMAT.md`,
+      with a validated example at `data/programs/2026-08-21-example.md`.
+      Markdown, one file per program, so the file is at once the record, the
+      machine-readable history and the poster source. Hierarchy is
+      **Program (dated) → Class → Session (numbered, with duration) → Exercise**;
+      the bullet ORDER within a session *is* the concurrent slot, so §7.6's slot
+      requirement needs no extra syntax. Fail-fast on import: an exercise name
+      absent from the library, a missing or non-ISO date, an unparseable session
+      heading, a duplicate within a session, or more than 4 in a session.
+      Verified: the example parses with a 15-line parser, all 17 exercise names
+      resolve against the library, both `Personal Goals` sessions correctly empty.
+      ⚠️ **`Session` is what §7.7 used to call `Section`** — renamed to Calum's
+      terminology. A class *contains* sessions.
+      **One decision deliberately deferred to `heat.js`:** whether an exercise
+      programmed in only one of a program's classes counts as trained. The format
+      records enough for either answer.
 
 ---
 
@@ -225,10 +261,12 @@ Do this **before** the Program Builder work: it is the fastest feedback loop
 and it validates the schema visually. Bad edges are obvious on a diagram in a
 way they never are in a spreadsheet.
 
-- [x] **2.1 Fix `PILLAR_ORDER`.** ✅ Already correct in the imported wheel:
+- [x] **2.1 Fix `PILLAR_ORDER`.** ✅ Correct, and now **five pillars**:
       `["Handstands & Balance", "Strength & Capacity", "Mobility",
-      "Flocomotion", "Object Play", "Games"]` — the recommended adjacency.
-      The Games colour is present too, so `CLAUDE.md` §6.2's trap is closed.
+      "Flocomotion", "Object Play"]` — the recommended adjacency. `Games` and its
+      orange stopgap colour are gone from both the sheet and `taxonomy.js`, and
+      verified 2026-08-21 the two lists agree exactly, so `CLAUDE.md` §6.2's
+      grey-pill trap is closed.
 - [x] **2.2 Split the single file.** ✅ Done. Ten modules; see `CLAUDE.md` §2 for
       the layout and the three files that were not in the original sketch
       (`logo.js`, `svg.js`, `state.js`) and why.
@@ -289,26 +327,44 @@ way they never are in a spreadsheet.
       run the generator to completion in one blocking pass instead.
 
       **The SCHEDULED FORCE HIERARCHY is in (this largely delivers step 2).**
-      Soft forces now run on overlapping trapezoid gains over the run (SCHED in
-      layout.js): discipline cohesion fades first, then line cohesion, then the
+      Soft forces run on overlapping trapezoid gains over the run (SCHED in
+      layout.js): discipline attraction fades first, then line attraction, then the
       same-line prog/reg/variant edge springs; the boundary-keystone seam pull
-      relaxes to a floor; the contact air-spacing ramps IN as line cohesion ends
-      and owns the finish. Hard constraints always on. Cohesions are FLAT-BOTTOM
-      centroid springs (no force inside the group's packed radius) so a group is
-      gathered, never crushed. Seed is switchable: blobs (default) or random.
+      relaxes to a floor; the contact air-spacing ramps IN as line attraction ends
+      and owns the finish. Hard walls and titles always on.
 
-      Measured at 492 pills vs the previous model:
-      | | CV | lineSpread | linkMed |
-      | old | 0.114 | 205 | 381 |
-      | shipped defaults | **0.073** | 202 | **214** |
-      | cohesions at 0 | 0.095 | 194 | 173 |
-      Ablations that set the defaults: the long-range repulsion measured HARMFUL
-      in every configuration (blob seed CV 0.095→0.238; random seed it half-
-      recovers structure but wrecks the fill) → farRepel defaults 0, machinery
-      and schedule retained. Random seed cannot beat the blob seed: cohesion
-      alone stalls in the predicted entanglement minimum (lineSpread 325 vs 202).
-      Half-strength cohesions beat full strength from the blob seed — the seed
-      already builds the structure, cohesion only gathers strays.
+      ⚠️ **EVERY soft force is now PAIRWISE** — one shape, one strength each, no
+      rest lengths and no thresholds. An earlier version used centroid pulls with a
+      "flat bottom" at each group's packed radius; that was invented rather than
+      asked for, and it silently did nothing to 97-99% of pills, which is not
+      discoverable from outside. Stripped. Full reasoning in `CLAUDE.md` §9.
+
+      **Pill-vs-pill collisions are SCHEDULED** (`TUNE.collideAt` 0.35): pills pass
+      through each other while structure forms, because two pills that need to swap
+      places cannot if they collide from the start. Sector walls and titles stay
+      hard throughout.
+
+      **Wall repulsion via image pills** — the same parabolic kernel against the
+      sector boundaries. A pill at a hard wall is missing every neighbour that
+      would have been on the other side, so it accumulates; reflecting it across
+      the wall supplies what the truncated medium lost. Calum's idea, and the best
+      result the layout has produced.
+
+      Measured at 492 pills, walls off → on: density CV 0.090 → **0.053**, pills
+      pinned against a wall 26% → **7%**, nearest-neighbour gap CV 0.177 →
+      **0.135**, line-neighbourhood purity 0.547 → **0.590**, link median 178 →
+      **165**, overlaps 0 → 0. Every metric at once.
+
+      ⚠️ **`farRepel` is 0.07 and load-bearing, not 0.** It is the only thing
+      stopping the pairwise attractions collapsing each group to a point. An
+      earlier note here said it defaulted to 0 as "harmful in every
+      configuration" — that was measured against the centroid-plus-flat-bottom
+      model, and is no longer true.
+
+      Also added: **live settling** (the relaxation is a generator driven inside a
+      12ms/frame budget, so the wheel is watched settling) and a **live animation
+      speed slider** (`animSpeed`, 0.1-10 steps/frame) that changes pace without
+      restarting the run. `TUNE` is 17 sliders.
 
       **Step 2 (blocked): let the edge list drive the layout.** Needs
       `Progressions`/`Regressions` filled — still 0. Spring strength and stroke
@@ -330,7 +386,7 @@ way they never are in a spreadsheet.
       even-density radial fill, and clearance from pillar titles and sector seams.
       **The only property of an exercise that affects where it lands is its
       pillar** — not its line, not its level, not its progressions.
-      `TUNE` 19 → 12 exposed parameters; `layout.js` 712 → 513 lines.
+      `TUNE` 19 → 12 exposed parameters at the time; **17 now** — see 2.4.
       **Spacing fixes done since:**
       - `innerR` was `R_HUB + 26` in the layout but `R_HUB + 16` in
         `chooseDiscRadius`, so the radius calculation reserved different space
@@ -405,10 +461,11 @@ way they never are in a spreadsheet.
       **Measured at 492 pills: radial density CV 0.345 → 0.064** (bands 60.6,
       71.4, 71.7, 71.0, 67.5, 74.5 — essentially uniform), 0 pill overlaps, 0
       title overlaps, 0 ring violations with the nearest box edge sitting exactly
-      on the 176px inner ring. `TUNE` 13 → **8 sliders** (19 at the start of the
-      split). Exports still work; boundary keystones still render.
-      **Still to do:** retune and record defaults in `CLAUDE.md` §9 — largely
-      done now that there are only 8.
+      on the 176px inner ring. Exports still work; boundary keystones still render.
+      ⚠️ **That 8-slider low-water mark did not last.** The scheduled force
+      hierarchy, the wall repulsion and the live-animation controls took `TUNE`
+      back up to **17 sliders**. Defaults are recorded in `CLAUDE.md` §9 and every
+      one of them was set by ablation, not taste.
 - [~] **2.6 Add discipline/line visual grouping.**
       **Step 1 done — colour, on the second attempt.** The first version put
       discipline+line on the pill BORDER only and Calum could not see it at all: a
@@ -482,10 +539,8 @@ way they never are in a spreadsheet.
 
 ## Phase 3 — Heat engine and program format
 
-- [ ] **3.1 Lock the program file format.** Export == import. Must carry
-      program date or block index, section, and concurrent slot. **Urgent** —
-      three 6-week blocks of history are waiting to be entered by hand and
-      back-filling twice would be miserable.
+- [x] **3.1 Lock the program file format.** ✅ Done — see 1.9 above and
+      `data/PROGRAM_FORMAT.md`. Entering the history is now safe.
 - [ ] **3.2 Implement `shared/heat.js`** as one pure function, aggregating at
       exercise / line / discipline level. Single implementation — three copies
       is how the views end up disagreeing.
@@ -493,7 +548,8 @@ way they never are in a spreadsheet.
       especially: high-importance items cooling fast (handstand almost always
       cold), `cook` producing half-baked, `burn` producing burnt.
 - [ ] **3.4 Enter the historical programs** (3 × 6-week blocks) in the locked
-      format.
+      format, one file per program under `data/programs/`. **Unblocked and next.**
+      This is the input the whole heat engine waits on.
 
 ---
 
@@ -502,8 +558,9 @@ way they never are in a spreadsheet.
 Independent of Phases 2–3; can run in parallel. Numbering follows Calum's
 original list for traceability.
 
-- [ ] **4.1 Restructure sections** to 10 / 5 / 15 / 15 / 15 min, up to 4
-      concurrent exercises. *(was 3×20min, 3 concurrent)*
+- [ ] **4.1 Restructure sessions** to 10 / 5 / 15 / 15 / 15 min, up to 4
+      concurrent exercises. *(was 3×20min, 3 concurrent)* Export/import must be
+      `data/PROGRAM_FORMAT.md`.
 - [ ] **4.2 Fix drag-and-drop.** Currently buggy.
 - [ ] **4.3 Drive the Library view from the sheet** instead of hard-coded data.
       Add importance filter and "hide variants".
@@ -629,4 +686,8 @@ re-litigating settled questions.
 | 2026-08-18 | **`validateRows()` restored verbatim; not rewritten.** | It had been deleted from the imported wheel, against §6.1's explicit decision. Restored unchanged rather than reimplemented, so the documented behaviour and the code stay in step. It caught a real duplicate (`Split Squat`) within minutes. |
 | 2026-08-18 | **Taxonomy v2 is superseded by "populate `Lists`", not adopted.** | Two of four headline findings re-derive structure `Lists` already declares. Its source files are also missing from the machine and from git. The cheap real work is filing exercises into the 23 empty declared LineKeys. |
 | 2026-08-18 | **The columns view is archived at `archive/columns/`, not `pillars/`.** | The committed `pillars/index.html` was byte-identical to `movement_columns.html` — the A3 columns view. `pillars` already names the explicitly out-of-scope artifact, so keeping that name would be actively misleading. |
+| 2026-08-21 | **`Session Role` = the `Lists` `Session Types` vocabulary, extended to 7 values, at least one required per exercise.** | Three drafts disagreed (this file's old proposal, the `Lists` tab, and what was actually in the sheet). The sheet's own vocabulary wins because data is already being entered against it; `Prehab` came from real use, and `Warm Up`/`Game` stay separate because they are different jobs. Requiring one role is what will eventually let the completeness gate keep the column populated. |
+| 2026-08-21 | **Program format is Markdown, Program → Class → Session → Exercise, bullet order = concurrent slot.** | One file that is simultaneously the record, the machine-readable history and the poster source. Bullet order carries the slot with no extra syntax, so §7.6's requirement is met without making the file harder to type by hand — which matters because three blocks of history are being entered manually. |
+| 2026-08-21 | **`Session` replaces `Section` for the timed blocks within a class.** | Calum's terminology, and he owns the domain. A class *contains* sessions. |
+| 2026-08-21 | **Every soft force is pairwise; centroid pulls with a flat bottom are rejected.** | The flat-bottom version silently did nothing to 97-99% of pills, which no amount of tuning could reveal from outside. A pairwise spring has one behaviour and one number. The parabolic repulsion — not a threshold — is what stops a group collapsing. |
 | 2026-08-18 | **Snapshots are fetched live, never copied from `Downloads`.** | The live `Exercises` tab was a strict superset of the newest local export (473 vs 449 rows, nothing removed). Picking a download would anchor every deterministic test to a stale baseline. |
