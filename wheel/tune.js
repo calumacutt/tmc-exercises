@@ -35,6 +35,12 @@ const TUNE = {
   // sector sizing
   angleExp:      0.70,  // arc allocation exponent (1=∝count, <1 compresses big pillars)
   titleSize:     48,    // fixed pillar title font size
+  // animation pacing: max relaxation steps per painted frame. 10 is effectively
+  // "as fast as the frame budget allows"; below 1 a step runs only every few
+  // frames, stretching the whole settle out so the phases can be watched.
+  // LIVE: read every frame by driveLayout, so dragging it mid-run changes pace
+  // without restarting the layout (unlike every other slider).
+  animSpeed:     10,
 };
 
 // Slider definitions: [key, label, min, max, step, decimals]
@@ -59,6 +65,7 @@ const TUNE_DEFS = [
   ['__g8', 'General'],
   ['pillScale',    'Exercise pill size',                      0.6, 1.6, 0.05, 2],
   ['iterations',   'Relaxation iterations (quality)',         80, 700, 20, 0],
+  ['animSpeed',    'Animation speed (steps/frame)',           0.1, 10, 0.1, 1, 'live'],
 ];
 const TUNE_DEFAULTS = JSON.parse(JSON.stringify(TUNE));
 
@@ -77,7 +84,7 @@ function buildTunePanel(onChange) {
       body.appendChild(h);
       continue;
     }
-    const [key, label, min, max, step, dec] = def;
+    const [key, label, min, max, step, dec, live] = def;
     const row = document.createElement('div');
     row.className = 'tune-row';
     const lab = document.createElement('label'); lab.textContent = label;
@@ -89,7 +96,9 @@ function buildTunePanel(onChange) {
     rng.addEventListener('input', () => {
       TUNE[key] = parseFloat(rng.value);
       val.textContent = Number(TUNE[key]).toFixed(dec);
-      scheduleRender();
+      // 'live' sliders are read continuously by the running layout (animation
+      // pacing); re-rendering would restart the very run being watched.
+      if (!live) scheduleRender();
     });
     rng._key = key; rng._dec = dec;
     row.appendChild(lab); row.appendChild(rng); row.appendChild(val);

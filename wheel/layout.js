@@ -578,12 +578,27 @@ function driveLayout(gen, onFrame, onDone) {
   // pass instead. Checked per tick, so fronting the tab mid-run resumes the
   // smooth version and hiding it mid-run finishes the work immediately.
   const schedule = fn => document.hidden ? setTimeout(fn, 0) : requestAnimationFrame(fn);
+  // Fractional pacing: TUNE.animSpeed is the max steps per painted frame, read
+  // LIVE each tick so dragging the slider mid-run changes pace on the spot.
+  // Below 1 the accumulator banks fractions until a whole step is owed — 0.2
+  // means one step every fifth frame. The time budget still caps a fast setting,
+  // so 10 is simply "as fast as before this slider existed".
+  let owed = 0;
   const tick = () => {
     if (cancelled) return;
     const hidden = document.hidden;
     const t0 = performance.now();
-    let done = gen.next().done;
-    while (!done && (hidden || performance.now() - t0 < BUDGET_MS)) done = gen.next().done;
+    let done = false;
+    if (hidden) {
+      while (!done) done = gen.next().done;
+    } else {
+      owed += Math.max(0.05, TUNE.animSpeed);
+      while (!done && owed >= 1 && performance.now() - t0 < BUDGET_MS) {
+        done = gen.next().done;
+        owed -= 1;
+      }
+      owed = Math.min(owed, TUNE.animSpeed);  // no burst after a stall
+    }
     onFrame();
     if (done) { if (onDone) onDone(); return; }
     schedule(tick);
