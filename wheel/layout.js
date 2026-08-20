@@ -453,6 +453,32 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   // last win.
   for (let pass = 0; pass < 40; pass++) hardPass(nodes, titleBoxes, innerR, discR);
 
+  // ...but a hard pass ends with clampNode, so a WALL gets the last word and can
+  // shove a pill back into a neighbour with nothing left to undo it. That is not
+  // a convergence tail, it is structural: whatever the final clamp breaks, stays
+  // broken. Measured (during the cohesion experiment, where attraction pressed
+  // pills together hard enough to expose it) as a handful of overlaps that were
+  // all the same shape — 0.3–4.3px of VERTICAL graze between pills almost exactly
+  // on top of each other: the signature of a radial clamp nudging one pill into
+  // the one above it.
+  //
+  // So give the last word to "pills do not touch". A pill can finish a few px
+  // outside its spoke, invisible on a 3000px disc; two pills sharing a rounded
+  // corner is not. Gauss-Seidel, so it runs until nothing is TOUCHING rather than
+  // a fixed count — a fixed count is a guess that goes stale whenever a force
+  // changes strength.
+  let solidsPasses = 0;
+  while (solidsPasses < SETTLE_SOLIDS_MAX) {
+    solidsPasses++;
+    if (solidsPass(nodes, titleBoxes) === 0) break;
+  }
+  if (solidsPasses >= SETTLE_SOLIDS_MAX && solidsPass(nodes, titleBoxes) > 0) {
+    // Not fatal — the residue is sub-pixel in practice — but silence here would
+    // hide a real regression if a future force makes it structural.
+    console.warn('[movement-wheel] overlap settle did not converge in ' +
+      SETTLE_SOLIDS_MAX + ' passes; some pills may touch.');
+  }
+
   // ---- draw links behind everything, then pills, then titles on top ----
   // Purely descriptive at this stage: these lines exert NO force and had no say
   // in where anything was placed. Task 2.4 is where they start driving the
@@ -637,6 +663,10 @@ function sunflower(members, cx, cy, br, rng) {
 // it is given — it takes a reduced share and the mobile neighbour takes the rest.
 // Deliberately NOT zero: at zero it would be glued in place like a pillar title,
 // and it still needs to slide along the seam and drift a little off it to settle.
+// Cap on the settle convergence loop, purely a runaway guard: it normally exits
+// in a handful of passes, and a pass is O(n^2) box tests with no wall arithmetic.
+const SETTLE_SOLIDS_MAX = 200;
+
 const PINNED_MOBILITY = 0.25;
 function mobility(node) {
   return node.isBoundaryKey ? PINNED_MOBILITY : 1;
@@ -728,12 +758,23 @@ function clampNode(node, innerR, discR) {
 // Resolve a real overlap between two boxes along the axis of least penetration —
 // the cheapest way out. `share` splits the correction between them; pass 0 to
 // move only the first.
+// Resolves to the PADDED box, but reports whether the boxes were genuinely
+// touching — overlapping with no pad at all.
+//
+// The distinction matters for convergence tests. The 12/8px pad is a preference:
+// at full density the pills cannot all hold that much clearance, so "nothing
+// needed moving" is unsatisfiable and useless as a stop condition — it burned a
+// whole pass cap and then reported failure on a layout with zero actual overlaps.
+// Genuine contact IS satisfiable, and is the thing that looks broken, so that is
+// what callers get told about.
 function resolveOverlap(A, B, share) {
   const dx = B.x - A.x, dy = B.y - A.y;
   const ox = (A.halfW + B.halfW + PAD_X) - Math.abs(dx);
-  if (ox <= 0) return;
+  if (ox <= 0) return false;
   const oy = (A.halfH + B.halfH + PAD_Y) - Math.abs(dy);
-  if (oy <= 0) return;
+  if (oy <= 0) return false;
+  const touching = Math.abs(dx) < A.halfW + B.halfW
+                && Math.abs(dy) < A.halfH + B.halfH;
   if (ox < oy) {
     const push = ox * (dx <= 0 ? 1 : -1);
     A.x += push * (1 - share); B.x -= push * share;
@@ -741,22 +782,31 @@ function resolveOverlap(A, B, share) {
     const push = oy * (dy <= 0 ? 1 : -1);
     A.y += push * (1 - share); B.y -= push * share;
   }
+  return touching;
 }
 
-// One full hard pass: solid objects first, then the walls that contain them.
-function hardPass(nodes, titleBoxes, innerR, discR) {
-  // pills vs pills — still a hard constraint, not a force. Soft repulsion alone
-  // does not prevent overlaps: measured, it left 14 of them at 492 pills.
+// Solid objects only: pill vs pill, then pill vs title. No walls. Returns the
+// number of pairs in genuine contact — see resolveOverlap.
+function solidsPass(nodes, titleBoxes) {
+  let touching = 0;
+  // pills vs pills — a hard constraint, not a force. Soft repulsion alone does
+  // not prevent overlaps: measured, it left 14 of them at 492 pills.
   for (let i = 0; i < nodes.length; i++) {
     for (let k = i + 1; k < nodes.length; k++) {
-      resolveOverlap(nodes[i], nodes[k], 0.5);
+      if (resolveOverlap(nodes[i], nodes[k], 0.5)) touching++;
     }
   }
   // pills vs titles — titles do not move, so the pill takes the whole push.
   // This replaces the old soft `titleRepel`, which was doing the same job twice.
   for (const node of nodes) {
-    for (const t of titleBoxes) resolveOverlap(node, t, 0);
+    for (const t of titleBoxes) if (resolveOverlap(node, t, 0)) touching++;
   }
+  return touching;
+}
+
+// One full hard pass: solid objects first, then the walls that contain them.
+function hardPass(nodes, titleBoxes, innerR, discR) {
+  solidsPass(nodes, titleBoxes);
   // walls last, so a pill shoved by a neighbour still ends up inside its sector
   for (const node of nodes) clampNode(node, innerR, discR);
 }
