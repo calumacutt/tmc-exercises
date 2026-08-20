@@ -10,12 +10,24 @@ const TUNE = {
   // 1. pill spacing (same pillar): keep roughly equal air around every pill
   charge:        2.50,  // how hard crowded pills push apart
   air:           26,    // desired clear space around each pill, px
-  // 1b. light long-range repulsion, Student-t falloff (see layout.js).
-  // DEFAULT OFF: measured harmful on its own — a purely repulsive force has no
-  // interior equilibrium, so it evacuates the middle and packs the rim. It needs
-  // an attractive counterweight before it earns a non-zero default.
-  farRepel:      0,     // peak push at zero distance, px/iteration. 0 = off
+  // 1b. long-range repulsion, Student-t falloff. DEFAULT 0: measured harmful in
+  // every configuration tried — from the blob seed it has no job (the seed
+  // already fills the space) and it drags density CV 0.095 -> 0.238; from a
+  // random seed it recovers some structure but still wrecks the even fill. The
+  // schedule keeps it paired with the edge springs whenever it IS enabled.
+  farRepel:      0,     // peak push at zero distance, px/iteration
   farLen:        300,   // half-strength distance, px
+  // 1c. the attraction hierarchy (see SCHED in layout.js for the ramps).
+  // Half-strength cohesions measured best: the blob seed already builds the
+  // structure, so cohesion only needs to gather strays — CV 0.073 at these
+  // values vs 0.102 at double. Pulling both cohesions to 0 trades a little
+  // density (CV 0.095) for the shortest links (median 173 vs 214).
+  discPull:      0.04,  // pull toward the discipline centroid — first to fade
+  linePull:      0.06,  // pull toward the line centroid — fades second
+  edgePull:      0.15,  // prog/reg/variant same-line pairs — fades last
+  // 1d. seed: 0 = hierarchical blob seed, 1 = random scatter (tests whether the
+  // forces can recover the structure from nothing)
+  seedMode:      0,
   // 2. keystone-to-seam attraction (boundary keystones only)
   keystoneSeam:  0.30,  // how strongly boundary keystones snap to the seam
   // 3. pillar title placement
@@ -32,6 +44,11 @@ const TUNE_DEFS = [
   ['air',          '2b. Desired space around each pill (px)', 4, 120, 2, 0],
   ['farRepel',     '2c. Long-range repulsion strength',       0, 1.5, 0.01, 2],
   ['farLen',       '2d. Long-range half-strength dist (px)',  50, 1200, 25, 0],
+  ['__g2b', 'Attraction hierarchy (scheduled)'],
+  ['discPull',     '2e. Discipline cohesion (fades first)',   0, 0.30, 0.005, 3],
+  ['linePull',     '2f. Line cohesion (fades second)',        0, 0.40, 0.005, 3],
+  ['edgePull',     '2g. Edge springs (fades last)',           0, 0.50, 0.005, 3],
+  ['seedMode',     '2h. Seed (0 = blobs, 1 = random)',        0, 1, 1, 0],
   ['__g3', 'Keystones'],
   ['keystoneSeam', '3. Pull boundary keystones to the seam',  0, 0.6, 0.01, 2],
   ['__g4', 'Pillar titles'],

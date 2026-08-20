@@ -288,6 +288,28 @@ way they never are in a spreadsheet.
       in-flight run via state.layoutRun. Hidden tabs (no rAF, throttled timers)
       run the generator to completion in one blocking pass instead.
 
+      **The SCHEDULED FORCE HIERARCHY is in (this largely delivers step 2).**
+      Soft forces now run on overlapping trapezoid gains over the run (SCHED in
+      layout.js): discipline cohesion fades first, then line cohesion, then the
+      same-line prog/reg/variant edge springs; the boundary-keystone seam pull
+      relaxes to a floor; the contact air-spacing ramps IN as line cohesion ends
+      and owns the finish. Hard constraints always on. Cohesions are FLAT-BOTTOM
+      centroid springs (no force inside the group's packed radius) so a group is
+      gathered, never crushed. Seed is switchable: blobs (default) or random.
+
+      Measured at 492 pills vs the previous model:
+      | | CV | lineSpread | linkMed |
+      | old | 0.114 | 205 | 381 |
+      | shipped defaults | **0.073** | 202 | **214** |
+      | cohesions at 0 | 0.095 | 194 | 173 |
+      Ablations that set the defaults: the long-range repulsion measured HARMFUL
+      in every configuration (blob seed CV 0.095→0.238; random seed it half-
+      recovers structure but wrecks the fill) → farRepel defaults 0, machinery
+      and schedule retained. Random seed cannot beat the blob seed: cohesion
+      alone stalls in the predicted entanglement minimum (lineSpread 325 vs 202).
+      Half-strength cohesions beat full strength from the blob seed — the seed
+      already builds the structure, cohesion only gathers strays.
+
       **Step 2 (blocked): let the edge list drive the layout.** Needs
       `Progressions`/`Regressions` filled — still 0. Spring strength and stroke
       style then vary by edge type.

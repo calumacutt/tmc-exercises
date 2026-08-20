@@ -98,8 +98,8 @@ function inWedge(x, y, a0, a1, innerR, outerR, bleedPx, bleedAng) {
 //    inside the wedge and clear of the pillar titles and sector seams
 //  • boundary keystones are pulled onto the seam they bridge
 //
-// Level and progressions still affect nothing. Discipline and line affect the
-// SEED only, never a force.
+// Discipline, line and the relationship edges now drive FORCES, on a schedule:
+// see SCHED below. Level still affects nothing.
 function buildNetwork(sectorJobs, discR, opts = {}) {
   const { allNames, showLinks, onDone } = opts;
   const innerR = R_INNER;
@@ -238,6 +238,18 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     const jobNodes = job.exercises.map(ex => nodeByName.get(ex.name)).filter(Boolean);
     for (const node of jobNodes) { node.span = span; node.a0 = job.a0; node.a1 = job.a1; }
 
+    if (TUNE.seedMode >= 0.5) {
+      // RANDOM seed — uniform by AREA in the wedge (sqrt on the radius, or the
+      // hub end would be denser). The point of this mode is to test whether the
+      // scheduled forces can recover the discipline/line structure from nothing,
+      // instead of inheriting it from the blob seed. Deterministic per pillar.
+      for (const node of jobNodes) {
+        const rr = Math.sqrt(innerR * innerR + rng() * (discR * discR - innerR * innerR));
+        const aa = job.a0 + rng() * span;
+        node.x = CX + rr * Math.cos(aa);
+        node.y = CY + rr * Math.sin(aa);
+      }
+    } else {
     // group into discipline -> line -> nodes, alphabetically for stability
     const byDisc = new Map();
     for (const n of jobNodes) {
@@ -271,6 +283,7 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
       }
       for (const lb of lineBlobs) sunflower(lb.members, lb.x, lb.y, lb.br, rng);
     }
+    }  // end seed mode branch
 
     // Boundary keystones are pulled out of their blob and onto the seam they
     // bridge — that placement is the whole point of the treatment.
@@ -289,14 +302,29 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   //         spokes and rings, clear of the pillar titles, not overlapping another
   //         pill. Runs FIRST each iteration so walls and solid objects take
   //         priority over pills jostling each other.
-  //   SOFT  two pairwise repulsions between pills in the same pillar, at two
-  //         different length scales: a strong CONTACT one (grown boxes must not
-  //         overlap) and a light LONG-RANGE one with a Student-t falloff. Nothing
-  //         else is a force.
+  //   SOFT  a HIERARCHY of forces, each on a scheduled trapezoid gain over the
+  //         run (see SCHED). Structure forms first, spacing is polished last:
   //
-  // The one wrinkle is the boundary-keystone seam pull, which is soft but not
-  // pairwise. It exists because those keystones are meant to sit ON a seam, and
-  // it is paired with an exemption from the spoke walls. It affects 2 nodes.
+  //           optional    long-range Student-t repulsion (default 0; when on,
+  //                       it drops out with the edge springs, never after)
+  //           first out   discipline cohesion  — pull to discipline centroid
+  //           then        line cohesion        — pull to line centroid
+  //           then        edge springs         — prog/reg/variant pairs, same line
+  //           (with them) the long-range repulsion
+  //           relaxes     keystone seam pull   — to a floor, never to zero
+  //           ramps IN    the contact air-spacing that evens the final picture
+  //
+  //         Sequencing is the whole trick. Cohesion and even-spacing FIGHT when
+  //         simultaneous (measured: raising the spacing range to balance cohesion
+  //         inflated the very clusters it was meant to spread). And a monotone
+  //         repulsion alone has no interior equilibrium — it packs the rim
+  //         (measured, CV 0.106 -> 0.19+). So attraction owns the early game,
+  //         repulsion only ever runs WITH attraction and decays with the last of
+  //         it, and the air spacing only starts once structure is settled.
+  //
+  // The boundary-keystone seam pull is soft but not pairwise. It exists because
+  // those keystones are meant to sit ON a seam, and it is paired with an
+  // exemption from the spoke walls. It affects 2 nodes.
   const ITER = TUNE.iterations;
   // per-pillar charge scales with how much room the pillar has per node, so a
   // wide-but-sparse pillar (e.g. Strength) pushes harder to fill its area.
@@ -326,6 +354,24 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
         ' — check TUNE.titlePos and TUNE.titleSize are set.');
     }
   }
+  // ---- force structure ----
+  // Edges and cohesion groups are fixed for the whole run; only centroids move.
+  // Force edges are the SAME-LINE subset of the relationship edges (142 of 148 in
+  // the current data): a cross-line pair would fight the line cohesion, and a
+  // cross-pillar pair cannot be honoured at all — the hard walls win.
+  const allLinks = collectLinks(nodes, nodeByName, allNames);
+  const forceEdges = allLinks.filter(({ a, b }) =>
+    discKey(a) === discKey(b) && (a.ex.line || '') === (b.ex.line || ''));
+  // Each group carries its PACKED RADIUS — the circle its pills genuinely need at
+  // the desired spacing. Cohesion is a flat-bottom spring against that radius:
+  // it reels strays in but never compresses a group below the space it needs.
+  // The first version pulled straight at the centroid, and it over-collapsed
+  // every group to hard-pad density — leaving voids that nothing downstream can
+  // refill (contact forces cannot feel a void, and the long-range repulsion
+  // re-expands rim-biased). Density CV 0.114 -> 0.19+ traced to exactly this.
+  const discGroups = groupNodes(nodes, discKey);
+  const lineGroups = groupNodes(nodes, n => discKey(n) + '||' + (n.ex.line || ''));
+
   // The whole relaxation — iterations AND settle — is a GENERATOR, yielding once
   // per iteration/pass. driveLayout() below pulls steps inside a per-frame time
   // budget and updates the already-drawn pills, so the wheel is WATCHED settling
@@ -333,6 +379,16 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   // final picture: chunking changes when the work happens, not what it computes.
   const relaxSteps = function* () {
   for (let it = 0; it < ITER; it++) {
+    // Scheduled gains for this iteration. Priority = who keeps their gain
+    // longest; the ramps overlap deliberately (see SCHED).
+    const t = it / ITER;
+    const gDisc  = gainDown(t, SCHED.disc.hold,  SCHED.disc.end);
+    const gLine  = gainDown(t, SCHED.line.hold,  SCHED.line.end);
+    const gEdge  = gainDown(t, SCHED.edge.hold,  SCHED.edge.end);
+    const gRepel = gainDown(t, SCHED.repel.hold, SCHED.repel.end);
+    const gSeam  = gainDown(t, SCHED.seam.hold,  SCHED.seam.end, SCHED.seam.floor);
+    const gAir   = gainUp(t, SCHED.air.start, SCHED.air.full);
+
     // ---- HARD first: walls and solid objects take priority ----
     hardPass(nodes, titleBoxes, innerR, discR);
 
@@ -359,48 +415,19 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
     //
     // Overlap varies continuously, so unlike a min(gap) proximity term this
     // keeps a usable gradient instead of pinning every neighbour to a force cap.
-    // SECOND SOFT FORCE — a light long-range repulsion between every pair in the
-    // same sector, on top of (not instead of) the contact force above.
+    // LONG-RANGE REPULSION — Student-t / Cauchy falloff, 1 / (1 + (d/farLen)^2):
+    // peak at touching, half strength at farLen, heavy tail. The kernel t-SNE
+    // uses in the low-dimensional space, chosen there (and here) because a
+    // fast-decaying falloff leaves moderately-distant points feeling nothing and
+    // everything piles up. Kernel VALUE rather than t-SNE's gradient, because
+    // here the contact force owns short range; bounded at d = 0, no singularity.
     //
-    // Falloff is a STUDENT-T / CAUCHY kernel, 1 / (1 + (d/farLen)^2): peak at
-    // touching, half strength at farLen, and a HEAVY TAIL. That kernel is the one
-    // borrowed from t-SNE, and the heavy tail is the whole reason to borrow it —
-    // t-SNE swapped SNE's Gaussian for a Student-t in the low-dimensional space
-    // specifically to fix the "crowding problem", where a fast-decaying kernel left
-    // moderately-distant points feeling almost no repulsion and everything piled
-    // up. That is exactly the failure mode here, so an exponential or Gaussian
-    // falloff is the wrong instrument: it decays so fast it is contact-only again
-    // with extra arithmetic.
-    //
-    // One deliberate difference from real t-SNE. Its repulsive GRADIENT is
-    // proportional to d / (1 + d^2)^2, which vanishes as d -> 0, because in t-SNE
-    // the attractive term owns short range. Here the contact force owns short
-    // range, and the ask was a force that simply weakens with distance, so this
-    // uses the kernel VALUE rather than the gradient. Bonus: it is bounded at
-    // d = 0, so unlike a Coulomb 1/d^2 there is no singularity to guard.
-    //
-    // ⚠️ DEFAULT OFF, because the reasoning that motivated it turns out to be
-    // wrong in a way worth recording. The hope was density equalisation: deep in an
-    // even cloud the contributions cancel by symmetry, and only a node at the edge
-    // of a void feels a residual. The symmetry argument is fine — the boundary
-    // argument is not. A purely repulsive force is MONOTONE, so it has no interior
-    // equilibrium at all; the only place a node stops being pushed outward is the
-    // wall. Over 600 iterations even a tiny bias accumulates, so the wedge
-    // interior empties and the rim packs.
-    //
-    // Measured at 492 pills, against a baseline of CV 0.106 / outer ring 67 /
-    // nearest-neighbour gap CV 0.143:
-    //   farRepel 0.15, farLen 300 -> CV 0.184, outer ring 88, nn gap CV 0.432
-    //   farRepel 0.04, farLen 300 -> CV 0.219, outer ring 92
-    //   farRepel 0.15, farLen  75 -> CV 0.188, outer ring 86
-    // Weaker did not help and neither did a short length scale, so this is
-    // structural rather than a tuning miss. It also made LOCAL spacing markedly
-    // less even (that nn gap CV), which is the opposite of the intent.
-    //
-    // t-SNE gets away with this kernel because it always pairs it with an
-    // attractive term — attraction is what sets the scale and gives an interior
-    // equilibrium. So the knob stays, at 0, for use ALONGSIDE an attractor; on its
-    // own it is strictly worse than nothing.
+    // ⚠️ Never runs alone. On its own a monotone repulsion has no interior
+    // equilibrium — the only place a node stops being pushed outward is the wall,
+    // so it evacuates the wedge and packs the rim (measured: CV 0.106 -> 0.19+
+    // at every strength and length scale tried). t-SNE pairs it with attraction
+    // for exactly this reason. The SCHEDULE enforces the pairing: its gain decays
+    // with the edge springs and never survives them.
     const AIR = TUNE.air;
     const FAR = TUNE.farRepel;
     const FAR_L2 = Math.max(1, TUNE.farLen * TUNE.farLen);
@@ -411,14 +438,13 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
         if (!spacingApplies(A, B)) continue;
         const dx = B.x - A.x, dy = B.y - A.y;
         let push = 0;
-        if (FAR > 0) push += FAR / (1 + (dx * dx + dy * dy) / FAR_L2);
-        // The contact force, unchanged — same grown boxes, same least-overlap
-        // push. It just can no longer `continue` out of the pair, because the far
-        // term above applies whether or not the boxes are in contact.
+        if (FAR > 0 && gRepel > 0) push += gRepel * FAR / (1 + (dx * dx + dy * dy) / FAR_L2);
+        // The contact force, gated on gAir: even spacing is the LAST phase, once
+        // structure has settled — running it early just fights the cohesion.
         const overX = (A.halfW + B.halfW + AIR) - Math.abs(dx);
-        if (overX > 0) {
+        if (overX > 0 && gAir > 0) {
           const overY = (A.halfH + B.halfH + AIR) - Math.abs(dy);
-          if (overY > 0) push += Math.min(overX, overY) * 0.5 * TUNE.charge;
+          if (overY > 0) push += gAir * Math.min(overX, overY) * 0.5 * TUNE.charge;
         }
         if (push === 0) continue;
         const dist = Math.hypot(dx, dy) || 1;
@@ -437,6 +463,29 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
       }
     }
 
+    // ---- the attraction hierarchy, lowest priority first, so the force that
+    // matters most gets the last word within the iteration ----
+    // Cohesions are centroid pulls: exactly the AVERAGE of a linear spring to
+    // every group partner (sum of (p_j - p_i) over n partners = n*(centroid -
+    // p_i)), written this way because it is O(n) and because a 60-exercise group
+    // must not pull 60x harder than a 3-exercise one. Scaled by mobility so a
+    // boundary keystone is not dragged off its seam by its group.
+    if (gDisc > 0) applyCohesion(discGroups, TUNE.discPull * gDisc);
+    if (gLine > 0) applyCohesion(lineGroups, TUNE.linePull * gLine);
+
+    // Edge springs: prog/reg/variant pairs in the same line, pulled toward each
+    // other hard. The hard pass keeps them from interpenetrating, so "extremely
+    // tight" resolves to pad distance, which is the intent.
+    if (gEdge > 0 && TUNE.edgePull > 0) {
+      const k = TUNE.edgePull * gEdge;
+      for (const e of forceEdges) {
+        const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y;
+        const mA = mobility(e.a), mB = mobility(e.b), tot = mA + mB;
+        e.a.x += dx * k * mA / tot; e.a.y += dy * k * mA / tot;
+        e.b.x -= dx * k * mB / tot; e.b.y -= dy * k * mB / tot;
+      }
+    }
+
     // boundary keystones: gentle pull toward their shared seam angle so they
     // settle exactly on the pillar border they bridge.
     for (const node of nodes) {
@@ -447,7 +496,7 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
       let target = node.seamAngle;
       while (target - cur > Math.PI) target -= TWO_PI;
       while (target - cur < -Math.PI) target += TWO_PI;
-      const na = cur + (target - cur) * TUNE.keystoneSeam;
+      const na = cur + (target - cur) * TUNE.keystoneSeam * gSeam;
       node.x = CX + r * Math.cos(na);
       node.y = CY + r * Math.sin(na);
     }
@@ -495,7 +544,7 @@ function buildNetwork(sectorJobs, discR, opts = {}) {
   // <g transform>, so a frame update is ~500 attribute writes, which is cheap.
   // Links are purely descriptive at this stage: they exert NO force and have no
   // say in where anything goes. Task 2.4 is where that changes.
-  const linkEls = showLinks ? drawLinks(collectLinks(nodes, nodeByName, allNames)) : [];
+  const linkEls = showLinks ? drawLinks(allLinks) : [];
   for (const node of nodes) {
     drawPillNode(node);
   }
@@ -716,6 +765,84 @@ function sunflower(members, cx, cy, br, rng) {
 // it is given — it takes a reduced share and the mobile neighbour takes the rest.
 // Deliberately NOT zero: at zero it would be glued in place like a pillar title,
 // and it still needs to slide along the seam and drift a little off it to settle.
+// ============================================================
+// FORCE SCHEDULE
+// ============================================================
+// Each force's gain over normalised run time t in [0,1]. hold = full strength
+// until here; end = zero (or floor) from here; linear ramp between. The ramps
+// OVERLAP on purpose:
+//   - the repulsion decays WITH the edge springs, never after them. A window
+//     where repulsion is the only soft force re-creates the measured rim-packing
+//     failure, and the final air phase cannot repair macro density — contact
+//     forces cannot feel a void.
+//   - the air spacing starts before the seam finishes relaxing, so there is
+//     never a force vacuum.
+// The seam pull relaxes to a FLOOR, not zero: it is a positional lerp applied
+// every iteration, so even a small factor keeps a boundary keystone near its
+// seam while letting it give ground during the final spacing.
+const SCHED = {
+  disc:  { hold: 0.15, end: 0.35 },
+  line:  { hold: 0.35, end: 0.55 },
+  edge:  { hold: 0.55, end: 0.75 },
+  repel: { hold: 0.55, end: 0.75 },
+  seam:  { hold: 0.75, end: 0.90, floor: 0.15 },
+  air:   { start: 0.55, full: 0.70 },
+};
+
+function gainDown(t, hold, end, floor = 0) {
+  if (t <= hold) return 1;
+  if (t >= end) return floor;
+  return 1 - (1 - floor) * (t - hold) / (end - hold);
+}
+function gainUp(t, start, full) {
+  if (t <= start) return 0;
+  if (t >= full) return 1;
+  return (t - start) / (full - start);
+}
+
+// Which cohesion group a pill belongs to. Keyed on pillar AND discipline: the
+// completeness gate means neither can be blank, but a discipline name recurring
+// in two pillars must still be two groups — cohesion across a spoke wall would
+// just mash pills into the seam.
+function discKey(node) {
+  return node.job.pillar + '||' + (node.ex.discipline || '');
+}
+
+function groupNodes(nodes, keyFn) {
+  const m = new Map();
+  for (const n of nodes) {
+    const k = keyFn(n);
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(n);
+  }
+  return [...m.values()].map(members => ({
+    members,
+    targetR: packedRadius(members, TUNE.air),
+  }));
+}
+
+// Flat-bottom spring toward the group centroid: a pill inside the group's packed
+// radius feels NOTHING; outside it, only the excess distance is pulled in. So
+// cohesion gathers a group without ever crushing it below the area it needs —
+// see the note at discGroups for why crushing was a measured failure.
+function applyCohesion(groups, k) {
+  if (k <= 0) return;
+  for (const { members, targetR } of groups) {
+    if (members.length < 2) continue;  // a lone pill is already its own centroid
+    let sx = 0, sy = 0;
+    for (const n of members) { sx += n.x; sy += n.y; }
+    const cx = sx / members.length, cy = sy / members.length;
+    for (const n of members) {
+      const dx = cx - n.x, dy = cy - n.y;
+      const d = Math.hypot(dx, dy);
+      if (d <= targetR) continue;
+      const kk = k * mobility(n) * (d - targetR) / d;
+      n.x += dx * kk;
+      n.y += dy * kk;
+    }
+  }
+}
+
 // Cap on the settle convergence loop, purely a runaway guard: it normally exits
 // in a handful of passes, and a pass is O(n^2) box tests with no wall arithmetic.
 const SETTLE_SOLIDS_MAX = 200;
