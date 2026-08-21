@@ -257,9 +257,9 @@ spreadsheet, not code. Full specifications in `CLAUDE.md` §7.
       sessions correctly empty.
       ⚠️ **`Session` is what §7.7 used to call `Section`** — renamed to Calum's
       terminology. A class *contains* sessions.
-      **One decision deliberately deferred to `heat.js`:** whether an exercise
-      programmed in only one of a program's classes counts as trained. The format
-      records enough for either answer.
+      **Deferred decision now made:** an exercise appearing anywhere in a program
+      counts as trained, **equally** — no weighting by class or session count. A
+      program therefore reduces to a date plus a set of exercise names.
 
 ---
 
@@ -552,6 +552,9 @@ way they never are in a spreadsheet.
 - [ ] **3.2 Implement `shared/heat.js`** as one pure function, aggregating at
       exercise / line / discipline level. Single implementation — three copies
       is how the views end up disagreeing.
+      **Input is settled:** a program is a date plus a SET of exercise names.
+      Appearing anywhere in a program counts as trained, equally — so the class
+      and session structure is not an input to heat at all.
 - [ ] **3.3 Unit-test the heat engine** against hand-worked examples,
       especially: high-importance items cooling fast (handstand almost always
       cold), `cook` producing half-baked, `burn` producing burnt.
@@ -696,6 +699,7 @@ re-litigating settled questions.
 | 2026-08-18 | **The columns view is archived at `archive/columns/`, not `pillars/`.** | The committed `pillars/index.html` was byte-identical to `movement_columns.html` — the A3 columns view. `pillars` already names the explicitly out-of-scope artifact, so keeping that name would be actively misleading. |
 | 2026-08-21 | **`Session Role` = the `Lists` `Session Types` vocabulary, extended to 7 values, at least one required per exercise.** | Three drafts disagreed (this file's old proposal, the `Lists` tab, and what was actually in the sheet). The sheet's own vocabulary wins because data is already being entered against it; `Prehab` came from real use, and `Warm Up`/`Game` stay separate because they are different jobs. Requiring one role is what will eventually let the completeness gate keep the column populated. |
 | 2026-08-21 | **Program format is Markdown, Program → Class → Session → Exercise, bullet order = concurrent slot.** | One file that is simultaneously the record, the machine-readable history and the poster source. Bullet order carries the slot with no extra syntax, so §7.6's requirement is met without making the file harder to type by hand — which matters because three blocks of history are being entered manually. |
+| 2026-08-21 | **An exercise appearing anywhere in a program is trained, equally.** | No weighting by class/session count or repeats. Heat answers "has this been covered recently", not "how much volume". Collapses a program to a date plus a set of names, which makes `programsSinceLastTrained` a trivial count. Reversible: the files keep the full structure, so frequency weighting could be added without re-entering history. |
 | 2026-08-21 | **`Session` replaces `Section` for the timed blocks within a class.** | Calum's terminology, and he owns the domain. A class *contains* sessions. |
 | 2026-08-21 | **Every soft force is pairwise; centroid pulls with a flat bottom are rejected.** | The flat-bottom version silently did nothing to 97-99% of pills, which no amount of tuning could reveal from outside. A pairwise spring has one behaviour and one number. The parabolic repulsion — not a threshold — is what stops a group collapsing. |
 | 2026-08-18 | **Snapshots are fetched live, never copied from `Downloads`.** | The live `Exercises` tab was a strict superset of the newest local export (473 vs 449 rows, nothing removed). Picking a download would anchor every deterministic test to a stale baseline. |

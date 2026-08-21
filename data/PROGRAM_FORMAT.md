@@ -157,9 +157,20 @@ Class and session are *not* inputs to heat. They are carried for round-trip
 fidelity, for the poster, and for the balance metric (§7.5), which does care
 which role an exercise was programmed in.
 
-⚠️ **One decision deliberately left open.** If an exercise is programmed in only
-one of a program's classes, is it "trained"? Two defensible answers: count it
-(simplest, and matches "did we cover this"), or weight by the fraction of classes
-it appeared in. This format records enough to support either, so the decision can
-wait for `heat.js` — but it must be made there and written down, not left
-implicit.
+✅ **DECIDED: appearing anywhere in a program counts as trained, equally.** No
+weighting by how many classes or sessions an exercise appears in, and no counting
+of repeats. An exercise in one session of one class is as trained as one in all
+six classes.
+
+So the heat input from a program is just **the date plus a SET of exercise
+names** — the class and session structure is genuinely irrelevant to heat, not
+merely unused. That makes `programsSinceLastTrained` trivially computable: order
+the files by date, and count back to the last program whose set contains the name.
+
+The consequence to accept knowingly: heat cannot distinguish "lightly touched"
+from "hammered all block". That is fine because the question heat answers is *has
+this been covered recently*, not *how much volume did it get*.
+
+⚠️ **The decision lives in `heat.js`, not in the file format.** These files record
+the full class/session structure regardless, so if frequency weighting is ever
+wanted, it can be added without re-entering a single program.

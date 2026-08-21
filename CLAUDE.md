@@ -581,6 +581,14 @@ discipline level. Consumed by the heat map, the goal-selection targets, and the
 end-of-program score. The score is literally *"what would this discipline's
 heat be after the program currently being designed is run?"*
 
+✅ **An exercise appearing ANYWHERE in a program counts as trained, equally**
+(decided 2026-08-21). No weighting by class or session count, no counting of
+repeats. So a program reduces to **a date plus a set of exercise names**, and
+`programsSinceLastTrained` is just a count back through the date-ordered files to
+the last set containing that name. Heat answers *has this been covered recently*,
+not *how much volume did it get* — the program files still record the full
+structure, so frequency weighting could be added later without re-entering data.
+
 **Write it once in `shared/heat.js`.** Three copies is how the three views end
 up disagreeing. **Not built** — Phase 3, and it needs the program history entered
 in the now-locked format first.
