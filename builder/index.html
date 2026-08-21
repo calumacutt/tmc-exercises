@@ -1528,7 +1528,18 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+// The Discipline view reads the LIVE sheet through the shared loaders, so it and
+// the wheel cannot drift on what a row means. There is no embedded copy of the
+// library any more.
+//
+// `type="module"` is required for those imports and therefore for an HTTP origin
+// — file:// will not work (CLAUDE.md §3). Verified safe: the page has zero inline
+// on* handlers, which are the thing module scope would have broken.
+import { parseCSV, rowsToObjects, field } from '../shared/csv.js';
+import { normaliseRows, filterRows, validateRows } from '../shared/library.js';
+import { SHEET_CSV_URL, BREAKDOWNS_CSV_URL } from '../shared/sheet.js';
+
 /* =========================================================================
    Movement Traits Spectrum — Pattern A (local CSV file)
 
@@ -1538,165 +1549,90 @@
    spectrum (so one exercise can show up in multiple rows).
    ========================================================================= */
 
-// ---------- CSV parsing ----------
-function parseCSV(text) {
-  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-  const sections = [];
-  let current = [];
-  for (const line of lines) {
-    if (line.trim() === '') {
-      if (current.length > 0) { sections.push(current); current = []; }
-    } else {
-      current.push(line);
-    }
-  }
-  if (current.length > 0) sections.push(current);
-  return sections.map(parseSection);
-}
-
-function parseSection(lines) {
-  const rows = lines.map(parseCSVLine);
-  if (rows.length === 0) return { headers: [], data: [] };
-  const headers = rows[0];
-  const data = rows.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = (row[i] || '').trim());
-    return obj;
-  });
-  return { headers, data };
-}
-
-function parseCSVLine(line) {
-  const fields = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (line[i+1] === '"') { current += '"'; i++; }
-        else { inQuotes = false; }
-      } else { current += c; }
-    } else {
-      if (c === ',') { fields.push(current); current = ''; }
-      else if (c === '"') { inQuotes = true; }
-      else { current += c; }
-    }
-  }
-  fields.push(current);
-  return fields;
-}
-
 // ---------- Model ----------
-function buildModel(sections) {
-  if (sections.length < 2) {
-    throw new Error('CSV must have two sections separated by a blank line.');
+// Built from the live sheet, in the CURRENT schema. The translation from the old
+// hard-coded vocabulary, for anyone reading old code or notes:
+//   trait     -> Discipline
+//   pathway   -> Line
+//   is_anchor -> Keystone
+// and `class_types`, `split`, `equipment`, `video_url` are gone from the sheet
+// entirely, so they are gone from here (CLAUDE.md §4).
+//
+// The internal field names `trait`/`pathway` survive only inside this view's
+// renderers; renaming them is churn against the layout rewrite, so it waits.
+function buildModelFromRows(rows, anchorBreakdowns) {
+  // Discipline -> Line -> exercises. Insertion is driven by an ALPHABETICAL walk
+  // so `colourIndex` is a stable identity: ordering by exercise count would
+  // reshuffle every colour whenever the sheet grows, which is the same reasoning
+  // as `shade()` in shared/taxonomy.js.
+  const discMap = new Map();
+  for (const r of rows) {
+    const d = r.discipline, l = r.line;
+    if (!discMap.has(d)) discMap.set(d, new Map());
+    const lines = discMap.get(d);
+    if (!lines.has(l)) lines.set(l, []);
   }
-  const traitSection = sections[0];
-  const exerciseSection = sections[1];
+  const traits = [...discMap.keys()].sort((a, b) => a.localeCompare(b)).map((name, i) => ({
+    order: i + 1,
+    name,
+    colourIndex: i + 1,
+    pillar: '',
+    pathways: [...discMap.get(name).keys()].sort((a, b) => a.localeCompare(b))
+      .map((pw, k) => ({ order: k + 1, name: pw, exercises: [] })),
+  }));
 
-  // Build trait/pathway scaffold
-  const traitMap = new Map();
-  for (const row of traitSection.data) {
-    const traitOrder = parseInt(row.trait_order, 10);
-    const traitName = row.trait;
-    const pathwayOrder = parseInt(row.pathway_order, 10);
-    const pathwayName = row.pathway;
-    if (!traitName || !pathwayName) continue;
-    if (!traitMap.has(traitName)) {
-      traitMap.set(traitName, { order: traitOrder, name: traitName, pathways: [] });
-    }
-    traitMap.get(traitName).pathways.push({ order: pathwayOrder, name: pathwayName, exercises: [] });
-  }
-  const traits = Array.from(traitMap.values()).sort((a, b) => a.order - b.order);
-  traits.forEach((t, i) => {
-    t.colourIndex = i + 1;
-    t.pathways.sort((a, b) => a.order - b.order);
-  });
-
-  // Quick lookup
   const lookup = new Map();
   for (const t of traits) {
     const pwMap = new Map();
-    for (const p of t.pathways) pwMap.set(p.name, p);
+    for (const pw of t.pathways) pwMap.set(pw.name, pw);
     lookup.set(t.name, { trait: t, pathwayMap: pwMap });
   }
 
-  // Parse exercises
   const exercisesByName = new Map();
-  for (const row of exerciseSection.data) {
-    if (!row.name) continue;
-
-    const tpPairs = parseTraitPathways(row.traits_pathways);
-    if (tpPairs.length === 0) {
-      console.warn(`Skipping "${row.name}" — no valid traits_pathways`);
-      continue;
-    }
-
+  for (const r of rows) {
+    // `Level` is OPTIONAL and mostly absent — 78% of rows have none. It stays
+    // null rather than being defaulted, so nothing can silently position a pill
+    // as though it were level 1. Every consumer must handle null explicitly.
+    const lvl = Number.isFinite(r.level) ? r.level : null;
     const ex = {
-      name: row.name,
-      traitPathways: tpPairs,  // [{trait, pathway}, ...]
-      level: parseFloat(row.level),
-      isAnchor: (row.is_anchor || '').toUpperCase() === 'TRUE',
-      classTypes: parseList(row.class_types),
-      split: parseList(row.split),  // legs / bent arm / straight arm
-      regressesFrom: parseList(row.regresses_from),
-      progressesTo: parseList(row.progresses_to),
-      equipment: row.equipment || '',
-      notes: row.notes || '',
-      videoUrl: row.video_url || ''
+      name: r.name,
+      traitPathways: [{ trait: r.discipline, pathway: r.line }],
+      level: lvl,
+      isAnchor: !!r.keystone,
+      // live columns that replaced the deleted ones
+      importance: r.importance,
+      pillar: r.pillar,
+      variantOf: r.variantOf || '',
+      alsoAppearsIn: r.alsoAppearsIn || [],
+      regressesFrom: r.regressions || [],
+      progressesTo: r.progressions || [],
+      notes: r.notes || '',
     };
-
-    // Insert into each (trait, pathway) it belongs to
-    let inserted = 0;
-    for (const tp of tpPairs) {
-      const traitEntry = lookup.get(tp.trait);
-      if (!traitEntry) {
-        console.warn(`"${row.name}" references unknown trait "${tp.trait}"`);
-        continue;
-      }
-      const pathway = traitEntry.pathwayMap.get(tp.pathway);
-      if (!pathway) {
-        console.warn(`"${row.name}" references unknown pathway "${tp.pathway}" under trait "${tp.trait}"`);
-        continue;
-      }
-      pathway.exercises.push(ex);
-      inserted++;
-    }
-
-    if (inserted > 0) {
-      exercisesByName.set(ex.name, ex);
-    }
+    const entry = lookup.get(r.discipline);
+    const pathway = entry && entry.pathwayMap.get(r.line);
+    if (!pathway) continue;      // cannot happen: the scaffold is built from these same rows
+    entry.trait.pillar = entry.trait.pillar || r.pillar;
+    pathway.exercises.push(ex);
+    exercisesByName.set(ex.name, ex);
   }
 
-  // ----- Section 3 (optional): anchor breakdowns -----
-  // Format: anchor, component, component_exercises
-  // Returns a Map<anchorName, Array<{component: string, exercises: string[]}>>
-  const anchorBreakdowns = new Map();
-  if (sections.length >= 3) {
-    for (const row of sections[2].data) {
-      if (!row.anchor || !row.component) continue;
-      const exercises = parseList(row.component_exercises);
-      if (!anchorBreakdowns.has(row.anchor)) {
-        anchorBreakdowns.set(row.anchor, []);
-      }
-      anchorBreakdowns.get(row.anchor).push({
-        component: row.component,
-        exercises,
-      });
+  // `Also Appears In` is a "Discipline - Line" reference, so an exercise can show
+  // up in a second lane. Added after the primary pass so the primary home is
+  // always the one that owns the object.
+  for (const ex of exercisesByName.values()) {
+    for (const ref of ex.alsoAppearsIn) {
+      const dash = ref.indexOf(' - ');
+      if (dash < 0) continue;
+      const d = ref.slice(0, dash).trim(), l = ref.slice(dash + 3).trim();
+      const entry = lookup.get(d);
+      const pathway = entry && entry.pathwayMap.get(l);
+      if (!pathway || pathway.exercises.includes(ex)) continue;
+      pathway.exercises.push(ex);
+      ex.traitPathways.push({ trait: d, pathway: l });
     }
   }
 
   return { traits, exercisesByName, anchorBreakdowns };
-}
-
-function parseTraitPathways(s) {
-  if (!s) return [];
-  return s.split(';').map(piece => {
-    const parts = piece.split('::');
-    if (parts.length !== 2) return null;
-    return { trait: parts[0].trim(), pathway: parts[1].trim() };
-  }).filter(x => x !== null);
 }
 
 function parseList(s) {
@@ -1945,6 +1881,19 @@ function levelToPercent(level) {
   return pad + ((level - 1) / 9) * (100 - 2 * pad);
 }
 
+// PROVISIONAL placement for the 78% of exercises with no level.
+//
+// They are spread evenly across the lane so they are visible and roughly
+// separated, and the collision code below then pushes anything that clashes onto
+// another row. This is deliberately NOT the final algorithm — that one anchors
+// the levelled pills and flow-fills the gaps between them — but it is null-safe,
+// which matters more: feeding NaN into a position is exactly the cascade
+// CLAUDE.md §6.1 describes, and it would take the whole view down silently.
+function unlevelledPercent(i, n) {
+  const pad = 8;
+  return n <= 1 ? 50 : pad + (i / (n - 1)) * (100 - 2 * pad);
+}
+
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
 // ---------- Selection state & bottom info panel ----------
@@ -2000,23 +1949,24 @@ function renderInfoPanel(ex, model) {
     `<span class="tp-line">${escapeHtml(tp.trait)} \u00b7 ${escapeHtml(tp.pathway)}</span>`
   ).join('');
 
-  const classTypesHtml = ex.classTypes.length
-    ? ex.classTypes.map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('')
+  // Importance is a programming-FREQUENCY scale, not a quality score — the
+  // `Lists` tab defines it as 1 = every program, 2 = every second, 3 = occasional
+  // (CLAUDE.md §8.2). Spelling it out beats showing a bare number.
+  const IMP_TEXT = { 1: 'every program', 2: 'every 2nd program', 3: 'occasional' };
+  const importanceHtml = ex.importance
+    ? `<span class="chip">${ex.importance} · ${IMP_TEXT[ex.importance] || ''}</span>`
     : '<span class="info-value empty-value">—</span>';
 
-  const splitHtml = ex.split.length
-    ? ex.split.map(s => {
-        const cls = 'split-' + s.toLowerCase().replace(/\s+/g, '-');
-        return `<span class="chip ${cls}">${escapeHtml(s)}</span>`;
-      }).join('')
+  const pillarHtml = ex.pillar
+    ? `<span class="info-value">${escapeHtml(ex.pillar)}</span>`
     : '<span class="info-value empty-value">—</span>';
 
   const regressesHtml = renderInfoChips(ex.regressesFrom, model, 'No regression');
   const progressesHtml = renderInfoChips(ex.progressesTo, model, 'Endpoint');
 
-  const equipmentHtml = ex.equipment
-    ? `<span class="info-value">${escapeHtml(ex.equipment)}</span>`
-    : '<span class="info-value empty-value">None</span>';
+  const variantHtml = ex.variantOf
+    ? renderInfoChips([ex.variantOf], model, '')
+    : '<span class="info-value empty-value">Base exercise</span>';
 
   const notesHtml = ex.notes
     ? `<span class="info-value">${escapeHtml(ex.notes)}</span>`
@@ -2031,16 +1981,16 @@ function renderInfoPanel(ex, model) {
     </div>
     <div class="info-meta">
       <div class="level-display">
-        <span class="num">${ex.level}</span>
-        <span class="scale">/ 10</span>
+        <span class="num">${ex.level == null ? '—' : ex.level}</span>
+        <span class="scale">${ex.level == null ? 'no level yet' : '/ 10'}</span>
       </div>
       <div class="info-row">
-        <span class="info-label">Class</span>
-        ${classTypesHtml}
+        <span class="info-label">Importance</span>
+        ${importanceHtml}
       </div>
       <div class="info-row">
-        <span class="info-label">Split</span>
-        ${splitHtml}
+        <span class="info-label">Pillar</span>
+        ${pillarHtml}
       </div>
     </div>
     <div class="info-progressions">
@@ -2053,8 +2003,8 @@ function renderInfoPanel(ex, model) {
         ${progressesHtml}
       </div>
       <div class="info-row">
-        <span class="info-label">Equipment</span>
-        ${equipmentHtml}
+        <span class="info-label">Variant of</span>
+        ${variantHtml}
       </div>
       ${notesHtml ? `<div class="info-row"><span class="info-label">Notes</span>${notesHtml}</div>` : ''}
     </div>
@@ -2166,7 +2116,7 @@ function renderAnchorBreakdown(model, anchorName) {
   header.className = 'breakdown-header';
   header.innerHTML = `
     <h3>${escapeHtml(ex.name)}</h3>
-    <span class="breakdown-meta">Level ${ex.level} · ${ex.classTypes.join(', ') || 'no class types'}${ex.split.length ? ' · ' + ex.split.join(', ') : ''}</span>
+    <span class="breakdown-meta">${ex.level == null ? 'No level yet' : 'Level ' + ex.level}${ex.importance ? ' · importance ' + ex.importance : ''}</span>
   `;
   wrap.appendChild(header);
 
@@ -2378,334 +2328,6 @@ function renderProgressionChain(model, anchorEx) {
   return section;
 }
 
-// ---------- Embedded data ----------
-const EMBEDDED_CSV = `trait_order,trait,pathway_order,pathway
-1,Hanging & Pulling Above the Bar,1,Passive / Active Hang
-1,Hanging & Pulling Above the Bar,2,Vertical Pull
-1,Hanging & Pulling Above the Bar,3,Horizontal Pull
-1,Hanging & Pulling Above the Bar,4,Pull-to-Press Transition
-2,Lever & Straight-Arm Body Control,1,Front Lever Line
-2,Lever & Straight-Arm Body Control,2,Planche Line
-2,Lever & Straight-Arm Body Control,3,Side Lever Line
-3,Pressing Strength,1,Horizontal Press
-3,Pressing Strength,2,Dip Press
-3,Pressing Strength,3,Vertical Press
-3,Pressing Strength,4,Bent-Arm to Straight-Arm Press
-4,Hand Balancing & Inversion,1,Bent-Arm Balances
-4,Hand Balancing & Inversion,2,Static Inversion
-4,Hand Balancing & Inversion,3,Shaped Handstands
-4,Hand Balancing & Inversion,4,Press Entries
-5,Loaded Lower Body Strength,1,Bilateral Squat
-5,Loaded Lower Body Strength,2,Single-Leg Squat
-5,Loaded Lower Body Strength,3,Lateral / Mobility Squat
-5,Loaded Lower Body Strength,4,Hip Hinge
-5,Loaded Lower Body Strength,5,Posterior Chain (knee)
-5,Loaded Lower Body Strength,6,Anterior Chain (knee)
-6,Bounciness & Elastic Power,1,Vertical Jump
-6,Bounciness & Elastic Power,2,Horizontal Jump
-6,Bounciness & Elastic Power,3,Rotational / Kick Power
-6,Bounciness & Elastic Power,4,Hand-Reactive Spring
-7,Foundational Resting Positions,1,Squat Position
-7,Foundational Resting Positions,2,Stance Positions
-7,Foundational Resting Positions,3,Hip Opening (sagittal)
-7,Foundational Resting Positions,4,Hip Opening (frontal)
-7,Foundational Resting Positions,5,Spinal Extension
-8,Spinal & Hip Articulation,1,Spinal Waves
-8,Spinal & Hip Articulation,2,Bridge Articulation
-8,Spinal & Hip Articulation,3,Hip Articulation
-8,Spinal & Hip Articulation,4,Rotational Articulation
-9,Inverted & Rotational Locomotion,1,Rolls
-9,Inverted & Rotational Locomotion,2,Cartwheel Family
-9,Inverted & Rotational Locomotion,3,Flips & Handsprings
-9,Inverted & Rotational Locomotion,4,Capoeira Inversions
-10,Ground Locomotion,1,Quadrupedal Forward
-10,Ground Locomotion,2,Lateral / Multi-directional
-10,Ground Locomotion,3,Rolling Locomotion
-11,Hand-Eye Coordination & Object Manipulation,1,Juggling
-11,Hand-Eye Coordination & Object Manipulation,2,Object Manipulation
-11,Hand-Eye Coordination & Object Manipulation,3,Reactive Catching
-11,Hand-Eye Coordination & Object Manipulation,4,Foot-Eye Cross
-12,"Rhythm, Flow & Expression",1,Rhythmic Foundations
-12,"Rhythm, Flow & Expression",2,Floor Flow
-12,"Rhythm, Flow & Expression",3,Dance / Musical Movement
-
-name,traits_pathways,level,is_anchor,class_types,split,regresses_from,progresses_to,equipment,notes,video_url
-Dead Hang,Hanging & Pulling Above the Bar :: Passive / Active Hang,1,FALSE,"Upper, Full",straight arm,,Active Hang,Pull-up bar,Build grip endurance. Aim for 30-60s holds.,
-Active Hang,Hanging & Pulling Above the Bar :: Passive / Active Hang,2,FALSE,"Upper, Full",straight arm,Dead Hang,Scap Pull,Pull-up bar,Engage shoulder blades down and back.,
-Scap Pull,Hanging & Pulling Above the Bar :: Passive / Active Hang,3,FALSE,"Upper, Full",straight arm,Active Hang,One-Arm Hang,Pull-up bar,Isolates scap retraction without bending elbows.,
-One-Arm Hang,Hanging & Pulling Above the Bar :: Passive / Active Hang,7,FALSE,"Upper, Full",straight arm,Scap Pull,One-Arm Active Hang,Pull-up bar,Requires significant grip and shoulder strength.,
-One-Arm Active Hang,Hanging & Pulling Above the Bar :: Passive / Active Hang,9,FALSE,Upper,straight arm,One-Arm Hang,,Pull-up bar,Advanced - prerequisite for one-arm pull-up work.,
-Jumping Pull Up,Hanging & Pulling Above the Bar :: Vertical Pull,2,FALSE,"Upper, Full",bent arm,,Chin Up,Pull-up bar,Use legs to assist; focus on slow eccentric.,
-Chin Up,Hanging & Pulling Above the Bar :: Vertical Pull,3,FALSE,"Upper, Full",bent arm,Jumping Pull Up,Pull Up,Pull-up bar,Supinated grip. Often achievable before pull-up.,
-Pull Up,Hanging & Pulling Above the Bar :: Vertical Pull,4,FALSE,"Upper, Full",bent arm,Chin Up,Weighted Pull Up,Pull-up bar,Pronated grip. Chest to bar for full range.,
-Weighted Pull Up,Hanging & Pulling Above the Bar :: Vertical Pull,6,FALSE,Upper,bent arm,Pull Up,Archer Pull Up,"Pull-up bar, dip belt",Add 10-25% bodyweight to start.,
-Archer Pull Up,Hanging & Pulling Above the Bar :: Vertical Pull,8,FALSE,Upper,bent arm,Weighted Pull Up,One-Arm Chin Up,Pull-up bar,One arm pulls while other assists at extension.,
-One-Arm Chin Up,Hanging & Pulling Above the Bar :: Vertical Pull,10,FALSE,Upper,bent arm,Archer Pull Up,,Pull-up bar,Elite benchmark. Years of dedicated work.,
-Inverted Row (high),Hanging & Pulling Above the Bar :: Horizontal Pull,1,FALSE,"Upper, Full",bent arm,,Ring Row,"Bar or rings, set high",Easiest horizontal pull - body nearly vertical.,
-Ring Row,Hanging & Pulling Above the Bar :: Horizontal Pull,2,FALSE,"Upper, Full",bent arm,Inverted Row (high),Archer Row,Rings,Adjust difficulty by foot position.,
-Archer Row,Hanging & Pulling Above the Bar :: Horizontal Pull,5,FALSE,Upper,bent arm,Ring Row,One-Arm Row,Rings,Shift weight to one arm at top.,
-One-Arm Row,Hanging & Pulling Above the Bar :: Horizontal Pull,7,FALSE,Upper,bent arm,Archer Row,Front Lever Row,Rings,Full one-arm horizontal pull.,
-Front Lever Row,Hanging & Pulling Above the Bar :: Horizontal Pull,9,FALSE,Upper,"bent arm, straight arm",One-Arm Row,,Rings,Row while maintaining front lever position.,
-Bar Pull-Over,Hanging & Pulling Above the Bar :: Pull-to-Press Transition,4,FALSE,Upper,bent arm,,High Pull Up,Pull-up bar,Pull body up and over the bar.,
-High Pull Up,Hanging & Pulling Above the Bar :: Pull-to-Press Transition,5,FALSE,Upper,bent arm,Bar Pull-Over,Muscle Up,Pull-up bar,Pull as high as possible - sternum or higher.,
-Muscle Up,Hanging & Pulling Above the Bar :: Pull-to-Press Transition,7,TRUE,"Upper, Full",bent arm,High Pull Up,Ring Muscle Up,Pull-up bar,Anchor exercise. Pull-to-dip transition.,
-Ring Muscle Up,Hanging & Pulling Above the Bar :: Pull-to-Press Transition,9,FALSE,Upper,bent arm,Muscle Up,,Rings,Harder transition due to ring instability.,
-Tuck Lever,Lever & Straight-Arm Body Control :: Front Lever Line,4,FALSE,Upper,straight arm,,Adv Tuck Lever,Pull-up bar or rings,Knees to chest while horizontal.,
-Adv Tuck Lever,Lever & Straight-Arm Body Control :: Front Lever Line,6,FALSE,Upper,straight arm,Tuck Lever,Single-Leg Lever,Pull-up bar or rings,Open hip angle while maintaining tucked knees.,
-Single-Leg Lever,Lever & Straight-Arm Body Control :: Front Lever Line,7,FALSE,Upper,straight arm,Adv Tuck Lever,Straddle Front Lever,Pull-up bar or rings,One leg extended one tucked.,
-Straddle Front Lever,Lever & Straight-Arm Body Control :: Front Lever Line,8,FALSE,Upper,straight arm,Single-Leg Lever,Full Front Lever,Pull-up bar or rings,Both legs extended in straddle.,
-Full Front Lever,Lever & Straight-Arm Body Control :: Front Lever Line,10,FALSE,Upper,straight arm,Straddle Front Lever,,Pull-up bar or rings,Elite straight-arm pulling strength benchmark.,
-Frog Stand,Lever & Straight-Arm Body Control :: Planche Line; Hand Balancing & Inversion :: Bent-Arm Balances,3,FALSE,"Upper, Full",straight arm,,"Tuck Planche, Crow Pose",Floor,Knees rest on elbows. Foundation for planche and bent-arm balances.,
-Tuck Planche,Lever & Straight-Arm Body Control :: Planche Line,5,FALSE,Upper,straight arm,Frog Stand,Adv Tuck Planche,Floor or parallettes,Knees off elbows fully tucked.,
-Adv Tuck Planche,Lever & Straight-Arm Body Control :: Planche Line,7,FALSE,Upper,straight arm,Tuck Planche,Straddle Planche,Floor or parallettes,Hips open while knees tucked.,
-Straddle Planche,Lever & Straight-Arm Body Control :: Planche Line,9,FALSE,Upper,straight arm,Adv Tuck Planche,Full Planche,Floor or parallettes,Legs straight in straddle.,
-Full Planche,Lever & Straight-Arm Body Control :: Planche Line,10,FALSE,Upper,straight arm,Straddle Planche,,Floor or parallettes,Elite pressing/lever benchmark.,
-Side Plank,Lever & Straight-Arm Body Control :: Side Lever Line,1,FALSE,"Upper, Full",straight arm,,Clutch Flag,Floor,Foundation for side lever work.,
-Clutch Flag,Lever & Straight-Arm Body Control :: Side Lever Line,4,FALSE,Upper,bent arm,Side Plank,Tuck Flag,Vertical pole,Holds body horizontal with bent arms.,
-Tuck Flag,Lever & Straight-Arm Body Control :: Side Lever Line,6,FALSE,Upper,straight arm,Clutch Flag,Straddle Flag,Vertical pole,Straight arms with knees tucked.,
-Straddle Flag,Lever & Straight-Arm Body Control :: Side Lever Line,8,FALSE,Upper,straight arm,Tuck Flag,Human Flag,Vertical pole,Straight arms straddled legs.,
-Human Flag,Lever & Straight-Arm Body Control :: Side Lever Line,9,TRUE,Upper,straight arm,Straddle Flag,,Vertical pole,Anchor exercise. Full body horizontal hold.,
-Incline Push Up,Pressing Strength :: Horizontal Press,1,FALSE,"Upper, Full",bent arm,,Push Up,Bench or wall,Hands elevated to reduce load.,
-Push Up,Pressing Strength :: Horizontal Press,3,FALSE,"Upper, Full",bent arm,Incline Push Up,Pseudo Planche Push Up,Floor,Foundational pressing pattern.,
-Pseudo Planche Push Up,Pressing Strength :: Horizontal Press,5,FALSE,Upper,bent arm,Push Up,Ring Push Up,Floor or parallettes,Hands at hips lean forward.,
-Ring Push Up,Pressing Strength :: Horizontal Press,6,FALSE,Upper,bent arm,Pseudo Planche Push Up,Planche Push Up,Rings,Adds instability demand.,
-Planche Push Up,Pressing Strength :: Horizontal Press,9,FALSE,Upper,"bent arm, straight arm",Ring Push Up,,Floor or parallettes,Pressing with feet off ground.,
-Bench Dip,Pressing Strength :: Dip Press,2,FALSE,"Upper, Full",bent arm,,Parallel Bar Dip,Bench,Tricep-dominant entry-level dip.,
-Parallel Bar Dip,Pressing Strength :: Dip Press,4,FALSE,"Upper, Full",bent arm,Bench Dip,Ring Dip,Parallel bars,Full body weight on parallel bars.,
-Ring Dip,Pressing Strength :: Dip Press,5,FALSE,Upper,bent arm,Parallel Bar Dip,Weighted Ring Dip,Rings,Adds shoulder stability demand.,
-Weighted Ring Dip,Pressing Strength :: Dip Press,7,FALSE,Upper,bent arm,Ring Dip,Deep Ring Dip,"Rings, dip belt",Add load progressively.,
-Deep Ring Dip,Pressing Strength :: Dip Press,8,FALSE,Upper,bent arm,Weighted Ring Dip,,Rings,Full depth chest to rings.,
-Pike Push Up,Pressing Strength :: Vertical Press,3,FALSE,"Upper, Full",bent arm,,Wall HSPU (high),Floor,Hips piked - approximates overhead press.,
-Wall HSPU (high),Pressing Strength :: Vertical Press,5,FALSE,Upper,bent arm,Pike Push Up,Wall HSPU (full ROM),Wall,Partial range overhead press inverted.,
-Wall HSPU (full ROM),Pressing Strength :: Vertical Press,6,FALSE,Upper,bent arm,Wall HSPU (high),Free HSPU,Wall,Head to floor full range.,
-Free HSPU,Pressing Strength :: Vertical Press,8,FALSE,Upper,bent arm,Wall HSPU (full ROM),One-Arm HSPU,Floor,Freestanding handstand push-up.,
-One-Arm HSPU,Pressing Strength :: Vertical Press,10,FALSE,Upper,bent arm,Free HSPU,,Floor,Elite pressing benchmark.,
-Crow to Headstand,Pressing Strength :: Bent-Arm to Straight-Arm Press,5,FALSE,Upper,bent arm,Crow Pose,Headstand Press,Floor or mat,Press from crow to headstand.,
-Headstand Press,Pressing Strength :: Bent-Arm to Straight-Arm Press,6,FALSE,Upper,bent arm,Crow to Headstand,Stalder Press (bent),Floor or mat,Lower and press from headstand position.,
-Stalder Press (bent),Pressing Strength :: Bent-Arm to Straight-Arm Press,8,FALSE,Upper,bent arm,Headstand Press,Press to Handstand,Floor,Bent-leg straddle press.,
-Press to Handstand,Pressing Strength :: Bent-Arm to Straight-Arm Press; Hand Balancing & Inversion :: Press Entries,9,TRUE,Upper,straight arm,"Stalder Press (bent), Straddle Press",One-Arm Press,Floor,Anchor exercise. Straight-arm straight-leg press.,
-One-Arm Press,Pressing Strength :: Bent-Arm to Straight-Arm Press; Hand Balancing & Inversion :: Press Entries,10,FALSE,Upper,straight arm,Press to Handstand,,Floor,Elite handstand pressing benchmark.,
-Crow Pose,Hand Balancing & Inversion :: Bent-Arm Balances,4,FALSE,Upper,bent arm,Frog Stand,"Croc Pose, Crow to Headstand",Floor,Knees on triceps not elbows.,
-Croc Pose,Hand Balancing & Inversion :: Bent-Arm Balances,6,FALSE,Upper,bent arm,Crow Pose,QDR Pose,Floor,Lower body parallel to floor.,
-QDR Pose,Hand Balancing & Inversion :: Bent-Arm Balances,7,FALSE,Upper,bent arm,Croc Pose,One-Arm Crow,Floor,Quadruped diagonal reach pose.,
-One-Arm Crow,Hand Balancing & Inversion :: Bent-Arm Balances,9,FALSE,Upper,bent arm,QDR Pose,,Floor,One-arm bent-arm balance.,
-Headstand,Hand Balancing & Inversion :: Static Inversion,3,FALSE,Upper,straight arm,,Wall Handstand,Floor or mat,Tripod or yoga headstand.,
-Shoulder Stand,Hand Balancing & Inversion :: Static Inversion,3,FALSE,Upper,,,Wall Handstand,Mat,Inverted on shoulders.,
-Wall Handstand,Hand Balancing & Inversion :: Static Inversion,5,FALSE,Upper,straight arm,"Headstand, Shoulder Stand",Handstand,Wall,Belly to wall or back to wall.,
-Handstand,Hand Balancing & Inversion :: Static Inversion,7,TRUE,Upper,straight arm,Wall Handstand,One-Arm Handstand,Floor,"Anchor exercise. Free-standing handstand, foundation for all inversions.",
-One-Arm Handstand,Hand Balancing & Inversion :: Static Inversion,10,FALSE,Upper,straight arm,Handstand,,Floor,Elite balance benchmark.,
-Tuck Handstand,Hand Balancing & Inversion :: Shaped Handstands,6,FALSE,Upper,straight arm,,Straddle Handstand,Floor,Handstand with knees tucked.,
-Straddle Handstand,Hand Balancing & Inversion :: Shaped Handstands,7,FALSE,Upper,straight arm,Tuck Handstand,Split Handstand,Floor,Legs in straddle position.,
-Split Handstand,Hand Balancing & Inversion :: Shaped Handstands,8,FALSE,Upper,straight arm,Straddle Handstand,Stalder / Mexican,Floor,Legs in front-back split.,
-Stalder / Mexican,Hand Balancing & Inversion :: Shaped Handstands,9,FALSE,Upper,straight arm,Split Handstand,,Floor,Stalder or Mexican (back-arched) handstand.,
-Tuck Press,Hand Balancing & Inversion :: Press Entries,5,FALSE,Upper,straight arm,,Straddle Press,Floor,Press from tucked position.,
-Straddle Press,Hand Balancing & Inversion :: Press Entries,7,FALSE,Upper,straight arm,Tuck Press,Press to Handstand,Floor,Straddle press to handstand.,
-BW Squat,Loaded Lower Body Strength :: Bilateral Squat,1,FALSE,"Lower, Full",legs,,Goblet Squat,None,Foundation squat pattern.,
-Goblet Squat,Loaded Lower Body Strength :: Bilateral Squat,3,FALSE,"Lower, Full",legs,BW Squat,Front / Back Squat,Kettlebell or dumbbell,Held at chest.,
-Front / Back Squat,Loaded Lower Body Strength :: Bilateral Squat,5,FALSE,"Lower, Full",legs,Goblet Squat,Heavy Squat,"Barbell, rack",Front-loaded or back-loaded squat.,
-Heavy Squat,Loaded Lower Body Strength :: Bilateral Squat,7,FALSE,Lower,legs,Front / Back Squat,Pause / Tempo Heavy,"Barbell, rack",Working at high percentages of 1RM.,
-Pause / Tempo Heavy,Loaded Lower Body Strength :: Bilateral Squat,8,FALSE,Lower,legs,Heavy Squat,,"Barbell, rack",Pause at bottom or controlled tempo.,
-Split Squat,Loaded Lower Body Strength :: Single-Leg Squat,2,FALSE,"Lower, Full",legs,,Bulgarian Split,None,Stationary lunge.,
-Bulgarian Split,Loaded Lower Body Strength :: Single-Leg Squat,4,FALSE,"Lower, Full",legs,Split Squat,Pistol Squat,Bench,Rear foot elevated.,
-Pistol Squat,Loaded Lower Body Strength :: Single-Leg Squat,6,TRUE,"Lower, Full",legs,Bulgarian Split,Shrimp Squat,None,Anchor exercise. Single-leg full-depth squat.,
-Shrimp Squat,Loaded Lower Body Strength :: Single-Leg Squat,7,FALSE,"Lower, Full",legs,Pistol Squat,Dragon Squat,None,Hold rear foot behind back.,
-Dragon Squat,Loaded Lower Body Strength :: Single-Leg Squat,9,TRUE,Lower,legs,Shrimp Squat,,None,Anchor exercise. Crossed rear leg pistol variation.,
-Side Lunge,Loaded Lower Body Strength :: Lateral / Mobility Squat,2,FALSE,"Lower, Full",legs,,Cossack Squat,None,Lateral lunge pattern.,
-Cossack Squat,Loaded Lower Body Strength :: Lateral / Mobility Squat,4,TRUE,"Lower, Full",legs,Side Lunge,Loaded Cossack,None,"Anchor exercise. Deep lateral squat, one leg straight.",
-Loaded Cossack,Loaded Lower Body Strength :: Lateral / Mobility Squat,6,FALSE,Lower,legs,Cossack Squat,Deep Loaded Cossack,"Kettlebell, dumbbell",Add load at chest.,
-Deep Loaded Cossack,Loaded Lower Body Strength :: Lateral / Mobility Squat,7,FALSE,Lower,legs,Loaded Cossack,Cossack-to-Pistol Flow,"Kettlebell, dumbbell",Full depth with load.,
-Cossack-to-Pistol Flow,Loaded Lower Body Strength :: Lateral / Mobility Squat,9,FALSE,Lower,legs,Deep Loaded Cossack,,None,Flow between cossack and pistol.,
-Hip Bridge,Loaded Lower Body Strength :: Hip Hinge,1,FALSE,"Lower, Full",legs,,RDL,None,Foundation hip extension.,
-RDL,Loaded Lower Body Strength :: Hip Hinge,3,FALSE,"Lower, Full",legs,Hip Bridge,Deadlift,"Barbell, dumbbells",Romanian deadlift - hinge pattern.,
-Deadlift,Loaded Lower Body Strength :: Hip Hinge,5,TRUE,"Lower, Full",legs,RDL,Heavy Deadlift,Barbell,Anchor exercise. Conventional deadlift.,
-Heavy Deadlift,Loaded Lower Body Strength :: Hip Hinge,7,FALSE,Lower,legs,Deadlift,SL Deadlift (loaded),Barbell,Working at high percentages of 1RM.,
-SL Deadlift (loaded),Loaded Lower Body Strength :: Hip Hinge,8,FALSE,Lower,legs,Heavy Deadlift,,"Dumbbells, kettlebell",Single-leg deadlift with load.,
-Hamstring Curl,Loaded Lower Body Strength :: Posterior Chain (knee),2,FALSE,Lower,legs,,Slick Floor Bridge,Machine or sliders,Knee flexion strength.,
-Slick Floor Bridge,Loaded Lower Body Strength :: Posterior Chain (knee),4,FALSE,Lower,legs,Hamstring Curl,Nordic Negative,Sliders or smooth floor,Bridge with sliding feet.,
-Nordic Negative,Loaded Lower Body Strength :: Posterior Chain (knee),5,FALSE,Lower,legs,Slick Floor Bridge,Full Nordic Curl,Partner or pad,Slow lowering only.,
-Full Nordic Curl,Loaded Lower Body Strength :: Posterior Chain (knee),8,FALSE,Lower,legs,Nordic Negative,Weighted Nordic,Partner or pad,Full range concentric and eccentric.,
-Weighted Nordic,Loaded Lower Body Strength :: Posterior Chain (knee),10,FALSE,Lower,legs,Full Nordic Curl,,"Partner or pad, weight",Elite hamstring benchmark.,
-Wall Sit,Loaded Lower Body Strength :: Anterior Chain (knee),1,FALSE,"Lower, Full",legs,,Sissy Squat (assist),Wall,Isometric quad endurance.,
-Sissy Squat (assist),Loaded Lower Body Strength :: Anterior Chain (knee),3,FALSE,Lower,legs,Wall Sit,Sissy Squat,Wall or pole,Hold support while leaning back.,
-Sissy Squat,Loaded Lower Body Strength :: Anterior Chain (knee),6,FALSE,Lower,legs,Sissy Squat (assist),Loaded Sissy,None,Lean back on toes.,
-Loaded Sissy,Loaded Lower Body Strength :: Anterior Chain (knee),8,FALSE,Lower,legs,Sissy Squat,Full Sissy (no support),"Dumbbells, plate",Add load at chest.,
-Full Sissy (no support),Loaded Lower Body Strength :: Anterior Chain (knee),9,FALSE,Lower,legs,Loaded Sissy,,None,Full range no support.,
-Pogo Hops,Bounciness & Elastic Power :: Vertical Jump,1,FALSE,"Lower, Full",legs,,Tuck Jump,None,Quick reactive hops minimal knee bend.,
-Tuck Jump,Bounciness & Elastic Power :: Vertical Jump,3,FALSE,"Lower, Full",legs,Pogo Hops,Box Jump,None,Knees to chest at apex.,
-Box Jump,Bounciness & Elastic Power :: Vertical Jump,4,TRUE,"Lower, Full",legs,Tuck Jump,High Box Jump,Box,Anchor exercise. Land softly in athletic stance.,
-High Box Jump,Bounciness & Elastic Power :: Vertical Jump,6,FALSE,Lower,legs,Box Jump,Depth Jump → Box,Box,High box requiring full hip extension.,
-Depth Jump → Box,Bounciness & Elastic Power :: Vertical Jump,8,FALSE,Lower,legs,High Box Jump,,Two boxes,Drop and rebound onto second box.,
-Standing Hop,Bounciness & Elastic Power :: Horizontal Jump,1,FALSE,"Lower, Full",legs,,Broad Jump,None,Small horizontal hops.,
-Broad Jump,Bounciness & Elastic Power :: Horizontal Jump,3,FALSE,"Lower, Full",legs,Standing Hop,Triple Broad Jump,None,Maximum horizontal distance.,
-Triple Broad Jump,Bounciness & Elastic Power :: Horizontal Jump,5,FALSE,Lower,legs,Broad Jump,Bounding,None,Three consecutive broad jumps.,
-Bounding,Bounciness & Elastic Power :: Horizontal Jump,6,FALSE,Lower,legs,Triple Broad Jump,Single-Leg Bound,None,Exaggerated running stride.,
-Single-Leg Bound,Bounciness & Elastic Power :: Horizontal Jump,8,FALSE,Lower,legs,Bounding,,None,Hop on one leg covering distance.,
-Front Kick,Bounciness & Elastic Power :: Rotational / Kick Power,2,FALSE,"Lower, Full",legs,,Crescent Kick,None,Linear kicking pattern.,
-Crescent Kick,Bounciness & Elastic Power :: Rotational / Kick Power,4,FALSE,"Lower, Full",legs,Front Kick,Butterfly Kick,None,Sweeping arc kick.,
-Butterfly Kick,Bounciness & Elastic Power :: Rotational / Kick Power,6,FALSE,"Lower, Full",legs,Crescent Kick,Aerial,None,Hands touch floor leaping kick.,
-Aerial,Bounciness & Elastic Power :: Rotational / Kick Power; Inverted & Rotational Locomotion :: Cartwheel Family,8,FALSE,Full,legs,Butterfly Kick,Macaco / 540 Kick,Mat,No-hands cartwheel/kick.,
-Macaco / 540 Kick,Bounciness & Elastic Power :: Rotational / Kick Power,9,FALSE,Full,legs,Aerial,,Mat,Capoeira flip-kick or martial 540 kick.,
-Handstand Hops,Bounciness & Elastic Power :: Hand-Reactive Spring,6,FALSE,Upper,straight arm,,Back Handspring (spot),Floor,Bouncing in handstand.,
-Back Handspring (spot),Bounciness & Elastic Power :: Hand-Reactive Spring,7,FALSE,Full,,Handstand Hops,Back Handspring,"Mat, spotter",Spotted back handspring.,
-Back Handspring,Bounciness & Elastic Power :: Hand-Reactive Spring; Inverted & Rotational Locomotion :: Flips & Handsprings,8,FALSE,Full,,Back Handspring (spot),Standing Back Tuck,Mat,Unspotted back handspring.,
-Standing Back Tuck,Bounciness & Elastic Power :: Hand-Reactive Spring,10,FALSE,Full,legs,Back Handspring,,Mat,Elite tumbling benchmark.,
-Supported Squat,Foundational Resting Positions :: Squat Position,1,FALSE,"Lower, Full",,,Resting Squat,None,Hold something for support.,
-Resting Squat,Foundational Resting Positions :: Squat Position,3,FALSE,"Lower, Full",,Supported Squat,Loaded Resting Squat,None,Deep relaxed squat hold.,
-Loaded Resting Squat,Foundational Resting Positions :: Squat Position,5,FALSE,Lower,legs,Resting Squat,,Light load,Hold a load while in deep squat.,
-Wide Stance,Foundational Resting Positions :: Stance Positions,1,FALSE,"Lower, Full",,,Horse Stance,None,Feet wide knees slightly bent.,
-Horse Stance,Foundational Resting Positions :: Stance Positions,3,FALSE,"Lower, Full",legs,Wide Stance,Deep Horse Stance,None,Thighs parallel to floor.,
-Deep Horse Stance,Foundational Resting Positions :: Stance Positions,5,FALSE,Lower,legs,Horse Stance,Long Horse Hold,None,Below parallel hold.,
-Long Horse Hold,Foundational Resting Positions :: Stance Positions,7,FALSE,Lower,legs,Deep Horse Stance,,None,5+ minute hold for conditioning.,
-Lunge,Foundational Resting Positions :: Hip Opening (sagittal),1,FALSE,"Lower, Full",,,Half Split,None,Foundation hip flexor opening.,
-Half Split,Foundational Resting Positions :: Hip Opening (sagittal),3,FALSE,"Lower, Full",,Lunge,Front Split (low),None,Knee down rear leg straight.,
-Front Split (low),Foundational Resting Positions :: Hip Opening (sagittal),5,FALSE,Lower,,Half Split,Front Split (flat),Yoga blocks,Partial range front split.,
-Front Split (flat),Foundational Resting Positions :: Hip Opening (sagittal),7,FALSE,Lower,,Front Split (low),Oversplit,None,Hips touching floor full split.,
-Oversplit,Foundational Resting Positions :: Hip Opening (sagittal),9,FALSE,Lower,,Front Split (flat),,Blocks or elevation,Beyond 180-degree split.,
-Wide Squat,Foundational Resting Positions :: Hip Opening (frontal),1,FALSE,"Lower, Full",,,Pancake (upright),None,Wide stance squat foundation.,
-Pancake (upright),Foundational Resting Positions :: Hip Opening (frontal),4,FALSE,"Lower, Full",,Wide Squat,Middle Split (low),None,Wide-legged forward fold seated.,
-Middle Split (low),Foundational Resting Positions :: Hip Opening (frontal),6,FALSE,Lower,,Pancake (upright),Middle Split (flat),Yoga blocks,Partial range middle split.,
-Middle Split (flat),Foundational Resting Positions :: Hip Opening (frontal),8,FALSE,Lower,,Middle Split (low),Pancake (chest down),None,Full 180-degree middle split.,
-Pancake (chest down),Foundational Resting Positions :: Hip Opening (frontal),9,FALSE,Lower,,Middle Split (flat),,None,Chest flat on floor in pancake.,
-Cobra,Foundational Resting Positions :: Spinal Extension,1,FALSE,"Lower, Full",,,Bridge (assisted),Mat,Prone spinal extension.,
-Bridge (assisted),Foundational Resting Positions :: Spinal Extension,3,FALSE,"Lower, Full",,Cobra,Back Bridge,Wall or partner,Hands on wall or partner support.,
-Back Bridge,Foundational Resting Positions :: Spinal Extension,5,FALSE,"Lower, Full",,Bridge (assisted),Closed Bridge,Mat,Full bridge from floor.,
-Closed Bridge,Foundational Resting Positions :: Spinal Extension,7,FALSE,Lower,,Back Bridge,Chest-Stand Bridge,Mat,Hands close to feet.,
-Chest-Stand Bridge,Foundational Resting Positions :: Spinal Extension,9,FALSE,Lower,,Closed Bridge,,Mat,Elbows down forearms flat.,
-Cat-Cow,Spinal & Hip Articulation :: Spinal Waves,1,FALSE,Full,,,Standing Wave,Mat,Foundation spinal articulation.,
-Standing Wave,Spinal & Hip Articulation :: Spinal Waves,3,FALSE,Full,,Cat-Cow,Full Body Wave,None,Vertical spinal wave standing.,
-Full Body Wave,Spinal & Hip Articulation :: Spinal Waves,5,FALSE,Full,,Standing Wave,Wave to Inversion,None,Head-to-toe sequential articulation.,
-Wave to Inversion,Spinal & Hip Articulation :: Spinal Waves,7,FALSE,Full,,Full Body Wave,Improvised Waves,None,Wave into handstand or bridge.,
-Improvised Waves,Spinal & Hip Articulation :: Spinal Waves,8,FALSE,Full,,Wave to Inversion,,None,Free improvisation with wave patterns.,
-Bridge,Spinal & Hip Articulation :: Bridge Articulation,4,FALSE,Full,,,Bridge Walk-Up,Mat,Hold bridge as starting point.,
-Bridge Walk-Up,Spinal & Hip Articulation :: Bridge Articulation,5,FALSE,Full,,Bridge,Bridge Kickover,Wall,Walk hands up wall into bridge.,
-Bridge Kickover,Spinal & Hip Articulation :: Bridge Articulation; Inverted & Rotational Locomotion :: Flips & Handsprings,6,FALSE,Full,,Bridge Walk-Up,Back Walkover,Mat,Kick over from bridge to stand.,
-Back Walkover,Spinal & Hip Articulation :: Bridge Articulation; Inverted & Rotational Locomotion :: Flips & Handsprings,7,FALSE,Full,,Bridge Kickover,Tick-Tock,Mat,Continuous backward walkover.,
-Tick-Tock,Spinal & Hip Articulation :: Bridge Articulation,9,FALSE,Full,,Back Walkover,,Mat,Walkover one direction then the other.,
-Hip CARs,Spinal & Hip Articulation :: Hip Articulation,2,FALSE,"Lower, Full",,,90/90 Transition,None,Controlled hip circles.,
-90/90 Transition,Spinal & Hip Articulation :: Hip Articulation,4,FALSE,"Lower, Full",,Hip CARs,Frog to Pike,Mat,Move between 90/90 positions.,
-Frog to Pike,Spinal & Hip Articulation :: Hip Articulation,5,FALSE,Full,,90/90 Transition,Reversao,Mat,Transition frog to pike position.,
-Reversao,Spinal & Hip Articulation :: Hip Articulation,7,FALSE,Full,,Frog to Pike,Free-Flowing Floor,Mat,Capoeira inverted hip articulation.,
-Free-Flowing Floor,Spinal & Hip Articulation :: Hip Articulation,9,FALSE,Full,,Reversao,,Mat,Improvised floor articulation flow.,
-Thread the Needle,Spinal & Hip Articulation :: Rotational Articulation,2,FALSE,Full,,,Skin the Cat,Mat,Quadruped rotational stretch.,
-Skin the Cat,Spinal & Hip Articulation :: Rotational Articulation,4,FALSE,Upper,straight arm,Thread the Needle,Meia Lua de Compasso,Rings,Rotate through shoulder extension.,
-Meia Lua de Compasso,Spinal & Hip Articulation :: Rotational Articulation,6,FALSE,Full,,Skin the Cat,Au Sem Mão,None,Capoeira spinning kick.,
-Au Sem Mão,Spinal & Hip Articulation :: Rotational Articulation,8,FALSE,Full,,Meia Lua de Compasso,Improvised Capoeira,Mat,Capoeira no-hands cartwheel.,
-Improvised Capoeira,Spinal & Hip Articulation :: Rotational Articulation,9,FALSE,Full,,Au Sem Mão,,None,Free capoeira flow.,
-Forward Roll,Inverted & Rotational Locomotion :: Rolls; Ground Locomotion :: Rolling Locomotion,2,FALSE,Full,,Log Roll,"Backward Roll, Shoulder Roll Travel",Mat,Foundation tumbling movement.,
-Backward Roll,Inverted & Rotational Locomotion :: Rolls,2,FALSE,Full,,Forward Roll,Shoulder Roll,Mat,Roll backwards over shoulder.,
-Shoulder Roll,Inverted & Rotational Locomotion :: Rolls,4,FALSE,Full,,Backward Roll,Dive Roll,Mat,Diagonal roll across the shoulder.,
-Dive Roll,Inverted & Rotational Locomotion :: Rolls,6,FALSE,Full,,Shoulder Roll,Aerial Roll,Mat,Dive then roll out.,
-Aerial Roll,Inverted & Rotational Locomotion :: Rolls,8,FALSE,Full,,Dive Roll,,Mat,Roll after airborne phase.,
-Cartwheel,Inverted & Rotational Locomotion :: Cartwheel Family,3,FALSE,Full,,,"One-Hand Cartwheel, Roundoff",Mat,Foundation rotational locomotion.,
-One-Hand Cartwheel,Inverted & Rotational Locomotion :: Cartwheel Family,5,FALSE,Full,,Cartwheel,Aerial,Mat,Cartwheel using only one hand.,
-Roundoff,Inverted & Rotational Locomotion :: Cartwheel Family,5,FALSE,Full,,Cartwheel,Roundoff → BHS,Mat,Cartwheel ending feet together.,
-Roundoff → BHS,Inverted & Rotational Locomotion :: Cartwheel Family,8,FALSE,Full,,Roundoff,,Mat,Roundoff connected to back handspring.,
-Front Handspring,Inverted & Rotational Locomotion :: Flips & Handsprings,8,FALSE,Full,,,Back Tuck,Mat,Forward flipping handspring.,
-Back Tuck,Inverted & Rotational Locomotion :: Flips & Handsprings,10,FALSE,Full,legs,Front Handspring,,Mat,Standing back tuck.,
-Au,Inverted & Rotational Locomotion :: Capoeira Inversions,4,FALSE,Full,,,Au Batido,Mat,Capoeira cartwheel.,
-Au Batido,Inverted & Rotational Locomotion :: Capoeira Inversions,6,FALSE,Full,,Au,Macaco,Mat,Stalled cartwheel position.,
-Macaco,Inverted & Rotational Locomotion :: Capoeira Inversions,7,FALSE,Full,,Au Batido,Macaco em Pé,Mat,Capoeira back handspring from crouch.,
-Macaco em Pé,Inverted & Rotational Locomotion :: Capoeira Inversions,9,FALSE,Full,,Macaco,,Mat,Standing macaco no crouch start.,
-Bear Walk,Ground Locomotion :: Quadrupedal Forward,2,FALSE,Full,,,Crab Walk,Floor,Forward locomotion on hands and feet.,
-Crab Walk,Ground Locomotion :: Quadrupedal Forward,3,FALSE,Full,,Bear Walk,Lizard Crawl,Floor,Belly up locomotion.,
-Lizard Crawl,Ground Locomotion :: Quadrupedal Forward,5,TRUE,Full,,Crab Walk,Low Lizard,Floor,Anchor exercise. Low contralateral crawl.,
-Low Lizard,Ground Locomotion :: Quadrupedal Forward,7,FALSE,Full,,Lizard Crawl,Long-Distance Lizard,Floor,Very low to ground extreme range.,
-Long-Distance Lizard,Ground Locomotion :: Quadrupedal Forward,8,FALSE,Full,,Low Lizard,,Floor,Conditioning at distance.,
-Lateral Bear,Ground Locomotion :: Lateral / Multi-directional,2,FALSE,Full,,,Monkey Walk,Floor,Sideways bear crawl.,
-Monkey Walk,Ground Locomotion :: Lateral / Multi-directional,4,FALSE,Full,,Lateral Bear,Spider Crawl,Floor,Hop on hands feet between.,
-Spider Crawl,Ground Locomotion :: Lateral / Multi-directional,5,FALSE,Full,,Monkey Walk,Capoeira Negativa,Floor,Wide diagonal crawl.,
-Capoeira Negativa,Ground Locomotion :: Lateral / Multi-directional,6,FALSE,Full,,Spider Crawl,Negativa → Au,Floor,Capoeira ground escape position.,
-Negativa → Au,Ground Locomotion :: Lateral / Multi-directional,8,FALSE,Full,,Capoeira Negativa,,Floor,Flow negativa into au.,
-Log Roll,Ground Locomotion :: Rolling Locomotion,1,FALSE,Full,,,Forward Roll,Mat,Side-to-side body roll.,
-Shoulder Roll Travel,Ground Locomotion :: Rolling Locomotion,5,FALSE,Full,,Forward Roll,Continuous Rolling Flow,Mat,Continuous shoulder rolling.,
-Continuous Rolling Flow,Ground Locomotion :: Rolling Locomotion,7,FALSE,Full,,Shoulder Roll Travel,,Mat,Improvised rolling movement.,
-1-Ball Toss,Hand-Eye Coordination & Object Manipulation :: Juggling,1,FALSE,Full,,,2-Ball Patterns,Juggling balls,Foundation tossing.,
-2-Ball Patterns,Hand-Eye Coordination & Object Manipulation :: Juggling,2,FALSE,Full,,1-Ball Toss,3-Ball Cascade,Juggling balls,Two-ball columns shower.,
-3-Ball Cascade,Hand-Eye Coordination & Object Manipulation :: Juggling,4,FALSE,Full,,2-Ball Patterns,4-Ball Pattern,Juggling balls,Foundational juggling pattern.,
-4-Ball Pattern,Hand-Eye Coordination & Object Manipulation :: Juggling,7,FALSE,Full,,3-Ball Cascade,5-Ball + Tricks,Juggling balls,Fountain pattern with 4 balls.,
-5-Ball + Tricks,Hand-Eye Coordination & Object Manipulation :: Juggling,9,FALSE,Full,,4-Ball Pattern,,Juggling balls,Advanced juggling.,
-Single Stick Holds,Hand-Eye Coordination & Object Manipulation :: Object Manipulation,1,FALSE,Full,,,Stick Spins (1 hand),Staff or stick,Foundation grip and balance.,
-Stick Spins (1 hand),Hand-Eye Coordination & Object Manipulation :: Object Manipulation,3,FALSE,Full,,Single Stick Holds,Staff Spinning (basic),Staff or stick,Single-handed spinning.,
-Staff Spinning (basic),Hand-Eye Coordination & Object Manipulation :: Object Manipulation,5,FALSE,Full,,Stick Spins (1 hand),Staff Spinning (adv),Staff,Two-handed basic patterns.,
-Staff Spinning (adv),Hand-Eye Coordination & Object Manipulation :: Object Manipulation,7,FALSE,Full,,Staff Spinning (basic),Combined Patterns,Staff,Throws and complex transitions.,
-Combined Patterns,Hand-Eye Coordination & Object Manipulation :: Object Manipulation,9,FALSE,Full,,Staff Spinning (adv),,Staff,Combined staff and body work.,
-Wall Ball Bounce,Hand-Eye Coordination & Object Manipulation :: Reactive Catching,2,FALSE,Full,,,Tennis Ball Wall,Wall ball,Foundation reactive catching.,
-Tennis Ball Wall,Hand-Eye Coordination & Object Manipulation :: Reactive Catching,3,FALSE,Full,,Wall Ball Bounce,Zen Archer Game,Tennis ball,Single-hand wall catch.,
-Zen Archer Game,Hand-Eye Coordination & Object Manipulation :: Reactive Catching,4,FALSE,Full,,Tennis Ball Wall,Two-Ball Reactive,Tennis balls,Partner reactive game.,
-Two-Ball Reactive,Hand-Eye Coordination & Object Manipulation :: Reactive Catching,6,FALSE,Full,,Zen Archer Game,Multi-object Reactive,Tennis balls,Two-ball reactive catching.,
-Multi-object Reactive,Hand-Eye Coordination & Object Manipulation :: Reactive Catching,8,FALSE,Full,,Two-Ball Reactive,,Multiple balls,Multi-object reactive drills.,
-Soccer Ball Toe Taps,Hand-Eye Coordination & Object Manipulation :: Foot-Eye Cross,2,FALSE,Full,,,Soccer Ball Juggle,Soccer ball,Rapid toe taps.,
-Soccer Ball Juggle,Hand-Eye Coordination & Object Manipulation :: Foot-Eye Cross,4,FALSE,Full,,Soccer Ball Toe Taps,Combined Hand-Foot,Soccer ball,Continuous juggling with feet.,
-Combined Hand-Foot,Hand-Eye Coordination & Object Manipulation :: Foot-Eye Cross,6,FALSE,Full,,Soccer Ball Juggle,,Soccer ball or any ball,Mix hands and feet.,
-Ginga,"Rhythm, Flow & Expression :: Rhythmic Foundations",2,FALSE,Full,,,Step Patterns,None,Foundation capoeira rocking step.,
-Step Patterns,"Rhythm, Flow & Expression :: Rhythmic Foundations",3,FALSE,Full,,Ginga,Ginga w/ Kicks,None,Various rhythmic step patterns.,
-Ginga w/ Kicks,"Rhythm, Flow & Expression :: Rhythmic Foundations",5,FALSE,Full,,Step Patterns,Capoeira Sequences,None,Ginga combined with kicks.,
-Capoeira Sequences,"Rhythm, Flow & Expression :: Rhythmic Foundations",7,FALSE,Full,,Ginga w/ Kicks,Improvised Jogo,None,Choreographed capoeira sequences.,
-Improvised Jogo,"Rhythm, Flow & Expression :: Rhythmic Foundations",9,FALSE,Full,,Capoeira Sequences,,None,Free capoeira flow with partner.,
-Roll-to-Stand,"Rhythm, Flow & Expression :: Floor Flow",2,FALSE,Full,,,2–3 Move Links,Mat,Foundation flow transition.,
-2–3 Move Links,"Rhythm, Flow & Expression :: Floor Flow",4,FALSE,Full,,Roll-to-Stand,Acro Flow Sequences,Mat,Link 2-3 movements together.,
-Acro Flow Sequences,"Rhythm, Flow & Expression :: Floor Flow",6,FALSE,Full,,2–3 Move Links,Improvised Flow,Mat,Connected acrobatic sequences.,
-Improvised Flow,"Rhythm, Flow & Expression :: Floor Flow",8,FALSE,Full,,Acro Flow Sequences,Performance Flow,Mat,Free movement improvisation.,
-Performance Flow,"Rhythm, Flow & Expression :: Floor Flow",10,FALSE,Full,,Improvised Flow,,Mat,Performance-level expression.,
-Following Music,"Rhythm, Flow & Expression :: Dance / Musical Movement",1,FALSE,Full,,,Choreographed Phrases,None,Move in time with music.,
-Choreographed Phrases,"Rhythm, Flow & Expression :: Dance / Musical Movement",3,FALSE,Full,,Following Music,Improvised to Music,None,Learn and perform phrases.,
-Improvised to Music,"Rhythm, Flow & Expression :: Dance / Musical Movement",6,FALSE,Full,,Choreographed Phrases,Partnered Improv,None,Free improvisation to music.,
-Partnered Improv,"Rhythm, Flow & Expression :: Dance / Musical Movement",8,FALSE,Full,,Improvised to Music,Performance,None,Improvise with another mover.,
-Performance,"Rhythm, Flow & Expression :: Dance / Musical Movement",10,FALSE,Full,,Partnered Improv,,None,Public performance level.,
-
-anchor,component,component_exercises
-Muscle Up,False grip hanging endurance,"Dead Hang, Active Hang, Scap Pull, One-Arm Hang"
-Muscle Up,Pulling strength to sternum,"Chin Up, Pull Up, Weighted Pull Up, Archer Pull Up, High Pull Up"
-Muscle Up,Dip transition strength,"Parallel Bar Dip, Ring Dip, Weighted Ring Dip"
-Muscle Up,Transition control (pull-to-press),"Bar Pull-Over, High Pull Up, Ring Dip"
-Muscle Up,Wrist & forearm conditioning,"Dead Hang, Active Hang, Ring Row"
-Human Flag,Side body & oblique strength,"Side Plank, Clutch Flag, Tuck Flag, Straddle Flag"
-Human Flag,Shoulder pressing + pulling line,"Pull Up, Pseudo Planche Push Up, Ring Push Up, Tuck Planche"
-Human Flag,Grip strength (mixed grip),"Dead Hang, Active Hang, Inverted Row (high)"
-Human Flag,Lever line straight-arm control,"Clutch Flag, Tuck Flag, Straddle Flag"
-Human Flag,Hip & leg engagement (full-body tension),"Side Plank, Hollow Body Hold, Arch Hold"
-Press to Handstand,Hamstring & posterior chain flexibility,"Pancake (upright), Pancake (chest down), Front Split (flat), Oversplit, Middle Split (flat)"
-Press to Handstand,Hip flexor strength (compression),"Hip CARs, V-Sit Hold, L-Sit, Tuck Hold"
-Press to Handstand,Spinal extension control,"Cobra, Bridge (assisted), Back Bridge, Closed Bridge"
-Press to Handstand,Straight-arm pushing strength,"Frog Stand, Tuck Planche, Adv Tuck Planche, Stalder Press (bent)"
-Press to Handstand,Handstand balance,"Wall Handstand, Handstand, Straddle Handstand, Tuck Handstand"
-Press to Handstand,Shoulder elevation & open chest,"Skin the Cat, Wall Handstand, Pike Push Up"
-Handstand,Wrist mobility & strength,"Wrist CARs, Wrist Push-Ups, Tabletop Wrist Holds"
-Handstand,Shoulder flexion (overhead position),"Pike Push Up, Wall Handstand, Skin the Cat"
-Handstand,Hollow body alignment,"Hollow Body Hold, Plank, Wall Handstand"
-Handstand,Finger & forearm strength (balance),"Frog Stand, Crow Pose, Wall Handstand"
-Handstand,Hand balance & micro-correction,"Frog Stand, Crow Pose, Headstand, Wall Handstand"
-Pistol Squat,Single-leg quad strength,"BW Squat, Split Squat, Bulgarian Split, Shrimp Squat"
-Pistol Squat,Ankle dorsiflexion,"Deep Calf Stretch, Ankle Mobility Drills, Resting Squat"
-Pistol Squat,Hip mobility & control,"Hip CARs, 90/90 Transition, Cossack Squat"
-Pistol Squat,Balance on one leg,"Single-Leg Stand, Split Squat, Bulgarian Split"
-Pistol Squat,Hip flexor strength (leg extension),"Hip CARs, V-Sit Hold, L-Sit"
-Dragon Squat,Single-leg strength (front leg),"Pistol Squat, Shrimp Squat, Bulgarian Split"
-Dragon Squat,Hip rotation & internal mobility,"90/90 Transition, Frog to Pike, Hip CARs"
-Dragon Squat,Knee & ankle stability in flexion,"Sissy Squat, Pistol Squat, Resting Squat"
-Dragon Squat,Hamstring flexibility (rear leg),"Front Split (low), Front Split (flat), RDL"
-Dragon Squat,Core anti-rotation,"Side Plank, Pallof Press, Hollow Body Hold"
-Cossack Squat,Adductor flexibility & strength,"Wide Squat, Pancake (upright), Middle Split (low), Side Lunge"
-Cossack Squat,Single-leg eccentric squat,"Split Squat, Bulgarian Split, Side Lunge"
-Cossack Squat,Ankle dorsiflexion (both feet),"Resting Squat, Deep Calf Stretch"
-Cossack Squat,Hip abduction control,"Side Plank, Lateral Bear, Side Lunge"
-Cossack Squat,Thoracic upright posture under load,"Goblet Squat, Front / Back Squat"
-Deadlift,Hip hinge pattern,"Hip Bridge, RDL, Goblet Squat"
-Deadlift,Posterior chain strength,"RDL, Hamstring Curl, Slick Floor Bridge, Nordic Negative"
-Deadlift,Grip strength (mixed/double-overhand),"Dead Hang, Active Hang, Farmers Carry"
-Deadlift,Bracing & intra-abdominal pressure,"Plank, Hollow Body Hold, Goblet Squat"
-Deadlift,Lat engagement,"Pull Up, Chin Up, Ring Row"
-Box Jump,Reactive ankle & calf power,"Pogo Hops, Tuck Jump, Standing Hop"
-Box Jump,Triple-extension power (hip/knee/ankle),"Goblet Squat, Front / Back Squat, Broad Jump"
-Box Jump,Landing absorption (eccentric control),"BW Squat, Pistol Squat, Depth Jump → Box"
-Box Jump,Arm swing coordination,"Standing Hop, Broad Jump, Tuck Jump"
-Box Jump,Hip flexor speed (knee drive),"Tuck Jump, High Knee Drills, Pogo Hops"
-Lizard Crawl,Contralateral shoulder-hip coordination,"Bear Walk, Crab Walk, Cat-Cow"
-Lizard Crawl,Hip flexor & adductor strength under load,"Hip CARs, 90/90 Transition, Spider Crawl"
-Lizard Crawl,Scapular stability (loaded shoulder),"Push Up, Plank, Scap Pull"
-Lizard Crawl,Thoracic rotation,"Thread the Needle, Skin the Cat, Cat-Cow"
-Lizard Crawl,Core endurance (low ground),"Plank, Hollow Body Hold, Bear Walk"
-`;
 
 let currentModel = null;
 
@@ -3367,19 +2989,126 @@ window.addEventListener('resize', () => {
 });
 
 // ---------- Init ----------
-function init() {
+// Default filter state, per Calum: importance <= 2 with variants hidden. That is
+// 192 of 490 exercises, which is the difference between a usable page and a wall.
+// The controls that expose these come with the layout work; the state lives here
+// so the data layer already honours them.
+const IMP_SLIDER_MAX = 3;
+const viewState = { impMax: 2, showVariants: false };
+
+let ALL_ROWS = [];        // every gate-passing row, unfiltered
+let BREAKDOWNS = new Map();   // Keystone -> [{component, exercises}]
+
+function rebuildModel() {
+  const rows = filterRows(ALL_ROWS, { ...viewState, impSliderMax: IMP_SLIDER_MAX });
+
+  // Fail fast, exactly as the wheel does. Name is the primary key: chains,
+  // progressions and the node index all resolve by it, so a duplicate makes the
+  // graph ambiguous and must stop the render rather than degrade it (§6.1).
+  const problems = validateRows(rows);
+  if (problems.length) {
+    // validateRows returns OBJECTS ({kind, name, count, where}), not strings.
+    // Interpolating one directly renders "[object Object]" — a silent failure in
+    // the very code path whose whole job is to be loud.
+    const fmt = p => p.kind + ': "' + p.name + '"'
+      + (p.count > 1 ? ' appears ' + p.count + ' times' : '')
+      + (p.where && p.where.length ? ' \u2014 ' + p.where.join(' / ') : '');
+    statusEl.style.color = '#a82828';
+    statusEl.textContent = 'Can\'t build \u2014 ' + problems.length + ' data problem'
+      + (problems.length > 1 ? 's' : '') + ': ' + fmt(problems[0])
+      + (problems.length > 1 ? ' (+' + (problems.length - 1) + ' more, see console)' : '');
+    console.error('[builder] ' + problems.map(fmt).join('\n'));
+    return null;
+  }
+
+  const model = buildModelFromRows(rows, BREAKDOWNS);
+  currentModel = model;
+  statusEl.style.color = '';
+  statusEl.textContent = `${rows.length} of ${ALL_ROWS.length} exercises`
+    + ` · importance \u2264 ${viewState.impMax}`
+    + (viewState.showVariants ? ' · variants shown' : ' · variants hidden');
+  return model;
+}
+
+// Cross-tab check. The Breakdowns tab keys on an exercise NAME, and name is the
+// primary key (§6.1) — so a key that matches nothing resolves to an empty
+// breakdown and the Keystones view just looks blank. That is precisely the silent
+// failure the fail-fast posture exists to prevent, and it is a live problem: the
+// 305-name normalisation to `Base - Modifier` renamed the exercises without
+// updating this tab.
+//
+// Reported, not thrown: the Discipline view is unaffected, and refusing to load
+// the whole page over a stale second tab would be the worse trade.
+function checkBreakdowns() {
+  const names = new Set(ALL_ROWS.map(r => r.name));
+  const keystones = new Set(ALL_ROWS.filter(r => r.keystone).map(r => r.name));
+  const unresolved = [], notKeystone = [];
+  for (const key of BREAKDOWNS.keys()) {
+    if (!names.has(key)) unresolved.push(key);
+    else if (!keystones.has(key)) notKeystone.push(key);
+  }
+  if (unresolved.length) {
+    console.error('[builder] Breakdowns tab: ' + unresolved.length + ' keystone key(s) match no '
+      + 'exercise name, so their breakdowns can never render: ' + unresolved.join(', ')
+      + '. Names were normalised to "Base - Modifier"; the Breakdowns tab was not.');
+  }
+  if (notKeystone.length) {
+    console.warn('[builder] Breakdowns tab: ' + notKeystone.join(', ')
+      + (notKeystone.length > 1 ? ' resolve' : ' resolves')
+      + ' to a real exercise that is NOT flagged Keystone, so the Keystones view '
+      + 'will not offer them.');
+  }
+  const usable = BREAKDOWNS.size - unresolved.length - notKeystone.length;
+  if (BREAKDOWNS.size && !usable) {
+    console.error('[builder] No Breakdowns entry is currently reachable in the Keystones view.');
+  }
+}
+
+async function init() {
+  statusEl.textContent = 'Loading the Movement Library sheet…';
+  let text;
   try {
-    const sections = parseCSV(EMBEDDED_CSV);
-    const model = buildModel(sections);
-    currentModel = model;
-    statusEl.style.color = '';
-    statusEl.textContent = '';
+    text = await (await fetch(SHEET_CSV_URL)).text();
+  } catch (err) {
+    // Loud, not a silent fall back to a stale snapshot: being told you are
+    // looking at old data is the whole point.
+    statusEl.style.color = '#a82828';
+    statusEl.textContent = 'Could not reach the sheet: ' + err.message;
+    console.error(err);
+    return;
+  }
+  // The Breakdowns tab IS the component edge table (CLAUDE.md §4), and it is what
+  // the Keystones view renders. Fetched alongside so that view keeps working
+  // rather than silently emptying when the embedded copy went.
+  try {
+    const bt = await (await fetch(BREAKDOWNS_CSV_URL)).text();
+    for (const o of rowsToObjects(parseCSV(bt))) {
+      const key = field(o, ['Keystone']);
+      const comp = field(o, ['Component']);
+      if (!key || !comp) continue;
+      const exs = field(o, ['Component Exercises (comma-separated)', 'Component Exercises'])
+        .split(/[;,]/).map(x => x.trim()).filter(Boolean);
+      if (!BREAKDOWNS.has(key)) BREAKDOWNS.set(key, []);
+      BREAKDOWNS.get(key).push({ component: comp, exercises: exs });
+    }
+  } catch (err) {
+    // Non-fatal: the Discipline view does not need it, so report and carry on
+    // rather than blocking the whole page on the Keystones view's data.
+    console.warn('[builder] Breakdowns tab unavailable; Keystones view will be empty:', err);
+  }
+
+  try {
+    ALL_ROWS = filterRows(normaliseRows(rowsToObjects(parseCSV(text))),
+                          { impMax: IMP_SLIDER_MAX, showVariants: true,
+                            impSliderMax: IMP_SLIDER_MAX });
+    checkBreakdowns();
+    if (!rebuildModel()) return;
     setActiveView('spectrum');
     updateShortlistPill();
   } catch (err) {
     console.error(err);
-    statusEl.textContent = 'Error parsing embedded data: ' + err.message;
     statusEl.style.color = '#a82828';
+    statusEl.textContent = 'Error building the model: ' + err.message;
   }
 }
 init();
