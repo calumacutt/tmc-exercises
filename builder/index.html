@@ -127,7 +127,7 @@
   .shortlist-pill.has-items .count {
     background: var(--anchor);
   }
-  /* On Movement Library, the in-axis pill is the primary instance, so hide
+  /* On the Discipline view, the in-axis pill is the primary instance, so hide
      the header pill to avoid duplication. Other views use the header pill. */
   body.view-spectrum .header-pill {
     display: none;
@@ -1236,7 +1236,7 @@
 
   /* ---------- Bottom info panel ----------
      Fixed at the bottom of the viewport. Shows last-clicked exercise's
-     details. Visible only in Movement Library and Keystones views.
+     details. Visible only in the Discipline and Keystones views.
      Main content gets padding-bottom equal to panel height so the bottom
      of the spectrum is reachable. */
   .info-panel {
@@ -1454,7 +1454,7 @@
     <h1>The Ultimate Mover</h1>
   </div>
   <nav class="tabs">
-    <button class="tab active" data-view="spectrum">Movement Library</button>
+    <button class="tab active" data-view="spectrum">Disciplines</button>
     <button class="tab" data-view="anchors">Keystones</button>
     <button class="tab" data-view="builder">Program Builder</button>
   </nav>
@@ -1467,7 +1467,7 @@
 </header>
 
 <main>
-  <!-- View 1: Movement Library -->
+  <!-- View 1: Disciplines (the "Discipline view") -->
   <div id="spectrum-container" class="view"></div>
 
   <!-- View 2: Keystones -->
@@ -1491,7 +1491,7 @@
         <div>
           <h2>Shortlist</h2>
           <p class="section-hint" id="shortlist-hint">
-            Exercises you've selected from Movement Library or Keystones. Drag a chip onto a timeline slot, or click "Add to..." to send it to a class.
+            Exercises you've selected from Disciplines or Keystones. Drag a chip onto a timeline slot, or click "Add to..." to send it to a class.
           </p>
         </div>
         <button class="action-btn" id="clear-shortlist">Clear shortlist</button>
@@ -1519,7 +1519,7 @@
   </div>
 </main>
 
-<!-- Bottom info panel - visible in Movement Library and Keystones views.
+<!-- Bottom info panel - visible in the Discipline and Keystones views.
      Always present at the bottom of the viewport when relevant; doesn't
      cover spectrum content because main has bottom padding to match. -->
 <div id="info-panel" class="info-panel">
@@ -1726,7 +1726,7 @@ function render(model) {
   corner.className = 'axis-corner';
 
   // In-axis shortlist pill: sticky with the axis row so it stays visible
-  // as the user scrolls the Movement Library. Synced with the header pill
+  // as the user scrolls the Discipline view. Synced with the header pill
   // via updateShortlistPill().
   const inAxisPill = document.createElement('button');
   inAxisPill.className = 'shortlist-pill in-axis-pill';
@@ -1948,7 +1948,7 @@ function levelToPercent(level) {
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
 // ---------- Selection state & bottom info panel ----------
-// Click any exercise (in Movement Library, Keystones, or chain) to:
+// Click any exercise (in Disciplines, Keystones, or chain) to:
 //   1. Toggle its presence in the shortlist (add if not in, remove if in)
 //   2. Update the bottom info panel to show its details
 // The .selected class is applied to all DOM instances of the most recently
@@ -1980,7 +1980,7 @@ const infoContent = document.getElementById('info-content');
 
 // Toggle visibility of the info panel based on the active view.
 function updateInfoPanelVisibility() {
-  // Visible in Movement Library and Keystones; hidden in Program Builder.
+  // Visible in Disciplines and Keystones; hidden in Program Builder.
   const show = (activeView === 'spectrum' || activeView === 'anchors');
   document.body.classList.toggle('show-info-panel', show);
 }
@@ -2714,7 +2714,7 @@ let currentModel = null;
    =========================================================================
    State:
      shortlist: Array<string>            - exercise names selected by the user
-                                           from Movement Library or Keystones.
+                                           from Disciplines or Keystones.
                                            Order = insertion order.
      classes: { lower, full, upper }     - three independent class timelines.
        Each class = { name, blocks: TimelineBlock[] }
@@ -2816,7 +2816,7 @@ function clearShortlist() {
 
 function updateShortlistPill() {
   // There are two pill instances: one in the header (visible on Keystones
-  // and Program Builder) and one rendered into the Movement Library's
+  // and Program Builder) and one rendered into the Discipline view's
   // sticky axis row. Both stay in sync via this function.
   const n = builderState.shortlist.length;
   document.querySelectorAll('.shortlist-pill').forEach(pill => {
@@ -2829,7 +2829,7 @@ function updateShortlistPill() {
 // Find every DOM element representing an exercise (across all views) and
 // apply/remove the .shortlisted class based on current state.
 function refreshShortlistedHighlights() {
-  // Movement Library dots
+  // Discipline view dots
   for (const [name, elements] of exerciseElements) {
     const shortlisted = isShortlisted(name);
     elements.forEach(el => el.classList.toggle('shortlisted', shortlisted));
@@ -2864,7 +2864,7 @@ function renderShortlistPalette(model) {
   if (builderState.shortlist.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'shortlist-empty';
-    empty.textContent = 'No exercises shortlisted yet. Go to Movement Library or Keystones and click exercises to add them.';
+    empty.textContent = 'No exercises shortlisted yet. Go to Disciplines or Keystones and click exercises to add them.';
     palette.appendChild(empty);
     return;
   }
@@ -3323,7 +3323,7 @@ function setActiveView(name) {
   document.getElementById('builder-container').style.display = (name === 'builder') ? 'block' : 'none';
   document.getElementById('anchors-container').style.display = (name === 'anchors') ? 'block' : 'none';
   // Set a body class so CSS can show/hide the in-page shortlist pill
-  // (Movement Library has the pill in its sticky axis row; other views use
+  // (The Discipline view has the pill in its sticky axis row; other views use
   // the header pill so the count is always visible on screen.)
   document.body.classList.toggle('view-spectrum', name === 'spectrum');
   document.body.classList.toggle('view-anchors', name === 'anchors');
