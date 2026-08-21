@@ -240,13 +240,21 @@ spreadsheet, not code. Full specifications in `CLAUDE.md` §7.
       with a validated example at `data/programs/2026-08-21-example.md`.
       Markdown, one file per program, so the file is at once the record, the
       machine-readable history and the poster source. Hierarchy is
-      **Program (dated) → Class → Session (numbered, with duration) → Exercise**;
+      **Program → Class → Session (numbered, with duration) → Exercise**;
       the bullet ORDER within a session *is* the concurrent slot, so §7.6's slot
-      requirement needs no extra syntax. Fail-fast on import: an exercise name
-      absent from the library, a missing or non-ISO date, an unparseable session
-      heading, a duplicate within a session, or more than 4 in a session.
-      Verified: the example parses with a 15-line parser, all 17 exercise names
-      resolve against the library, both `Personal Goals` sessions correctly empty.
+      requirement needs no extra syntax. `Date:` is the **6-week block start** and
+      the only program-level field — no block index, since ordering by date
+      already gives the sequence.
+      **Classes are TYPES, not instances:** `Upper Body`, `Full Body`,
+      `Lower Body`, plus optional `Handstand`, `Mobility`, `Flocomotion`. Each runs
+      many times across the block, so no day/time is recorded.
+      Fail-fast on import: an exercise name absent from the library, a class name
+      outside that list, a missing or non-ISO date, an unparseable session heading,
+      a duplicate within a session, or more than 4 in a session. Warn-but-load on a
+      missing core class and on a filename that disagrees with `Date:`.
+      Verified: the example (4 classes, 20 sessions, 32 exercises) parses cleanly,
+      every name resolves, every class name is valid, all four `Personal Goals`
+      sessions correctly empty.
       ⚠️ **`Session` is what §7.7 used to call `Section`** — renamed to Calum's
       terminology. A class *contains* sessions.
       **One decision deliberately deferred to `heat.js`:** whether an exercise

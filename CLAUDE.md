@@ -589,11 +589,23 @@ in the now-locked format first.
 
 Markdown, one file per program, so the file is simultaneously the record, the
 machine-readable history and the **poster source**. Export equals import.
-Hierarchy is **Program (dated) → Class → Session (numbered, with a duration) →
+Hierarchy is **Program → Class → Session (numbered, with a duration) →
 Exercise**, and the bullet ORDER within a session *is* the concurrent slot, so the
-slot requirement is met with no extra syntax. Full grammar, fail-fast rules and a
-validated example are in `data/PROGRAM_FORMAT.md` and
-`data/programs/2026-08-21-example.md`.
+slot requirement is met with no extra syntax.
+
+`Date:` is the **start of the 6-week block** and the only program-level field —
+there is no block index, because ordering the files by date already gives the
+sequence and a separate counter could only disagree with it.
+
+⚠️ **A class is a TYPE, not an instance** — `Upper Body`, `Full Body`,
+`Lower Body`, plus optional `Handstand`, `Mobility`, `Flocomotion`. Each runs many
+times across the six weeks, so no day, time, room or coach is recorded and none
+should be added. An unrecognised class name is an error, for the same reason an
+undeclared LineKey is (§6.4): it is how `Legs` and `Lower Body` quietly become two
+classes in the history.
+
+Full grammar, fail-fast rules and a validated example are in
+`data/PROGRAM_FORMAT.md` and `data/programs/2026-08-21-example.md`.
 
 This was urgent because three 6-week blocks of history are waiting to be entered
 by hand and back-filling twice would be miserable. It is now safe to enter them.
