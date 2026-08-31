@@ -284,51 +284,23 @@
 
 import { parseCSV, rowsToObjects } from '../shared/csv.js';
 import { normaliseRows } from '../shared/library.js';
+import { wireDataSource } from '../shared/loader.js';
 import { state, IMP_SLIDER_MAX } from './state.js';
 import { buildTunePanel } from './tune.js';
 import { render, showStatus } from './render.js';
 
-// ---- Published Google Sheet CSV URL (Exercises tab) ----
-// The other two tabs are recorded in data/SHEET.md.
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQDrwHw-jGM7r3ZO_i8orZWvJ_wxmMdfnUy3lvdsqwZeJGv_EyEvsiB1HxG1qrXIyzgtMrlZMhirtcI/pub?gid=955669041&single=true&output=csv";
-
 const rerender = () => { if (state.RAW.length) render(); };
 
 // ---- data loading ----
-function ingest(text) {
-  try {
-    state.RAW = normaliseRows(rowsToObjects(parseCSV(text)));
-    if (!state.RAW.length) {
-      showStatus("No exercises found in that file. Is it the Exercises export with a <strong>Name</strong> column?");
-      return;
-    }
-    render();
-  } catch (err) {
-    showStatus("Couldn't read that file. " + (err.message || ""));
-  }
-}
-
-document.getElementById('btn-upload').addEventListener('click', () => {
-  document.getElementById('file').click();
-});
-document.getElementById('file').addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const reader = new FileReader();
-  reader.onload = () => ingest(reader.result);
-  reader.onerror = () => showStatus("That file couldn't be read.");
-  reader.readAsText(f);
-});
-
-document.getElementById('btn-url').addEventListener('click', async () => {
-  showStatus("Fetching the latest data from the Sheet…");
-  try {
-    const res = await fetch(SHEET_CSV_URL);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    ingest(await res.text());
-  } catch (err) {
-    showStatus("Couldn't reach the published Sheet.<br>Check the link is published to the web and the network is available.<br><span style='color:var(--ink-faint)'>" + (err.message || "") + "</span>");
-  }
+// Behaviour lives in shared/loader.js so the wheel and the builder cannot drift
+// on what "load" means. The wheel keeps its own status rendering, because
+// showStatus() takes HTML and owns the whole canvas area.
+wireDataSource({
+  uploadBtn: 'btn-upload',
+  fileInput: 'file',
+  sheetBtn: 'btn-url',
+  onRows: (rows) => { state.RAW = rows; render(); },
+  onStatus: (msg, isErr) => { if (isErr || !state.RAW.length) showStatus(msg); },
 });
 
 // ---- controls ----

@@ -980,6 +980,16 @@
      so axis ticks above the spectrum-track line up exactly with dots
      inside each pathway row.
   */
+  /* Data source controls, in the tab strip. Deliberately quiet: occasional-use,
+     not the primary action on the page. */
+  .data-controls { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+  .mini-btn {
+    font: inherit; font-size: 11px; padding: 3px 9px;
+    border: 1px solid var(--rule); border-radius: 999px;
+    background: transparent; color: #6b6357; cursor: pointer;
+  }
+  .mini-btn:hover { border-color: var(--ink); color: var(--ink); }
+
   #spectrum-container {
     padding: 16px 28px 8px;
     position: relative;
@@ -1457,6 +1467,11 @@
     <button class="tab active" data-view="spectrum">Disciplines</button>
     <button class="tab" data-view="anchors">Keystones</button>
     <button class="tab" data-view="builder">Program Builder</button>
+    <span class="data-controls">
+      <button class="mini-btn" id="btn-upload">Upload CSV</button>
+      <button class="mini-btn" id="btn-url">Load from Sheet</button>
+      <input type="file" id="file" accept=".csv,text/csv" hidden>
+    </span>
   </nav>
   <div class="toolbar">
     <button class="shortlist-pill header-pill" id="shortlist-pill-header" title="Jump to Program Builder">
@@ -1538,7 +1553,8 @@
 // on* handlers, which are the thing module scope would have broken.
 import { parseCSV, rowsToObjects, field } from '../shared/csv.js';
 import { normaliseRows, filterRows, validateRows } from '../shared/library.js';
-import { SHEET_CSV_URL, BREAKDOWNS_CSV_URL } from '../shared/sheet.js';
+import { BREAKDOWNS_CSV_URL } from '../shared/sheet.js';
+import { wireDataSource } from '../shared/loader.js';
 
 /* =========================================================================
    Movement Traits Spectrum — Pattern A (local CSV file)
@@ -3059,27 +3075,21 @@ function checkBreakdowns() {
       + 'will not offer them.');
   }
   const usable = BREAKDOWNS.size - unresolved.length - notKeystone.length;
-  if (BREAKDOWNS.size && !usable) {
-    console.error('[builder] No Breakdowns entry is currently reachable in the Keystones view.');
+  if (unresolved.length || notKeystone.length) {
+    // console.info, not error. The Keystones view is a separate piece of work and
+    // this is a known sheet-side problem, so it belongs on the record without
+    // shouting over the Discipline view's own diagnostics on every load.
+    console.info('[builder] Breakdowns: ' + usable + ' of ' + BREAKDOWNS.size + ' reachable.'
+      + (unresolved.length ? ' No exercise named: ' + unresolved.join(', ') + '.' : '')
+      + (notKeystone.length ? ' Not flagged Keystone: ' + notKeystone.join(', ') + '.' : '')
+      + ' Deferred until the Keystones view is worked on.');
   }
 }
 
-async function init() {
-  statusEl.textContent = 'Loading the Movement Library sheet…';
-  let text;
-  try {
-    text = await (await fetch(SHEET_CSV_URL)).text();
-  } catch (err) {
-    // Loud, not a silent fall back to a stale snapshot: being told you are
-    // looking at old data is the whole point.
-    statusEl.style.color = '#a82828';
-    statusEl.textContent = 'Could not reach the sheet: ' + err.message;
-    console.error(err);
-    return;
-  }
-  // The Breakdowns tab IS the component edge table (CLAUDE.md §4), and it is what
-  // the Keystones view renders. Fetched alongside so that view keeps working
-  // rather than silently emptying when the embedded copy went.
+// The Breakdowns tab IS the component edge table (CLAUDE.md §4), and it is what
+// the Keystones view renders. Its own function so it can be fetched in PARALLEL
+// with the exercises rather than serially after them.
+async function loadBreakdowns() {
   try {
     const bt = await (await fetch(BREAKDOWNS_CSV_URL)).text();
     for (const o of rowsToObjects(parseCSV(bt))) {
@@ -3096,20 +3106,41 @@ async function init() {
     // rather than blocking the whole page on the Keystones view's data.
     console.warn('[builder] Breakdowns tab unavailable; Keystones view will be empty:', err);
   }
+}
 
-  try {
-    ALL_ROWS = filterRows(normaliseRows(rowsToObjects(parseCSV(text))),
-                          { impMax: IMP_SLIDER_MAX, showVariants: true,
-                            impSliderMax: IMP_SLIDER_MAX });
+// Upload / Load-from-Sheet, wired to the shared getters in shared/loader.js. The
+// view keeps its own status rendering and decides what to do with the rows; only
+// the fetching, file reading and error wording are shared.
+let bootedOnce = false;
+const dataSource = wireDataSource({
+  uploadBtn: 'btn-upload',
+  fileInput: 'file',
+  sheetBtn: 'btn-url',
+  onStatus: (msg, isErr) => {
+    statusEl.style.color = isErr ? '#a82828' : '';
+    statusEl.textContent = msg;
+  },
+  onRows: (rows) => {
+    ALL_ROWS = filterRows(rows, { impMax: IMP_SLIDER_MAX, showVariants: true,
+                                  impSliderMax: IMP_SLIDER_MAX });
     checkBreakdowns();
     if (!rebuildModel()) return;
-    setActiveView('spectrum');
-    updateShortlistPill();
-  } catch (err) {
-    console.error(err);
-    statusEl.style.color = '#a82828';
-    statusEl.textContent = 'Error building the model: ' + err.message;
-  }
+    // First load boots the view. A later reload re-renders whatever is on screen
+    // instead of yanking the user back to the Discipline view.
+    if (!bootedOnce) {
+      bootedOnce = true;
+      setActiveView('spectrum');
+      updateShortlistPill();
+    } else if (activeView === 'spectrum') render(currentModel);
+    else if (activeView === 'builder') renderAllTimelines(currentModel);
+    else if (activeView === 'anchors') renderAnchors(currentModel);
+  },
+});
+
+async function init() {
+  // Both tabs in parallel: the Breakdowns fetch has nothing to do with the
+  // exercises, so serialising them just adds a round trip to first paint.
+  await Promise.all([loadBreakdowns(), dataSource.loadSheet()]);
 }
 init();
 
