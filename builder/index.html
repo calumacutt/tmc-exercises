@@ -1068,6 +1068,13 @@
     min-height: 48px;
   }
 
+  /* Separator between vertically adjacent lines. Only BETWEEN them, so a
+     discipline's first lane does not get a rule sitting under its banner. */
+  .pathway-row + .pathway-row .pathway-track,
+  .pathway-row + .pathway-row .pathway-label {
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
+  }
+
   /* Thin white spacer row between trait blocks for visual separation */
   .trait-spacer {
     grid-column: 1 / -1;
@@ -1117,19 +1124,11 @@
     height: 48px;
   }
 
-  /* Subtle horizontal centre line on each track */
-  /* The lane's baseline rule. Sits at the FIRST row's centre rather than the
-     lane's, because a lane is now as tall as its stack and a centred rule would
-     drift away from the pills as rows are added. */
-  .pathway-track::before {
-    content: "";
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    top: 11px;
-    height: 1px;
-    background: rgba(255,255,255,0.6);
-  }
+  /* No rule THROUGH a lane. A lane is as tall as its deepest stack, so any
+     horizontal line inside it either cuts through the top row of pills or drifts
+     away from them as rows are added. The useful line is the one BETWEEN lanes —
+     see .pathway-row + .pathway-row — which says where one line ends and the
+     next begins. */
 
   /* Light vertical level guides */
   /* Vertical level guides, running the full height of the lane so the spectrum
@@ -1817,22 +1816,22 @@ function render(model) {
       rowEl.appendChild(trackEl);
       container.appendChild(rowEl);
 
-      // ----- Placement: greedy row packing -----
-      // Every pill keeps the x-position its LEVEL gives it. Vertical placement is
-      // then the only free variable: walk the pills in level order and drop each
-      // into the first stack row where it does not horizontally overlap something
-      // already there. A new row is added only when nothing fits.
+      // ----- Placement: centred level columns -----
+      // Every pill keeps the x-position its LEVEL gives it, so the only free
+      // variable is which row of the stack it sits in.
       //
-      // One algorithm covers both cases that used to be handled separately. Pills
-      // at the same level all overlap each other, so they naturally fall into
-      // consecutive rows; pills at distinct levels usually fit side by side in
-      // row 0. Measured against the live sheet, a lane needs up to 5 rows at the
-      // default filter and up to 8 with everything shown.
+      // Pills that share a level form a COLUMN, and a column is placed as one
+      // unit, vertically CENTRED in the lane. Centring per column matters
+      // because a lane is as tall as its deepest column: a level with two pills
+      // in a lane that is five deep should sit in the middle, not hang off the
+      // top.
       //
-      // The version this replaces grouped same-level pills and gave them
-      // symmetric offsets around a centre line WITHOUT checking what was already
-      // placed — so a stack at level 5 could sit on top of a pill at level 4. It
-      // also capped out at ±4 slots, which is fewer rows than the data needs.
+      // ⚠️ Columns cannot simply each be centred independently. Adjacent levels
+      // are ~10% of the track apart, and a long name is easily wider than that,
+      // so neighbouring columns collide horizontally — which is exactly what
+      // used to force lanes eight rows deep. So each column is placed at the
+      // centred offset if it fits, and otherwise at the nearest offset that
+      // does. The lane grows a row only when no offset works for some column.
       const ROW_PITCH = 26;   // pill height 22 + 4px breathing room
       const PAD_PCT = 0.5;    // horizontal gap between neighbours, % of track
 
@@ -1851,20 +1850,63 @@ function render(model) {
         !(a.leftPct + a.halfWPct + PAD_PCT < b.leftPct - b.halfWPct ||
           a.leftPct - a.halfWPct - PAD_PCT > b.leftPct + b.halfWPct);
 
-      const stack = [];   // stack[i] = pills already placed in row i
+      // Columns, in level order. sortedExs is already sorted by level.
+      const columns = [];
       for (const item of positioned) {
-        let r = 0;
-        while (stack[r] && stack[r].some(p => overlaps(item, p))) r++;
-        (stack[r] = stack[r] || []).push(item);
-        item.row = r;
+        const last = columns[columns.length - 1];
+        if (last && last[0].ex.level === item.ex.level) last.push(item);
+        else columns.push([item]);
       }
+
+      // Try to seat every column in a lane `rows` deep, each as close to centred
+      // as it can get. Returns false if some column cannot fit at all.
+      function seat(rows) {
+        const grid = [];   // grid[r] = pills already placed in row r
+        for (const col of columns) {
+          const ideal = Math.floor((rows - col.length) / 2);
+          let placed = false;
+          // walk outward from the centred offset: ideal, ideal-1, ideal+1, ...
+          for (let d = 0; d <= rows && !placed; d++) {
+            for (const start of (d === 0 ? [ideal] : [ideal - d, ideal + d])) {
+              if (start < 0 || start + col.length > rows) continue;
+              const clash = col.some((item, i) =>
+                (grid[start + i] || []).some(p => overlaps(item, p)));
+              if (clash) continue;
+              col.forEach((item, i) => {
+                item.row = start + i;
+                (grid[start + i] = grid[start + i] || []).push(item);
+              });
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) return false;
+        }
+        return true;
+      }
+
+      // Start at the deepest column and grow only as far as collisions demand.
+      let rows = Math.max(1, ...columns.map(c => c.length));
+      while (!seat(rows)) rows++;
+
+      // Then NORMALISE. Growing `rows` also moves every column's ideal offset, so
+      // the seating that finally succeeds can leave empty rows at the top or
+      // bottom — one lane allocated 12 rows to fit into 9, i.e. 78px of dead
+      // space. Shifting everything up by the first used row and sizing the lane
+      // to what is actually occupied costs nothing and keeps the columns' relative
+      // centring intact.
+      const usedRows = positioned.map(p => p.row);
+      const minRow = Math.min(...usedRows);
+      const maxRow = Math.max(...usedRows);
+      for (const item of positioned) item.row -= minRow;
+      rows = maxRow - minRow + 1;
 
       for (const item of positioned) {
         item.exEl.style.top = (item.row * ROW_PITCH) + 'px';
         item.exEl.style.transform = 'translateX(-50%)';
       }
 
-      const rowHeight = Math.max(40, stack.length * ROW_PITCH + 12);
+      const rowHeight = Math.max(40, rows * ROW_PITCH + 12);
       trackEl.style.height = rowHeight + 'px';
       rowEl.style.minHeight = rowHeight + 'px';
     });
