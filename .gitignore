@@ -1,0 +1,5 @@
+# Scratch paste-columns used when bulk-editing the sheet by hand. They are
+# working files for a one-off cleanup, not project inputs — data/exercises.csv
+# is the committed snapshot of what the sheet actually holds.
+/discipline_line.tsv
+/level_column.txt
