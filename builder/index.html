@@ -33,6 +33,10 @@
     --c-10: #CFC8DC;
     --c-11: #E0D4B0;
     --c-12: #E0BEC0;
+    --c-13: #C2D9D4;
+    --c-14: #D3D3C2;
+    --c-15: #D6CBE2;
+    --c-16: #E6D0C2;
 
     /* Darker label colours */
     --l-01: #5A7090;
@@ -47,6 +51,10 @@
     --l-10: #6A5E90;
     --l-11: #806A40;
     --l-12: #9A5A5A;
+    --l-13: #4E7268;
+    --l-14: #6E6E4A;
+    --l-15: #6B5E92;
+    --l-16: #94684A;
   }
 
   * { box-sizing: border-box; }
@@ -1725,8 +1733,24 @@ function render(model) {
   container.appendChild(axisStrip);
 
   // Trait blocks (each trait has a banner above its pathway rows)
+  if (model.traits.length > PALETTE_SIZE) {
+    console.warn('[builder] ' + model.traits.length + ' disciplines but only '
+      + PALETTE_SIZE + ' colours: '
+      + model.traits.slice(PALETTE_SIZE).map(t => t.name).join(', ')
+      + ' reuse an earlier colour. Add --c-NN/--l-NN pairs to fix.');
+  }
   model.traits.forEach((trait, traitIdx) => {
-    const colourIdx = pad2(trait.colourIndex);
+    // ⚠️ WRAP the palette. There are PALETTE_SIZE colour pairs defined in CSS and
+    // 16 disciplines in the sheet today. An index past the end resolves to a
+    // var() that does not exist, so the banner gets no background and its white
+    // text lands on white — invisible until someone scrolls to the bottom of the
+    // page and cannot read four discipline names. That is exactly the failure
+    // CLAUDE.md §6.2 records for pillar colours, in a second place.
+    //
+    // Wrapping makes two disciplines share a colour, which is visible and
+    // therefore fixable, rather than silently unreadable. The warning below says
+    // when it happens.
+    const colourIdx = pad2(((trait.colourIndex - 1) % PALETTE_SIZE) + 1);
     const labelColour = `var(--l-${colourIdx})`;
     const traitBg = `var(--c-${colourIdx})`;
 
@@ -1892,19 +1916,81 @@ function render(model) {
       // Then NORMALISE. Growing `rows` also moves every column's ideal offset, so
       // the seating that finally succeeds can leave empty rows at the top or
       // bottom — one lane allocated 12 rows to fit into 9, i.e. 78px of dead
-      // space. Shifting everything up by the first used row and sizing the lane
-      // to what is actually occupied costs nothing and keeps the columns' relative
-      // centring intact.
+      // space. Shift everything up by the first used row and size the lane to
+      // what is actually occupied.
       const usedRows = positioned.map(p => p.row);
       const minRow = Math.min(...usedRows);
       const maxRow = Math.max(...usedRows);
       for (const item of positioned) item.row -= minRow;
       rows = maxRow - minRow + 1;
 
-      for (const item of positioned) {
-        item.exEl.style.top = (item.row * ROW_PITCH) + 'px';
-        item.exEl.style.transform = 'translateX(-50%)';
+      // ----- Centre each column, in PIXELS -----
+      // Row assignment guarantees no overlaps, but it quantises to whole rows and
+      // packs upward, so a 1-pill column in a 2-row lane sits at the top with a
+      // gap beneath it — there is no row that is the middle of two. So nudge each
+      // column to its true pixel centre, giving way only where a real collision
+      // says it must.
+      //
+      // ⚠️ The check has to be at PILL level, not column level. An earlier
+      // version compared whole columns using their widest pill, concluded that
+      // two columns clashed, and reasoned about their bands as if they were
+      // disjoint — but seat() validates pill against pill, so columns whose
+      // individual pills clear each other legitimately share rows. Treating those
+      // bands as disjoint put 6 pairs on top of one another.
+      const laneH = rows * ROW_PITCH;
+      const PILL_H = 22;
+
+      const colList = columns.map(col => ({
+        pills: col,
+        h: col.length * ROW_PITCH,
+        rowTop: Math.min(...col.map(p => p.row)) * ROW_PITCH,
+        top: null,
+      }));
+
+      const settledPills = [];
+      const fits = (col, T) => col.pills.every((p, i) => {
+        const y1 = T + i * ROW_PITCH, y2 = y1 + PILL_H;
+        return !settledPills.some(q =>
+          y1 < q.y2 && y2 > q.y1 &&
+          !(p.leftPct + p.halfWPct + PAD_PCT < q.leftPct - q.halfWPct ||
+            p.leftPct - p.halfWPct - PAD_PCT > q.leftPct + q.halfWPct));
+      });
+
+      // Tallest first: they have the least room to move, so letting them settle
+      // first leaves the honest gaps for everything else.
+      let allPlaced = true;
+      for (const col of colList.slice().sort((a, b) => b.h - a.h)) {
+        const ideal = (laneH - col.h) / 2;
+        const maxT = laneH - col.h;
+        let chosen = null;
+        // Walk outward from the true centre a pixel at a time. Usually hits on
+        // the first try; the search only does work where something is in the way.
+        for (let d = 0; d <= laneH && chosen === null; d++) {
+          for (const T of (d === 0 ? [ideal] : [ideal - d, ideal + d])) {
+            if (T < 0 || T > maxT) continue;
+            if (fits(col, T)) { chosen = T; break; }
+          }
+        }
+        if (chosen === null) { allPlaced = false; chosen = col.rowTop; }
+        col.top = chosen;
+        col.pills.forEach((p, i) => settledPills.push({
+          leftPct: p.leftPct, halfWPct: p.halfWPct,
+          y1: chosen + i * ROW_PITCH, y2: chosen + i * ROW_PITCH + PILL_H,
+        }));
       }
+
+      // Placed column by column against what is already down, so the result is
+      // overlap-free by construction — UNLESS some column found nowhere to go, in
+      // which case fall the whole lane back to the row assignment, which is
+      // always valid. Correct beats prettier.
+      for (const col of colList) {
+        const base = allPlaced ? col.top : col.rowTop;
+        col.pills.forEach((item, i) => {
+          item.exEl.style.top = (base + i * ROW_PITCH) + 'px';
+          item.exEl.style.transform = 'translateX(-50%)';
+        });
+      }
+
 
       const rowHeight = Math.max(40, rows * ROW_PITCH + 12);
       trackEl.style.height = rowHeight + 'px';
@@ -1917,6 +2003,9 @@ function render(model) {
     applySelectionHighlight(selectedExerciseName);
   }
 }
+
+// How many --c-NN / --l-NN pairs exist in the stylesheet. Keep in step with them.
+const PALETTE_SIZE = 16;
 
 function levelToPercent(level) {
   const pad = 4;
