@@ -1118,36 +1118,40 @@
   }
 
   /* Subtle horizontal centre line on each track */
+  /* The lane's baseline rule. Sits at the FIRST row's centre rather than the
+     lane's, because a lane is now as tall as its stack and a centred rule would
+     drift away from the pills as rows are added. */
   .pathway-track::before {
     content: "";
     position: absolute;
     left: 8px;
     right: 8px;
-    top: 50%;
+    top: 11px;
     height: 1px;
     background: rgba(255,255,255,0.6);
   }
 
   /* Light vertical level guides */
+  /* Vertical level guides, running the full height of the lane so the spectrum
+     stays readable when a lane stacks several rows deep. */
   .level-guide {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
+    bottom: 0;
     width: 1px;
-    height: 8px;
-    background: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.35);
     pointer-events: none;
   }
 
-  /* ---------- Exercise dot + label ----------
-     .exercise renders as a pill chip positioned at its level percentage.
-     The pill contains a level badge + name + optional star prefix.
-     Hover/shortlisted change background. Multi-row layout when collisions
-     occur via slot-0 / slot-1 / slot-2 vertical offsets. */
+  /* ---------- Exercise pill ----------
+     Positioned horizontally by its LEVEL, and vertically by the stack row the
+     packing pass assigned it (set inline as `top`). translateX(-50%) centres the
+     pill on its level; there is deliberately no translateY, because the row
+     already puts it where it belongs. */
   .exercise {
     position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    transform: translateX(-50%);
     background: white;
     border: 1px solid var(--rule);
     border-radius: 12px;
@@ -1605,11 +1609,17 @@ function buildModelFromRows(rows, anchorBreakdowns) {
   }
 
   const exercisesByName = new Map();
+  let skippedNoLevel = 0;
   for (const r of rows) {
-    // `Level` is OPTIONAL and mostly absent — 78% of rows have none. It stays
-    // null rather than being defaulted, so nothing can silently position a pill
-    // as though it were level 1. Every consumer must handle null explicitly.
-    const lvl = Number.isFinite(r.level) ? r.level : null;
+    // The Discipline view positions every pill by its LEVEL, so a row without one
+    // has no honest place on the spectrum. Rather than invent a position for it,
+    // OMIT it — the same posture as the completeness gate in shared/library.js.
+    //
+    // This is a guard, not a filter that does work today: the sheet is currently
+    // 100% levelled. It exists so a half-entered row added later disappears
+    // quietly instead of landing somewhere misleading.
+    if (!Number.isFinite(r.level)) { skippedNoLevel++; continue; }
+    const lvl = r.level;
     const ex = {
       name: r.name,
       traitPathways: [{ trait: r.discipline, pathway: r.line }],
@@ -1648,7 +1658,7 @@ function buildModelFromRows(rows, anchorBreakdowns) {
     }
   }
 
-  return { traits, exercisesByName, anchorBreakdowns };
+  return { traits, exercisesByName, anchorBreakdowns, skippedNoLevel };
 }
 
 function parseList(s) {
@@ -1796,93 +1806,67 @@ function render(model) {
         exerciseElements.get(ex.name).push(exEl);
       }
 
-      // ----- Collision avoidance & vertical positioning -----
-      // Each pill gets an inline transform with a vertical offset (px) from
-      // the row's horizontal centre line. Strategy:
-      //   1. Group exercises by exact level. Multiple at the same level →
-      //      stack them symmetrically around the centre.
-      //   2. For exercises at unique levels, use alternating-slot collision
-      //      avoidance: try offset 0, then ±24, ±48, ±72.
-      //   3. After all pills are placed, compute the row's required height
-      //      from the maximum |offset| used + half a pill's height.
-
-      const PILL_HEIGHT = 22;
-      const SLOT_GAP = 24;
-
-      // Group exercises by level within this pathway
-      const byLevel = new Map();
-      for (const ex of sortedExs) {
-        if (!byLevel.has(ex.level)) byLevel.set(ex.level, []);
-        byLevel.get(ex.level).push(ex);
-      }
-
-      // Symmetric offsets for a group of size N around 0.
-      // N=1: [0]. N=2: [-12, +12]. N=3: [-24, 0, +24]. N=4: [-36, -12, +12, +36].
-      function symmetricOffsets(n) {
-        if (n === 1) return [0];
-        const step = SLOT_GAP;
-        const offsets = [];
-        const start = -((n - 1) / 2) * step;
-        for (let i = 0; i < n; i++) offsets.push(start + i * step);
-        return offsets;
-      }
-
-      const trackWidth = trackEl.offsetWidth || 800;
-      const positioned = [];  // { ex, exEl, leftPct, halfWPct, offsetPx }
-      for (const ex of sortedExs) {
-        const exEl = exToEl.get(ex);
-        const w = exEl.offsetWidth;
-        const halfWPct = (w / 2 / trackWidth) * 100;
-        const leftPct = levelToPercent(ex.level);
-        positioned.push({ ex, exEl, leftPct, halfWPct, offsetPx: null });
-      }
-
-      const horizontalOverlap = (a, b) =>
-        !(a.leftPct + a.halfWPct + 0.4 < b.leftPct - b.halfWPct ||
-          a.leftPct - a.halfWPct - 0.4 > b.leftPct + b.halfWPct);
-
-      const placedBoxes = [];
-      const sortedLevels = Array.from(byLevel.keys()).sort((a, b) => a - b);
-      for (const level of sortedLevels) {
-        const group = byLevel.get(level);
-        const items = group.map(ex => positioned.find(p => p.ex === ex));
-
-        if (group.length > 1) {
-          // Same-level group: centre symmetrically around the line.
-          const offsets = symmetricOffsets(group.length);
-          items.forEach((item, i) => {
-            item.offsetPx = offsets[i];
-            placedBoxes.push(item);
-          });
-        } else {
-          // Unique level: try offset 0, then alternating ±24, ±48, ±72.
-          const item = items[0];
-          const candidateOffsets = [0, -SLOT_GAP, SLOT_GAP, -2*SLOT_GAP, 2*SLOT_GAP, -3*SLOT_GAP, 3*SLOT_GAP, -4*SLOT_GAP, 4*SLOT_GAP];
-          let chosen = 0;
-          for (const off of candidateOffsets) {
-            const sameSlot = placedBoxes.filter(p => p.offsetPx === off);
-            const collides = sameSlot.some(p => horizontalOverlap(item, p));
-            if (!collides) { chosen = off; break; }
-          }
-          item.offsetPx = chosen;
-          placedBoxes.push(item);
-        }
-      }
-
-      // Apply transforms and compute the row's required height
-      let maxAbsOffset = 0;
-      for (const item of positioned) {
-        const off = item.offsetPx;
-        item.exEl.style.transform = `translate(-50%, calc(-50% + ${off}px))`;
-        if (Math.abs(off) > maxAbsOffset) maxAbsOffset = Math.abs(off);
-      }
-      const rowHeight = Math.max(48, 2 * maxAbsOffset + PILL_HEIGHT + 16);
-      trackEl.style.height = rowHeight + 'px';
-      rowEl.style.minHeight = rowHeight + 'px';
-
+      // ⚠️ ATTACH BEFORE MEASURING. offsetWidth is 0 for an element that is not in
+      // the document, so measuring here — as this code used to — silently gave
+      // every pill a width of zero and a track width of zero. The effect was
+      // invisible but total: same-level pills still stacked (identical x), while
+      // pills at DIFFERENT levels were treated as zero-width points and always
+      // shared row 0, however wide they really were. That left 28 overlapping
+      // pairs at the default filter.
       rowEl.appendChild(pwCell);
       rowEl.appendChild(trackEl);
       container.appendChild(rowEl);
+
+      // ----- Placement: greedy row packing -----
+      // Every pill keeps the x-position its LEVEL gives it. Vertical placement is
+      // then the only free variable: walk the pills in level order and drop each
+      // into the first stack row where it does not horizontally overlap something
+      // already there. A new row is added only when nothing fits.
+      //
+      // One algorithm covers both cases that used to be handled separately. Pills
+      // at the same level all overlap each other, so they naturally fall into
+      // consecutive rows; pills at distinct levels usually fit side by side in
+      // row 0. Measured against the live sheet, a lane needs up to 5 rows at the
+      // default filter and up to 8 with everything shown.
+      //
+      // The version this replaces grouped same-level pills and gave them
+      // symmetric offsets around a centre line WITHOUT checking what was already
+      // placed — so a stack at level 5 could sit on top of a pill at level 4. It
+      // also capped out at ±4 slots, which is fewer rows than the data needs.
+      const ROW_PITCH = 26;   // pill height 22 + 4px breathing room
+      const PAD_PCT = 0.5;    // horizontal gap between neighbours, % of track
+
+      const trackWidth = trackEl.offsetWidth || 800;
+      const positioned = sortedExs.map(ex => {
+        const exEl = exToEl.get(ex);
+        return {
+          ex, exEl,
+          leftPct: levelToPercent(ex.level),
+          halfWPct: (exEl.offsetWidth / 2 / trackWidth) * 100,
+          row: null,
+        };
+      });
+
+      const overlaps = (a, b) =>
+        !(a.leftPct + a.halfWPct + PAD_PCT < b.leftPct - b.halfWPct ||
+          a.leftPct - a.halfWPct - PAD_PCT > b.leftPct + b.halfWPct);
+
+      const stack = [];   // stack[i] = pills already placed in row i
+      for (const item of positioned) {
+        let r = 0;
+        while (stack[r] && stack[r].some(p => overlaps(item, p))) r++;
+        (stack[r] = stack[r] || []).push(item);
+        item.row = r;
+      }
+
+      for (const item of positioned) {
+        item.exEl.style.top = (item.row * ROW_PITCH) + 'px';
+        item.exEl.style.transform = 'translateX(-50%)';
+      }
+
+      const rowHeight = Math.max(40, stack.length * ROW_PITCH + 12);
+      trackEl.style.height = rowHeight + 'px';
+      rowEl.style.minHeight = rowHeight + 'px';
     });
   });
 
@@ -1897,18 +1881,6 @@ function levelToPercent(level) {
   return pad + ((level - 1) / 9) * (100 - 2 * pad);
 }
 
-// PROVISIONAL placement for the 78% of exercises with no level.
-//
-// They are spread evenly across the lane so they are visible and roughly
-// separated, and the collision code below then pushes anything that clashes onto
-// another row. This is deliberately NOT the final algorithm — that one anchors
-// the levelled pills and flow-fills the gaps between them — but it is null-safe,
-// which matters more: feeding NaN into a position is exactly the cascade
-// CLAUDE.md §6.1 describes, and it would take the whole view down silently.
-function unlevelledPercent(i, n) {
-  const pad = 8;
-  return n <= 1 ? 50 : pad + (i / (n - 1)) * (100 - 2 * pad);
-}
 
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
@@ -3040,9 +3012,14 @@ function rebuildModel() {
   const model = buildModelFromRows(rows, BREAKDOWNS);
   currentModel = model;
   statusEl.style.color = '';
-  statusEl.textContent = `${rows.length} of ${ALL_ROWS.length} exercises`
+  statusEl.textContent = `${rows.length - model.skippedNoLevel} of ${ALL_ROWS.length} exercises`
     + ` · importance \u2264 ${viewState.impMax}`
-    + (viewState.showVariants ? ' · variants shown' : ' · variants hidden');
+    + (viewState.showVariants ? ' · variants shown' : ' · variants hidden')
+    + (model.skippedNoLevel ? ` · ${model.skippedNoLevel} hidden (no level)` : '');
+  if (model.skippedNoLevel) {
+    console.warn('[builder] ' + model.skippedNoLevel + ' exercise(s) omitted from the '
+      + 'Discipline view because they have no Level. Add a Level in the sheet to see them.');
+  }
   return model;
 }
 
