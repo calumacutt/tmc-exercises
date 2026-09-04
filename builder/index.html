@@ -998,6 +998,23 @@
   }
   .mini-btn:hover { border-color: var(--ink); color: var(--ink); }
 
+  /* Importance filter: a segmented control, because the three options are
+     nested ranges rather than independent toggles — 1, then 1-2, then 1-2-3. */
+  .filter-group { display: inline-flex; align-items: center; gap: 6px; margin-right: 4px; }
+  .filter-label { font-size: 11px; color: #6b6357; }
+  .seg {
+    font: inherit; font-size: 11px; padding: 3px 9px;
+    border: 1px solid var(--rule); border-left-width: 0;
+    background: transparent; color: #6b6357; cursor: pointer;
+  }
+  .seg:first-of-type { border-left-width: 1px; border-radius: 999px 0 0 999px; }
+  .seg:last-of-type { border-radius: 0 999px 999px 0; }
+  .seg:hover { color: var(--ink); }
+  .seg.active {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+  }
+  .seg.active + .seg { border-left-color: var(--ink); }
+
   #spectrum-container {
     padding: 16px 28px 8px;
     position: relative;
@@ -1479,6 +1496,12 @@
     <button class="tab" data-view="anchors">Keystones</button>
     <button class="tab" data-view="builder">Program Builder</button>
     <span class="data-controls">
+      <span class="filter-group" id="imp-filter" role="group" aria-label="Importance filter">
+        <span class="filter-label">Importance</span>
+        <button class="seg" data-imp="1" title="Only the every-program exercises">1</button>
+        <button class="seg" data-imp="2" title="Every program, plus every second program">1–2</button>
+        <button class="seg" data-imp="3" title="Everything, including occasional">1–3</button>
+      </span>
       <button class="mini-btn" id="btn-upload">Upload CSV</button>
       <button class="mini-btn" id="btn-url">Load from Sheet</button>
       <input type="file" id="file" accept=".csv,text/csv" hidden>
@@ -1931,70 +1954,85 @@ function render(model) {
       // column to its true pixel centre, giving way only where a real collision
       // says it must.
       //
-      // ⚠️ The check has to be at PILL level, not column level. An earlier
-      // version compared whole columns using their widest pill, concluded that
-      // two columns clashed, and reasoned about their bands as if they were
-      // disjoint — but seat() validates pill against pill, so columns whose
-      // individual pills clear each other legitimately share rows. Treating those
-      // bands as disjoint put 6 pairs on top of one another.
-      const laneH = rows * ROW_PITCH;
-      const PILL_H = 22;
+      // ⚠️ Three things this has to get right, each of which tipped every stack
+      // upward when it was wrong:
+      //   * centre within the height the track will ACTUALLY have — it is
+      //     `rows * ROW_PITCH + 12` (min 40), not `rows * ROW_PITCH`;
+      //   * a column of n pills spans (n-1) * ROW_PITCH + PILL_H, not
+      //     n * ROW_PITCH — the last pill contributes its height, not a row pitch;
+      //   * PILL_H must be the FRACTIONAL height. offsetHeight rounds 20.1 to 20,
+      //     and pills placed exactly that far apart then overlap by a tenth of a
+      //     pixel, which is enough to fail a strict rectangle test.
+      //
+      // ⚠️ And the collision check is at PILL level, not column level. seat()
+      // validates pill against pill, so two columns whose widest pills would
+      // clash may still have individual pills that clear each other and
+      // legitimately share rows. Comparing whole columns treated those bands as
+      // disjoint and stacked 32 pairs on top of each other.
+      const PILL_H = ((positioned[0] && positioned[0].exEl.getBoundingClientRect().height) || 22) + 1;
+      const extentOf = n => (n - 1) * ROW_PITCH + PILL_H;
 
-      const colList = columns.map(col => ({
-        pills: col,
-        h: col.length * ROW_PITCH,
-        rowTop: Math.min(...col.map(p => p.row)) * ROW_PITCH,
-        top: null,
-      }));
-
-      const settledPills = [];
-      const fits = (col, T) => col.pills.every((p, i) => {
-        const y1 = T + i * ROW_PITCH, y2 = y1 + PILL_H;
-        return !settledPills.some(q =>
-          y1 < q.y2 && y2 > q.y1 &&
-          !(p.leftPct + p.halfWPct + PAD_PCT < q.leftPct - q.halfWPct ||
-            p.leftPct - p.halfWPct - PAD_PCT > q.leftPct + q.halfWPct));
-      });
-
-      // Tallest first: they have the least room to move, so letting them settle
-      // first leaves the honest gaps for everything else.
-      let allPlaced = true;
-      for (const col of colList.slice().sort((a, b) => b.h - a.h)) {
-        const ideal = (laneH - col.h) / 2;
-        const maxT = laneH - col.h;
-        let chosen = null;
-        // Walk outward from the true centre a pixel at a time. Usually hits on
-        // the first try; the search only does work where something is in the way.
-        for (let d = 0; d <= laneH && chosen === null; d++) {
-          for (const T of (d === 0 ? [ideal] : [ideal - d, ideal + d])) {
-            if (T < 0 || T > maxT) continue;
-            if (fits(col, T)) { chosen = T; break; }
-          }
-        }
-        if (chosen === null) { allPlaced = false; chosen = col.rowTop; }
-        col.top = chosen;
-        col.pills.forEach((p, i) => settledPills.push({
-          leftPct: p.leftPct, halfWPct: p.halfWPct,
-          y1: chosen + i * ROW_PITCH, y2: chosen + i * ROW_PITCH + PILL_H,
+      let trackH, colList, allPlaced;
+      // Grow the lane until every column can be seated. A column that cannot be
+      // placed anywhere would otherwise have to fall back to its row position,
+      // which is top-packed — the very thing this pass exists to fix — and which
+      // is no longer safe once its neighbours have moved. One extra row is a far
+      // better trade than one stack jammed against the top.
+      for (let attempt = 0; attempt < 12; attempt++) {
+        trackH = Math.max(40, rows * ROW_PITCH + 12);
+        colList = columns.map(col => ({
+          pills: col,
+          h: extentOf(col.length),
+          top: null,
         }));
+
+        const settledPills = [];
+        const fits = (col, T) => col.pills.every((p, i) => {
+          const y1 = T + i * ROW_PITCH, y2 = y1 + PILL_H;
+          return !settledPills.some(q =>
+            y1 < q.y2 && y2 > q.y1 &&
+            !(p.leftPct + p.halfWPct + PAD_PCT < q.leftPct - q.halfWPct ||
+              p.leftPct - p.halfWPct - PAD_PCT > q.leftPct + q.halfWPct));
+        });
+
+        allPlaced = true;
+        // Tallest first: they have the least room to move, so letting them settle
+        // first leaves the honest gaps for everything else.
+        for (const col of colList.slice().sort((a, b) => b.h - a.h)) {
+          const ideal = (trackH - col.h) / 2;
+          const maxT = trackH - col.h;
+          let chosen = null;
+          // Walk outward from the true centre a pixel at a time. Usually hits on
+          // the first try; it only does work where something is in the way.
+          for (let d = 0; d <= trackH && chosen === null; d++) {
+            for (const T of (d === 0 ? [ideal] : [ideal - d, ideal + d])) {
+              if (T < 0 || T > maxT) continue;
+              if (fits(col, T)) { chosen = T; break; }
+            }
+          }
+          if (chosen === null) { allPlaced = false; break; }
+          col.top = chosen;
+          col.pills.forEach((p, i) => settledPills.push({
+            leftPct: p.leftPct, halfWPct: p.halfWPct,
+            y1: chosen + i * ROW_PITCH, y2: chosen + i * ROW_PITCH + PILL_H,
+          }));
+        }
+        if (allPlaced) break;
+        rows++;
       }
 
       // Placed column by column against what is already down, so the result is
-      // overlap-free by construction — UNLESS some column found nowhere to go, in
-      // which case fall the whole lane back to the row assignment, which is
-      // always valid. Correct beats prettier.
+      // overlap-free by construction.
       for (const col of colList) {
-        const base = allPlaced ? col.top : col.rowTop;
         col.pills.forEach((item, i) => {
-          item.exEl.style.top = (base + i * ROW_PITCH) + 'px';
+          item.exEl.style.top = (col.top + i * ROW_PITCH) + 'px';
           item.exEl.style.transform = 'translateX(-50%)';
         });
       }
 
 
-      const rowHeight = Math.max(40, rows * ROW_PITCH + 12);
-      trackEl.style.height = rowHeight + 'px';
-      rowEl.style.minHeight = rowHeight + 'px';
+      trackEl.style.height = trackH + 'px';
+      rowEl.style.minHeight = trackH + 'px';
     });
   });
 
@@ -3239,11 +3277,36 @@ const dataSource = wireDataSource({
       bootedOnce = true;
       setActiveView('spectrum');
       updateShortlistPill();
-    } else if (activeView === 'spectrum') render(currentModel);
-    else if (activeView === 'builder') renderAllTimelines(currentModel);
-    else if (activeView === 'anchors') renderAnchors(currentModel);
+    } else renderActiveView();
   },
 });
+
+// (renderActiveView() already exists further up, next to setActiveView. It
+// guards on currentModel and refreshes the shortlist highlights too, so reuse it
+// rather than adding a second, thinner copy.)
+
+// Importance filter. The three options are nested ranges, so this sets the
+// ceiling rather than toggling members: 1, 1-2, 1-2-3.
+//
+// A shortlisted exercise that falls outside the new range simply stops being
+// shown — renderShortlistPalette already skips names the model no longer holds,
+// so it comes back when the filter is widened again rather than being lost.
+const impFilter = document.getElementById('imp-filter');
+function syncImpFilter() {
+  for (const b of impFilter.querySelectorAll('.seg')) {
+    b.classList.toggle('active', Number(b.dataset.imp) === viewState.impMax);
+  }
+}
+impFilter.addEventListener('click', (e) => {
+  const btn = e.target.closest('.seg');
+  if (!btn) return;
+  const next = Number(btn.dataset.imp);
+  if (next === viewState.impMax) return;
+  viewState.impMax = next;
+  syncImpFilter();
+  if (rebuildModel()) renderActiveView();
+});
+syncImpFilter();
 
 async function init() {
   // Both tabs in parallel: the Breakdowns fetch has nothing to do with the
