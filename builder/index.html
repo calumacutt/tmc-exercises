@@ -12,7 +12,7 @@
     --ink-soft: #5A5A5A;
     --ink-faint: #9A9A9A;
     --rule: #E0DBD2;
-    --anchor: #3B2438;
+    --keystone: #3B2438;
     --selected-ring: #3B2438;
     --panel-bg: #FFFFFF;
     --shadow: 0 8px 32px rgba(0,0,0,0.08);
@@ -20,41 +20,16 @@
     /* Layout constants */
     --pathway-label-w: 160px;
 
-    /* Pastel palette - one per trait, matching the PDF */
-    --c-01: #C9D8E8;
-    --c-02: #B8CCDA;
-    --c-03: #BFD6CE;
-    --c-04: #C8D8C0;
-    --c-05: #DCD2BE;
-    --c-06: #E8CDB8;
-    --c-07: #E0D4B8;
-    --c-08: #D8C8DC;
-    --c-09: #E0C8D2;
-    --c-10: #CFC8DC;
-    --c-11: #E0D4B0;
-    --c-12: #E0BEC0;
-    --c-13: #C2D9D4;
-    --c-14: #D3D3C2;
-    --c-15: #D6CBE2;
-    --c-16: #E6D0C2;
+    /* Disciplines take their PILLAR's colour, computed at render time from
+       shared/taxonomy.js — the same five the wheel uses. There is no palette
+       here any more: the old 16 --c-NN/--l-NN pairs were one per discipline,
+       which meant a 17th discipline either wrapped onto an existing colour or
+       resolved to a var() that does not exist and rendered white on white.
+       Five pillar colours cannot run out. */
 
-    /* Darker label colours */
-    --l-01: #5A7090;
-    --l-02: #506A82;
-    --l-03: #557066;
-    --l-04: #5C7050;
-    --l-05: #806E50;
-    --l-06: #9A6E50;
-    --l-07: #806E40;
-    --l-08: #76608A;
-    --l-09: #8E5A70;
-    --l-10: #6A5E90;
-    --l-11: #806A40;
-    --l-12: #9A5A5A;
-    --l-13: #4E7268;
-    --l-14: #6E6E4A;
-    --l-15: #6B5E92;
-    --l-16: #94684A;
+    /* The two timeline zones are the last consumers of the old palette. */
+    --zone-skill: #506A82;
+    --zone-strength: #9A6E50;
   }
 
   * { box-sizing: border-box; }
@@ -133,7 +108,7 @@
     transition: background 0.15s;
   }
   .shortlist-pill.has-items .count {
-    background: var(--anchor);
+    background: var(--keystone);
   }
   /* On the Discipline view, the in-axis pill is the primary instance, so hide
      the header pill to avoid duplication. Other views use the header pill. */
@@ -264,8 +239,8 @@
     min-width: 14px;
     text-align: center;
   }
-  .sl-ex.anchor-ex .lvl {
-    background: var(--anchor);
+  .sl-ex.keystone-ex .lvl {
+    background: var(--keystone);
     color: white;
     opacity: 1;
   }
@@ -295,7 +270,7 @@
     padding: 0;
   }
   .sl-ex .sl-remove:hover {
-    background: var(--anchor);
+    background: var(--keystone);
     color: white;
   }
   .sl-ex .add-menu {
@@ -390,7 +365,7 @@
     padding: 2px 6px;
   }
   .timeline-label .class-clear:hover {
-    color: var(--anchor);
+    color: var(--keystone);
   }
 
   /* ---------- Timeline ---------- */
@@ -537,7 +512,7 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
-  .tl-block.anchor-block .tl-name::before {
+  .tl-block.keystone-block .tl-name::before {
     content: "★ ";
     color: white;
   }
@@ -619,25 +594,29 @@
   .legend-swatch.skill { background: rgba(184, 204, 218, 0.5); border: 1px solid rgba(184, 204, 218, 0.9); }
   .legend-swatch.strength { background: rgba(232, 205, 184, 0.5); border: 1px solid rgba(232, 205, 184, 0.9); }
 
-  /* ---------- Anchors view ---------- */
-  #anchors-container {
+  /* ---------- Keystones view ---------- */
+  #keystones-container {
     padding: 20px 28px 60px;
   }
 
-  .anchor-selector-section {
+  .keystone-selector-section {
     margin-bottom: 28px;
     padding-bottom: 24px;
     border-bottom: 1px solid var(--rule);
   }
 
-  .anchor-selector {
+  .keystone-selector {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
   }
-  .anchor-card {
-    background: white;
-    border: 1px solid var(--rule);
+  /* Coloured by the keystone's PRIMARY pillar — `--k-bar` and `--k-tint` are set
+     per card from the same taxonomy the wheel uses. An exercise that also appears
+     in another pillar still takes its primary one: a two-tone card would be
+     reading a lot into a field that is derived from Discipline anyway. */
+  .keystone-card {
+    background: var(--k-tint, white);
+    border: 1px solid var(--k-bar, var(--rule));
     border-radius: 4px;
     padding: 8px 14px 8px 12px;
     font-family: inherit;
@@ -649,21 +628,20 @@
     gap: 8px;
     transition: all 0.15s;
   }
-  .anchor-card:hover {
-    border-color: var(--anchor);
-    background: #FAFAFA;
+  .keystone-card:hover {
+    filter: brightness(0.95);
   }
-  .anchor-card.active {
-    background: var(--anchor);
+  .keystone-card.active {
+    background: var(--k-bar, var(--keystone));
     color: white;
-    border-color: var(--anchor);
+    border-color: var(--k-bar, var(--keystone));
   }
-  .anchor-card .star {
-    color: var(--anchor);
+  .keystone-card .star {
+    color: var(--k-bar, var(--keystone));
     font-size: 13px;
   }
-  .anchor-card.active .star { color: white; }
-  .anchor-card .lvl {
+  .keystone-card.active .star { color: white; }
+  .keystone-card .lvl {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     font-size: 9px;
     opacity: 0.7;
@@ -671,12 +649,12 @@
     padding: 1px 5px;
     border-radius: 6px;
   }
-  .anchor-card.active .lvl {
+  .keystone-card.active .lvl {
     background: rgba(255,255,255,0.2);
     opacity: 1;
   }
-  .anchor-card.empty {
-    opacity: 0.5;
+  .keystone-card.empty {
+    opacity: 0.72;
     border-style: dashed;
   }
 
@@ -701,7 +679,7 @@
     font-size: 20px;
     font-weight: 700;
     letter-spacing: -0.01em;
-    color: var(--anchor);
+    color: var(--keystone);
   }
   .breakdown-header h3::before {
     content: "★ ";
@@ -719,7 +697,7 @@
     margin-bottom: 24px;
   }
 
-  /* The tree: 3-column grid (anchor | components | exercises),
+  /* The tree: 3-column grid (keystone | components | exercises),
      with SVG lines drawn between them. */
   .tree {
     position: relative;
@@ -744,7 +722,7 @@
     stroke-width: 1.5;
   }
 
-  .tree-anchor {
+  .tree-keystone {
     grid-column: 1;
     display: flex;
     align-items: center;
@@ -753,8 +731,8 @@
     z-index: 1;
     padding: 8px 16px 8px 0;
   }
-  .tree-anchor-card {
-    background: var(--anchor);
+  .tree-keystone-card {
+    background: var(--keystone);
     color: white;
     border-radius: 6px;
     padding: 20px 18px;
@@ -762,18 +740,18 @@
     box-shadow: 0 4px 14px rgba(59, 36, 56, 0.18);
     min-width: 160px;
   }
-  .tree-anchor-card .star {
+  .tree-keystone-card .star {
     font-size: 22px;
     line-height: 1;
     margin-bottom: 4px;
   }
-  .tree-anchor-card .name {
+  .tree-keystone-card .name {
     font-size: 14px;
     font-weight: 700;
     line-height: 1.25;
     letter-spacing: -0.01em;
   }
-  .tree-anchor-card .lvl-line {
+  .tree-keystone-card .lvl-line {
     font-size: 9px;
     opacity: 0.7;
     text-transform: uppercase;
@@ -853,8 +831,8 @@
     border-color: var(--ink);
     background: #FAFAFA;
   }
-  .br-ex.anchor-ex {
-    border-color: var(--anchor);
+  .br-ex.keystone-ex {
+    border-color: var(--keystone);
   }
   .br-ex .lvl {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
@@ -867,8 +845,8 @@
     min-width: 12px;
     text-align: center;
   }
-  .br-ex.anchor-ex .lvl {
-    background: var(--anchor);
+  .br-ex.keystone-ex .lvl {
+    background: var(--keystone);
     color: white;
     opacity: 1;
   }
@@ -885,35 +863,35 @@
 
   /* Shortlisted state for keystone chips - filled tint to show membership */
   .br-ex.shortlisted {
-    background: var(--anchor);
+    background: var(--keystone);
     color: white;
-    border-color: var(--anchor);
+    border-color: var(--keystone);
   }
   .br-ex.shortlisted .lvl {
     background: rgba(255,255,255,0.2);
     color: white;
     opacity: 1;
   }
-  .br-ex.shortlisted.anchor-ex {
-    background: var(--anchor);
+  .br-ex.shortlisted.keystone-ex {
+    background: var(--keystone);
   }
-  /* Anchor cards in the keystone selector should also indicate shortlist state */
-  .anchor-card.shortlisted {
-    background: var(--anchor);
+  /* Cards in the keystone selector also indicate shortlist state */
+  .keystone-card.shortlisted {
+    background: var(--keystone);
     color: white;
-    border-color: var(--anchor);
+    border-color: var(--keystone);
   }
-  .anchor-card.shortlisted .star { color: white; }
-  .anchor-card.shortlisted .lvl {
+  .keystone-card.shortlisted .star { color: white; }
+  .keystone-card.shortlisted .lvl {
     background: rgba(255,255,255,0.2);
     color: white;
     opacity: 1;
   }
   /* Chain step shortlisted state */
   .chain-step.shortlisted:not(.current) {
-    background: var(--anchor);
+    background: var(--keystone);
     color: white;
-    border-color: var(--anchor);
+    border-color: var(--keystone);
   }
   .chain-step.shortlisted:not(.current) .lvl {
     background: rgba(255,255,255,0.2);
@@ -955,9 +933,9 @@
   }
   .chain-step:hover { border-color: var(--ink); }
   .chain-step.current {
-    background: var(--anchor);
+    background: var(--keystone);
     color: white;
-    border-color: var(--anchor);
+    border-color: var(--keystone);
     font-weight: 600;
   }
   .chain-step.current .lvl { background: rgba(255,255,255,0.2); color: white; opacity: 1; }
@@ -1107,12 +1085,14 @@
     border-top: 1px solid rgba(255, 255, 255, 0.28);
   }
 
-  /* Thin white spacer row between trait blocks for visual separation */
+  /* Thin white spacer row between trait blocks for visual separation, wider
+     where one pillar ends and the next begins. */
   .trait-spacer {
     grid-column: 1 / -1;
     height: 8px;
     background: var(--bg);
   }
+  .trait-spacer.pillar-gap { height: 26px; }
 
   /* Trait banner - a full-width row that introduces each trait group.
      Sits above the pathway rows that belong to this trait. Coloured with
@@ -1251,22 +1231,22 @@
     text-overflow: ellipsis;
   }
 
-  /* Anchor exercises: star prefix + plum border to stand out */
-  .exercise.anchor {
-    border-color: var(--anchor);
+  /* Keystone exercises: star prefix + plum border to stand out */
+  .exercise.keystone {
+    border-color: var(--keystone);
   }
-  .exercise.anchor .ex-name {
+  .exercise.keystone .ex-name {
     font-weight: 700;
-    color: var(--anchor);
+    color: var(--keystone);
   }
-  .exercise.anchor .lvl {
-    background: var(--anchor);
+  .exercise.keystone .lvl {
+    background: var(--keystone);
     color: white;
     opacity: 1;
   }
-  .exercise.anchor::before {
+  .exercise.keystone::before {
     content: "\2605";
-    color: var(--anchor);
+    color: var(--keystone);
     font-size: 10px;
     line-height: 1;
     margin-right: -2px;
@@ -1279,9 +1259,9 @@
 
   /* Shortlisted: plum-filled */
   .exercise.shortlisted {
-    background: var(--anchor);
+    background: var(--keystone);
     color: white;
-    border-color: var(--anchor);
+    border-color: var(--keystone);
   }
   .exercise.shortlisted .lvl {
     background: rgba(255,255,255,0.22);
@@ -1291,11 +1271,11 @@
   .exercise.shortlisted .ex-name {
     color: white;
   }
-  .exercise.shortlisted.anchor::before {
+  .exercise.shortlisted.keystone::before {
     color: white;
   }
   .exercise.shortlisted:hover {
-    background: var(--anchor);
+    background: var(--keystone);
     opacity: 0.9;
   }
 
@@ -1378,9 +1358,9 @@
   }
 
   /* Left run: identity */
-  .info-identity .anchor-badge {
+  .info-identity .keystone-badge {
     display: inline-block;
-    background: var(--anchor);
+    background: var(--keystone);
     color: white;
     font-size: 8.5px;
     letter-spacing: 0.1em;
@@ -1509,7 +1489,7 @@
     flex: 0 0 auto;
   }
   .info-shortlist-state.in {
-    background: var(--anchor);
+    background: var(--keystone);
     color: white;
   }
   .info-shortlist-state.out {
@@ -1536,7 +1516,7 @@
   </div>
   <nav class="tabs">
     <button class="tab active" data-view="spectrum">Disciplines</button>
-    <button class="tab" data-view="anchors">Keystones</button>
+    <button class="tab" data-view="keystones">Keystones</button>
     <button class="tab" data-view="builder">Program Builder</button>
     <span class="data-controls">
       <span class="filter-group" id="imp-filter" role="group" aria-label="Importance filter">
@@ -1565,16 +1545,16 @@
   <div id="spectrum-container" class="view"></div>
 
   <!-- View 2: Keystones -->
-  <div id="anchors-container" class="view" style="display:none;">
-    <section class="anchor-selector-section">
+  <div id="keystones-container" class="view" style="display:none;">
+    <section class="keystone-selector-section">
       <div class="section-header">
         <h2>Keystone exercise</h2>
         <p class="section-hint">Pick a keystone to see the components that make it up and the exercises that train each one. Click an exercise chip to add it to your shortlist.</p>
       </div>
-      <div id="anchor-selector" class="anchor-selector"></div>
+      <div id="keystone-selector" class="keystone-selector"></div>
     </section>
 
-    <section id="anchor-detail-section" class="anchor-detail-section" style="display:none;">
+    <section id="keystone-detail-section" class="keystone-detail-section" style="display:none;">
     </section>
   </div>
 
@@ -1633,6 +1613,7 @@
 import { parseCSV, rowsToObjects, field } from '../shared/csv.js';
 import { normaliseRows, filterRows, validateRows } from '../shared/library.js';
 import { BREAKDOWNS_CSV_URL } from '../shared/sheet.js';
+import { PILLAR_ORDER, pillarBase, hsl } from '../shared/taxonomy.js';
 import { wireDataSource } from '../shared/loader.js';
 
 /* =========================================================================
@@ -1655,26 +1636,39 @@ import { wireDataSource } from '../shared/loader.js';
 //
 // The internal field names `trait`/`pathway` survive only inside this view's
 // renderers; renaming them is churn against the layout rewrite, so it waits.
-function buildModelFromRows(rows, anchorBreakdowns) {
-  // Discipline -> Line -> exercises. Insertion is driven by an ALPHABETICAL walk
-  // so `colourIndex` is a stable identity: ordering by exercise count would
-  // reshuffle every colour whenever the sheet grows, which is the same reasoning
-  // as `shade()` in shared/taxonomy.js.
+function buildModelFromRows(rows, keystoneBreakdowns) {
+  // Discipline -> Line -> exercises.
   const discMap = new Map();
+  const discPillar = new Map();
   for (const r of rows) {
     const d = r.discipline, l = r.line;
     if (!discMap.has(d)) discMap.set(d, new Map());
+    // `Pillar (auto)` is a sheet formula over Discipline, so every row of a
+    // discipline carries the same value and the first one seen is authoritative.
+    if (!discPillar.has(d)) discPillar.set(d, r.pillar || '');
     const lines = discMap.get(d);
     if (!lines.has(l)) lines.set(l, []);
   }
-  const traits = [...discMap.keys()].sort((a, b) => a.localeCompare(b)).map((name, i) => ({
-    order: i + 1,
-    name,
-    colourIndex: i + 1,
-    pillar: '',
-    pathways: [...discMap.get(name).keys()].sort((a, b) => a.localeCompare(b))
-      .map((pw, k) => ({ order: k + 1, name: pw, exercises: [] })),
-  }));
+
+  // Disciplines are GROUPED BY PILLAR, in the wheel's own pillar order, and
+  // alphabetical within a pillar. Alphabetical is deliberate for the same reason
+  // it is in `shade()`: ordering by exercise count would reshuffle the whole page
+  // every time the sheet grows, so a discipline's position would not be a stable
+  // place to look for it.
+  //
+  // `pillarRank` puts an unrecognised pillar last — see its definition.
+  const traits = [...discMap.keys()]
+    .sort((a, b) => {
+      const pa = pillarRank(discPillar.get(a)), pb = pillarRank(discPillar.get(b));
+      return pa !== pb ? pa - pb : a.localeCompare(b);
+    })
+    .map((name, i) => ({
+      order: i + 1,
+      name,
+      pillar: discPillar.get(name),
+      pathways: [...discMap.get(name).keys()].sort((a, b) => a.localeCompare(b))
+        .map((pw, k) => ({ order: k + 1, name: pw, exercises: [] })),
+    }));
 
   const lookup = new Map();
   for (const t of traits) {
@@ -1699,7 +1693,7 @@ function buildModelFromRows(rows, anchorBreakdowns) {
       name: r.name,
       traitPathways: [{ trait: r.discipline, pathway: r.line }],
       level: lvl,
-      isAnchor: !!r.keystone,
+      isKeystone: !!r.keystone,
       // live columns that replaced the deleted ones
       importance: r.importance,
       pillar: r.pillar,
@@ -1712,7 +1706,6 @@ function buildModelFromRows(rows, anchorBreakdowns) {
     const entry = lookup.get(r.discipline);
     const pathway = entry && entry.pathwayMap.get(r.line);
     if (!pathway) continue;      // cannot happen: the scaffold is built from these same rows
-    entry.trait.pillar = entry.trait.pillar || r.pillar;
     pathway.exercises.push(ex);
     exercisesByName.set(ex.name, ex);
   }
@@ -1733,7 +1726,44 @@ function buildModelFromRows(rows, anchorBreakdowns) {
     }
   }
 
-  return { traits, exercisesByName, anchorBreakdowns, skippedNoLevel };
+  return { traits, exercisesByName, keystoneBreakdowns, skippedNoLevel };
+}
+
+// ---------- Pillar colour ----------
+// Derived from shared/taxonomy.js rather than restated, so this page and the
+// wheel cannot drift on what a pillar looks like — which is exactly the failure
+// CLAUDE.md §6.2 records, where three pillars rendered grey for a whole session
+// because a second colour map had gone stale.
+//
+// The wheel draws on a dark canvas and this page is light, so the pillar's HUE
+// carries over and the lightness is re-pitched: a dark bar for white banner text,
+// a pale tint for the lane behind the pills. Saturation is pulled back a little
+// on both — the wheel's values are set against near-black, and at this scale
+// they shout.
+function pillarBanner(p) {
+  const b = pillarBase(p);
+  return hsl(b.h, Math.round(b.s * 0.85), 38);
+}
+function pillarTint(p) {
+  const b = pillarBase(p);
+  return hsl(b.h, Math.round(b.s * 0.5), 86);
+}
+// A stronger tint, for CHIP-sized things. Same principle as CLAUDE.md §8.1's
+// "fill area carries lightness": a full-width lane reads its hue from a very weak
+// wash, but a 120px card at the same wash is indistinguishable from white —
+// Mobility halves to 16% saturation, which at 86% lightness is just grey. The
+// floor matters more than the multiplier: the pillars run 32–70 base saturation,
+// so a pure multiple leaves the muted ones colourless while the vivid ones shout.
+function pillarChipTint(p) {
+  const b = pillarBase(p);
+  return hsl(b.h, Math.max(30, Math.round(b.s * 0.85)), 84);
+}
+// A pillar the vocabulary does not know sorts to the END, not the front, so a
+// typo shows up as a visibly odd group at the bottom instead of quietly taking
+// over the top of the page.
+function pillarRank(p) {
+  const i = PILLAR_ORDER.indexOf(p);
+  return i < 0 ? PILLAR_ORDER.length : i;
 }
 
 function parseList(s) {
@@ -1801,31 +1831,20 @@ function render(model) {
   container.appendChild(axisStrip);
 
   // Trait blocks (each trait has a banner above its pathway rows)
-  if (model.traits.length > PALETTE_SIZE) {
-    console.warn('[builder] ' + model.traits.length + ' disciplines but only '
-      + PALETTE_SIZE + ' colours: '
-      + model.traits.slice(PALETTE_SIZE).map(t => t.name).join(', ')
-      + ' reuse an earlier colour. Add --c-NN/--l-NN pairs to fix.');
-  }
   model.traits.forEach((trait, traitIdx) => {
-    // ⚠️ WRAP the palette. There are PALETTE_SIZE colour pairs defined in CSS and
-    // 16 disciplines in the sheet today. An index past the end resolves to a
-    // var() that does not exist, so the banner gets no background and its white
-    // text lands on white — invisible until someone scrolls to the bottom of the
-    // page and cannot read four discipline names. That is exactly the failure
-    // CLAUDE.md §6.2 records for pillar colours, in a second place.
-    //
-    // Wrapping makes two disciplines share a colour, which is visible and
-    // therefore fixable, rather than silently unreadable. The warning below says
-    // when it happens.
-    const colourIdx = pad2(((trait.colourIndex - 1) % PALETTE_SIZE) + 1);
-    const labelColour = `var(--l-${colourIdx})`;
-    const traitBg = `var(--c-${colourIdx})`;
+    // One colour per PILLAR, not per discipline, so the page reads as five
+    // groups rather than sixteen unrelated bands — and matches the wheel, which
+    // is the whole point of having two lenses on one library.
+    const labelColour = pillarBanner(trait.pillar);
+    const traitBg = pillarTint(trait.pillar);
 
-    // Spacer row between trait blocks (not before the first one)
+    // Spacer row between trait blocks (not before the first one), widened where
+    // the PILLAR changes. Disciplines in a pillar now share a colour, so without
+    // a bigger gap two adjacent pillars read as one long block.
     if (traitIdx > 0) {
       const spacer = document.createElement('div');
-      spacer.className = 'trait-spacer';
+      const newPillar = trait.pillar !== model.traits[traitIdx - 1].pillar;
+      spacer.className = 'trait-spacer' + (newPillar ? ' pillar-gap' : '');
       container.appendChild(spacer);
     }
 
@@ -1904,13 +1923,13 @@ function render(model) {
 
       for (const ex of sortedExs) {
         const exEl = document.createElement('div');
-        exEl.className = 'exercise' + (ex.isAnchor ? ' anchor' : '');
+        exEl.className = 'exercise' + (ex.isKeystone ? ' keystone' : '');
         exEl.style.left = levelToPercent(ex.level) + '%';
         exEl.dataset.name = ex.name;
 
         // Pill structure: just the name. Level is already shown by horizontal
         // position on the spectrum, so the level badge is redundant here.
-        // (The anchor star is added via CSS ::before.)
+        // (The keystone star is added via CSS ::before.)
         const nameEl = document.createElement('span');
         nameEl.className = 'ex-name';
         nameEl.textContent = ex.name;
@@ -2122,16 +2141,11 @@ function render(model) {
   }
 }
 
-// How many --c-NN / --l-NN pairs exist in the stylesheet. Keep in step with them.
-const PALETTE_SIZE = 16;
-
 function levelToPercent(level) {
   const pad = 4;
   return pad + ((level - 1) / 9) * (100 - 2 * pad);
 }
 
-
-function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
 // ---------- Selection state & bottom info panel ----------
 // Click any exercise (in Disciplines, Keystones, or chain) to:
@@ -2167,7 +2181,7 @@ const infoContent = document.getElementById('info-content');
 // Toggle visibility of the info panel based on the active view.
 function updateInfoPanelVisibility() {
   // Visible in Disciplines and Keystones; hidden in Program Builder.
-  const show = (activeView === 'spectrum' || activeView === 'anchors');
+  const show = (activeView === 'spectrum' || activeView === 'keystones');
   document.body.classList.toggle('show-info-panel', show);
 }
 
@@ -2177,7 +2191,7 @@ function renderInfoPanel(ex, model) {
     return;
   }
   const isShort = isShortlisted(ex.name);
-  const anchorBadge = ex.isAnchor ? '<div class="anchor-badge">Anchor Exercise</div>' : '';
+  const keystoneBadge = ex.isKeystone ? '<div class="keystone-badge">Keystone</div>' : '';
   const shortlistState = isShort
     ? '<div class="info-shortlist-state in">In Shortlist</div>'
     : '<div class="info-shortlist-state out">Not Shortlisted</div>';
@@ -2213,7 +2227,7 @@ function renderInfoPanel(ex, model) {
   // here; it runs across instead of down. See the .info-panel CSS for why.
   infoContent.innerHTML = `
     <div class="info-identity">
-      ${anchorBadge}
+      ${keystoneBadge}
       ${shortlistState}
       <h2 class="info-name">${escapeHtml(ex.name)}</h2>
       <span class="info-tp">${tpLines}</span>
@@ -2265,71 +2279,83 @@ function escapeHtml(s) {
 function escapeAttr(s) { return escapeHtml(s); }
 
 /* =========================================================================
-   ANCHORS VIEW
+   KEYSTONES VIEW
    =========================================================================
-   Shows the 10 anchor exercises as cards. Click one to see its breakdown:
-   a 3-column tree of (anchor → components → training exercises) with
-   connector lines drawn in SVG. Also shows the progression chain.
+   Shows every exercise flagged Keystone as a card, grouped by pillar. Click one
+   to see its breakdown: a 3-column tree of (keystone → components → training
+   exercises) with connector lines drawn in SVG, plus the progression chain.
+
+   ⚠️ This view reads `fullModel`, NOT `currentModel` — the global importance and
+   variants filters are the Discipline view's, and have no business narrowing a
+   keystone breakdown.
    ========================================================================= */
 
-const anchorState = {
-  selectedAnchor: null,
+const keystoneState = {
+  selectedKeystone: null,
 };
 
-function renderAnchors(model) {
-  renderAnchorSelector(model);
-  if (anchorState.selectedAnchor && model.exercisesByName.has(anchorState.selectedAnchor)) {
-    renderAnchorBreakdown(model, anchorState.selectedAnchor);
-    document.getElementById('anchor-detail-section').style.display = 'block';
+function renderKeystones(model) {
+  renderKeystoneSelector(model);
+  if (keystoneState.selectedKeystone && model.exercisesByName.has(keystoneState.selectedKeystone)) {
+    renderKeystoneBreakdown(model, keystoneState.selectedKeystone);
+    document.getElementById('keystone-detail-section').style.display = 'block';
   } else {
-    document.getElementById('anchor-detail-section').style.display = 'none';
+    document.getElementById('keystone-detail-section').style.display = 'none';
   }
   // Ensure any newly-rendered chips reflect current shortlist state.
   refreshShortlistedHighlights();
 }
 
-function renderAnchorSelector(model) {
-  const wrap = document.getElementById('anchor-selector');
+function renderKeystoneSelector(model) {
+  const wrap = document.getElementById('keystone-selector');
   wrap.innerHTML = '';
-  // Collect all anchors from model in trait order
-  const anchors = [];
+  // Collect all keystones from model in trait order
+  const keystones = [];
   for (const [name, ex] of model.exercisesByName) {
-    if (ex.isAnchor) anchors.push(ex);
+    if (ex.isKeystone) keystones.push(ex);
   }
-  // Sort by first trait's order, then level
-  anchors.sort((a, b) => {
-    const ta = a.traitPathways[0], tb = b.traitPathways[0];
-    const traitOrderA = model.traits.findIndex(t => t.name === ta.trait);
-    const traitOrderB = model.traits.findIndex(t => t.name === tb.trait);
-    if (traitOrderA !== traitOrderB) return traitOrderA - traitOrderB;
-    return a.level - b.level;
+  // PILLAR first, then whether there is a breakdown to open, then level.
+  //
+  // The breakdown tier is the useful part: 3 of the keystones have components
+  // defined and the rest are dead cards, so without it the only ones worth
+  // clicking are scattered through the list. Sorting them to the front of their
+  // own pillar keeps the pillar grouping intact while putting everything that
+  // does something where it will be found.
+  keystones.sort((a, b) => {
+    const pa = pillarRank(a.pillar), pb = pillarRank(b.pillar);
+    if (pa !== pb) return pa - pb;
+    const ba = model.keystoneBreakdowns.has(a.name) ? 0 : 1;
+    const bb = model.keystoneBreakdowns.has(b.name) ? 0 : 1;
+    if (ba !== bb) return ba - bb;
+    return (a.level - b.level) || a.name.localeCompare(b.name);
   });
 
-  for (const ex of anchors) {
-    const hasBreakdown = model.anchorBreakdowns.has(ex.name);
+  for (const ex of keystones) {
+    const hasBreakdown = model.keystoneBreakdowns.has(ex.name);
     const card = document.createElement('button');
-    card.className = 'anchor-card' + (hasBreakdown ? '' : ' empty');
+    card.className = 'keystone-card' + (hasBreakdown ? '' : ' empty');
     card.dataset.name = ex.name;
-    if (anchorState.selectedAnchor === ex.name) card.classList.add('active');
+    card.style.setProperty('--k-bar', pillarBanner(ex.pillar));
+    card.style.setProperty('--k-tint', pillarChipTint(ex.pillar));
+    card.title = (ex.pillar || 'No pillar')
+      + (hasBreakdown ? '' : ' \u00b7 no breakdown defined yet');
+    if (keystoneState.selectedKeystone === ex.name) card.classList.add('active');
     card.innerHTML = `
       <span class="star">★</span>
       <span class="name">${escapeHtml(ex.name)}</span>
     `;
-    if (!hasBreakdown) {
-      card.title = 'No breakdown defined yet';
-    }
     card.addEventListener('click', () => {
-      anchorState.selectedAnchor = ex.name;
-      renderAnchors(model);
+      keystoneState.selectedKeystone = ex.name;
+      renderKeystones(model);
     });
     wrap.appendChild(card);
   }
 }
 
-function renderAnchorBreakdown(model, anchorName) {
-  const ex = model.exercisesByName.get(anchorName);
-  const breakdown = model.anchorBreakdowns.get(anchorName) || [];
-  const detailSection = document.getElementById('anchor-detail-section');
+function renderKeystoneBreakdown(model, keystoneName) {
+  const ex = model.exercisesByName.get(keystoneName);
+  const breakdown = model.keystoneBreakdowns.get(keystoneName) || [];
+  const detailSection = document.getElementById('keystone-detail-section');
   detailSection.innerHTML = '';
 
   const wrap = document.createElement('div');
@@ -2355,7 +2381,7 @@ function renderAnchorBreakdown(model, anchorName) {
   if (breakdown.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'breakdown-empty';
-    empty.textContent = `${ex.name} hasn't been broken down into components yet. Add rows to the third section of the CSV with this anchor name and its components.`;
+    empty.textContent = `${ex.name} hasn't been broken down into components yet. Add a row to the sheet's Breakdowns tab keyed on this exact name.`;
     wrap.appendChild(empty);
   } else {
     // Build the 3-column tree
@@ -2367,18 +2393,19 @@ function renderAnchorBreakdown(model, anchorName) {
     linesSvg.classList.add('tree-lines');
     tree.appendChild(linesSvg);
 
-    // Column 1: anchor card (spans full height visually via flex centering)
-    const anchorCol = document.createElement('div');
-    anchorCol.className = 'tree-anchor';
-    const anchorCard = document.createElement('div');
-    anchorCard.className = 'tree-anchor-card';
-    anchorCard.innerHTML = `
+    // Column 1: keystone card (spans full height visually via flex centering)
+    const keystoneCol = document.createElement('div');
+    keystoneCol.className = 'tree-keystone';
+    const keystoneCard = document.createElement('div');
+    keystoneCard.className = 'tree-keystone-card';
+    keystoneCard.style.background = pillarBanner(ex.pillar);
+    keystoneCard.innerHTML = `
       <div class="star">★</div>
       <div class="name">${escapeHtml(ex.name)}</div>
       <div class="lvl-line">Level ${ex.level}</div>
     `;
-    anchorCol.appendChild(anchorCard);
-    tree.appendChild(anchorCol);
+    keystoneCol.appendChild(keystoneCard);
+    tree.appendChild(keystoneCol);
 
     // Column 2: components
     const componentsCol = document.createElement('div');
@@ -2406,7 +2433,7 @@ function renderAnchorBreakdown(model, anchorName) {
         const known = model.exercisesByName.get(exName);
         const chip = document.createElement('button');
         if (known) {
-          chip.className = 'br-ex' + (known.isAnchor ? ' anchor-ex' : '');
+          chip.className = 'br-ex' + (known.isKeystone ? ' keystone-ex' : '');
           chip.dataset.name = exName;
           chip.innerHTML = `<span class="lvl">${known.level}</span><span>${escapeHtml(exName)}</span>`;
           chip.addEventListener('click', () => {
@@ -2448,11 +2475,11 @@ function drawTreeLines(tree, svg, count) {
   svg.setAttribute('height', treeRect.height);
   svg.setAttribute('viewBox', `0 0 ${treeRect.width} ${treeRect.height}`);
 
-  const anchorCard = tree.querySelector('.tree-anchor-card');
-  if (!anchorCard) return;
-  const anchorRect = anchorCard.getBoundingClientRect();
-  const anchorRightX = anchorRect.right - treeRect.left;
-  const anchorCentreY = anchorRect.top + anchorRect.height / 2 - treeRect.top;
+  const keystoneCard = tree.querySelector('.tree-keystone-card');
+  if (!keystoneCard) return;
+  const keystoneRect = keystoneCard.getBoundingClientRect();
+  const keystoneRightX = keystoneRect.right - treeRect.left;
+  const keystoneCentreY = keystoneRect.top + keystoneRect.height / 2 - treeRect.top;
 
   const components = tree.querySelectorAll('.component-block');
   const exGroups = tree.querySelectorAll('.exercise-group');
@@ -2463,9 +2490,9 @@ function drawTreeLines(tree, svg, count) {
     const compRightX = compRect.right - treeRect.left;
     const compCentreY = compRect.top + compRect.height / 2 - treeRect.top;
 
-    // Curved line from anchor right edge to component left edge
-    const midX1 = (anchorRightX + compLeftX) / 2;
-    const path1 = `M ${anchorRightX} ${anchorCentreY} C ${midX1} ${anchorCentreY}, ${midX1} ${compCentreY}, ${compLeftX} ${compCentreY}`;
+    // Curved line from keystone right edge to component left edge
+    const midX1 = (keystoneRightX + compLeftX) / 2;
+    const path1 = `M ${keystoneRightX} ${keystoneCentreY} C ${midX1} ${keystoneCentreY}, ${midX1} ${compCentreY}, ${compLeftX} ${compCentreY}`;
     const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     line1.setAttribute('class', 'tree-line');
     line1.setAttribute('d', path1);
@@ -2486,14 +2513,14 @@ function drawTreeLines(tree, svg, count) {
   });
 }
 
-function renderProgressionChain(model, anchorEx) {
+function renderProgressionChain(model, keystoneEx) {
   // Walk backwards via regressesFrom and forwards via progressesTo, up to a few steps.
   // Return null if there's nothing meaningful to show.
   const chain = [];
 
   // Walk back
-  let cursor = anchorEx;
-  const seenBack = new Set([anchorEx.name]);
+  let cursor = keystoneEx;
+  const seenBack = new Set([keystoneEx.name]);
   while (cursor.regressesFrom.length > 0 && chain.length < 6) {
     const prevName = cursor.regressesFrom[0];
     if (seenBack.has(prevName)) break;
@@ -2504,11 +2531,11 @@ function renderProgressionChain(model, anchorEx) {
     cursor = prev;
   }
 
-  chain.push(anchorEx);
+  chain.push(keystoneEx);
 
   // Walk forward
-  cursor = anchorEx;
-  const seenFwd = new Set([anchorEx.name]);
+  cursor = keystoneEx;
+  const seenFwd = new Set([keystoneEx.name]);
   while (cursor.progressesTo.length > 0 && chain.length < 12) {
     const nextName = cursor.progressesTo[0];
     if (seenFwd.has(nextName)) break;
@@ -2534,14 +2561,14 @@ function renderProgressionChain(model, anchorEx) {
       row.appendChild(arrow);
     }
     const stepEl = document.createElement('button');
-    stepEl.className = 'chain-step' + (step.name === anchorEx.name ? ' current' : '');
+    stepEl.className = 'chain-step' + (step.name === keystoneEx.name ? ' current' : '');
     stepEl.dataset.name = step.name;
     stepEl.innerHTML = `<span class="lvl">${step.level}</span><span>${escapeHtml(step.name)}</span>`;
     stepEl.addEventListener('click', () => {
       toggleShortlist(step.name);
-      if (step.isAnchor) {
-        anchorState.selectedAnchor = step.name;
-        renderAnchors(model);
+      if (step.isKeystone) {
+        keystoneState.selectedKeystone = step.name;
+        renderKeystones(model);
       } else {
         selectExercise(step.name, model, { anchorEl: stepEl });
       }
@@ -2554,6 +2581,9 @@ function renderProgressionChain(model, anchorEx) {
 
 
 let currentModel = null;
+// The Keystone view reads THIS, not `currentModel`. See the note where it is
+// built: the global importance / variants filters belong to the Discipline view.
+let fullModel = null;
 
 /* =========================================================================
    PROGRAM BUILDER VIEW
@@ -2681,7 +2711,7 @@ function refreshShortlistedHighlights() {
     elements.forEach(el => el.classList.toggle('shortlisted', shortlisted));
   }
   // Keystones - selector cards
-  document.querySelectorAll('.anchor-card').forEach(card => {
+  document.querySelectorAll('.keystone-card').forEach(card => {
     const name = card.dataset.name;
     if (name) card.classList.toggle('shortlisted', isShortlisted(name));
   });
@@ -2719,7 +2749,7 @@ function renderShortlistPalette(model) {
     const ex = model.exercisesByName.get(name);
     if (!ex) continue;
     const chip = document.createElement('div');
-    chip.className = 'sl-ex' + (ex.isAnchor ? ' anchor-ex' : '');
+    chip.className = 'sl-ex' + (ex.isKeystone ? ' keystone-ex' : '');
     chip.dataset.name = name;
     chip.draggable = true;
 
@@ -2935,13 +2965,13 @@ function slotWidthPercent() { return (20 / 60) * 100; }
 
 function makeBlock(block, ex, classId, model) {
   const el = document.createElement('div');
-  el.className = 'tl-block' + (ex.isAnchor ? ' anchor-block' : '');
+  el.className = 'tl-block' + (ex.isKeystone ? ' keystone-block' : '');
   el.dataset.name = ex.name;
   el.dataset.classId = classId;
   el.style.left = slotToPercent(block.zone, block.slot) + '%';
   el.style.width = `calc(${slotWidthPercent()}% - var(--slot-gap))`;
   const isSkill = block.zone === 'skill';
-  el.style.setProperty('--block-bg', isSkill ? 'var(--l-02)' : 'var(--l-06)');
+  el.style.setProperty('--block-bg', isSkill ? 'var(--zone-skill)' : 'var(--zone-strength)');
   el.draggable = true;
 
   const name = document.createElement('div');
@@ -3146,7 +3176,7 @@ function buildExportText(model) {
         lines.push('    ' + startMin + '-' + endMin + ' min:');
         for (const b of slotBlocks) {
           const ex = model.exercisesByName.get(b.name);
-          const star = ex && ex.isAnchor ? '★ ' : '';
+          const star = ex && ex.isKeystone ? '★ ' : '';
           const lvl = ex ? ' (lvl ' + ex.level + ')' : '';
           lines.push('      Lane ' + (b.lane + 1) + ': ' + star + b.name + lvl);
         }
@@ -3167,12 +3197,12 @@ function setActiveView(name) {
   });
   document.getElementById('spectrum-container').style.display = (name === 'spectrum') ? 'block' : 'none';
   document.getElementById('builder-container').style.display = (name === 'builder') ? 'block' : 'none';
-  document.getElementById('anchors-container').style.display = (name === 'anchors') ? 'block' : 'none';
+  document.getElementById('keystones-container').style.display = (name === 'keystones') ? 'block' : 'none';
   // Set a body class so CSS can show/hide the in-page shortlist pill
   // (The Discipline view has the pill in its sticky axis row; other views use
   // the header pill so the count is always visible on screen.)
   document.body.classList.toggle('view-spectrum', name === 'spectrum');
-  document.body.classList.toggle('view-anchors', name === 'anchors');
+  document.body.classList.toggle('view-keystones', name === 'keystones');
   document.body.classList.toggle('view-builder', name === 'builder');
   updateInfoPanelVisibility();
   renderActiveView();
@@ -3185,7 +3215,7 @@ function renderActiveView() {
   if (!currentModel) return;
   if (activeView === 'spectrum') render(currentModel);
   else if (activeView === 'builder') renderBuilder(currentModel);
-  else if (activeView === 'anchors') renderAnchors(currentModel);
+  else if (activeView === 'keystones') renderKeystones(fullModel || currentModel);
   // After any view re-render, refresh shortlisted highlights
   refreshShortlistedHighlights();
 }
@@ -3208,7 +3238,7 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => {
     if (activeView === 'spectrum') render(currentModel);
     else if (activeView === 'builder') renderAllTimelines(currentModel);
-    else if (activeView === 'anchors') renderAnchors(currentModel);
+    else if (activeView === 'keystones') renderKeystones(fullModel || currentModel);
   }, 150);
 });
 
@@ -3340,6 +3370,20 @@ const dataSource = wireDataSource({
     ALL_ROWS = filterRows(rows, { impMax: IMP_SLIDER_MAX, showVariants: true,
                                   impSliderMax: IMP_SLIDER_MAX });
     checkBreakdowns();
+    // ⚠️ The Keystone view gets its OWN, UNFILTERED model, built once here rather
+    // than on every filter change — ALL_ROWS only changes on a reload.
+    //
+    // The importance and variants filters exist to keep the Discipline view
+    // legible; they have no business in a keystone breakdown, where the entire
+    // point is the nitty-gritty. Sharing `currentModel` meant a component's
+    // training exercises greyed out to a dashed "not in the master list" chip
+    // whenever they fell outside the filter — which said the sheet was missing
+    // something when it was not — and a progression chain vanished entirely if a
+    // single step was filtered out.
+    //
+    // `undefined-ex` still fires, and now means only what it says: a name in the
+    // Breakdowns tab that matches no exercise anywhere in the sheet.
+    fullModel = buildModelFromRows(ALL_ROWS, BREAKDOWNS);
     if (!rebuildModel()) return;
     // First load boots the view. A later reload re-renders whatever is on screen
     // instead of yanking the user back to the Discipline view.

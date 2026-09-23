@@ -573,6 +573,12 @@ original list for traceability.
       concurrent exercises. *(was 3×20min, 3 concurrent)* Export/import must be
       `data/PROGRAM_FORMAT.md`.
 - [ ] **4.2 Fix drag-and-drop.** Currently buggy.
+- [x] **4.3a Rename `Anchor` → `Keystone` across the builder.** 177 identifiers,
+      CSS classes, ids, view names and strings. `Anchor` was the old vocabulary and
+      the sheet has said `Keystone` for a long time. Three uses of "anchor" are NOT
+      keystones and were deliberately kept: `anchorEl` and `anchorBtn` (the DOM
+      element a panel or popup is positioned against) and `is_anchor` (the old sheet
+      column name, kept as documentation of the mapping).
 - [x] **4.3 Drive the Discipline view from the sheet.** ✅ Done. The view was
       renamed from "Movement Library" to **Disciplines**, the 326-line
       `EMBEDDED_CSV` and its bespoke parser are deleted, and it reads the live
@@ -593,8 +599,29 @@ original list for traceability.
       banners**, open set and scroll position both surviving a re-render.
       Level-less rows are omitted with a counted warning (currently 0 — the sheet
       is fully levelled).
-- [ ] **4.4 Drive the Keystone view from the sheet** via `component` edges —
-      progression chains and component breakdowns.
+      **Disciplines are coloured by PILLAR and grouped by pillar**, in the wheel's
+      own `PILLAR_ORDER`, alphabetical within a pillar, with a wider gap where the
+      pillar changes. The colours come from `shared/taxonomy.js`, so the two lenses
+      cannot drift. This also retires the 16-colour palette and its wrap-around
+      warning: it was one colour per discipline and there are already 16, so the
+      next discipline would have wrapped.
+- [~] **4.4 Drive the Keystone view from the sheet** via `component` edges —
+      progression chains and component breakdowns. **Reading the sheet: done.**
+      The `Breakdowns` tab drives it, all 3 of its keys now resolve (the sheet-side
+      name mismatch recorded under 5.3 is fixed — `Muscle Up - Rings`,
+      `Handstand - Freestanding`, `Cossack Squat`), and 36 keystones are listed.
+      Cards are **coloured by their primary pillar** and sorted **pillar, then
+      whether a breakdown exists, then level** — the breakdown tier matters because
+      only 3 of 36 cards do anything when clicked, and scattered through the list
+      they were unfindable.
+      ⚠️ **This view reads an UNFILTERED model** (`fullModel`), not the Discipline
+      view's filtered one. The global importance/variants filters kept greying a
+      component's training exercises out to a dashed "not in the master list" chip
+      — accusing the sheet of a gap it did not have — and hid a progression chain
+      entirely if one step fell outside the filter. `undefined-ex` now means only
+      what it says: a Breakdowns key matching no exercise anywhere.
+      **Remaining:** 2 of the 3 breakdowns define components with no exercises
+      against them, so they render an empty tree. That is sheet data, not code.
 - [ ] **4.5 Group the shortlist by Session Role** (game/warm-up, strength,
       skill, mobility, conditioning) rather than a flat list.
 - [ ] **4.6 Program history upload** → heat map across disciplines, lines and

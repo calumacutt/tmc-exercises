@@ -256,7 +256,7 @@ done.
 | `Pillar (auto)` | Derived from Discipline in the sheet via formula. |
 | `Progressions` / `Regressions` | Comma-separated **exercise names**. Drive ordering. |
 | `Also Appears In` | A `"Discipline - Line"` reference. Must match exactly or the link silently does not draw. |
-| `Keystone` | `TRUE`/`FALSE`. Anchor exercise that bridges lines. |
+| `Keystone` | `TRUE`/`FALSE`. Hub exercise that bridges lines. |
 | `Variant Of` | Parent exercise name. Variants hidden by default. |
 | `Importance` | 1–3. Doubles as display filter **and** (planned) cooling rate. See §7. |
 | `Level` | Difficulty. Mostly unfilled — see §7 for the inference plan. |
@@ -993,12 +993,34 @@ Useful assertions beyond "no errors":
 
 ## 10. Program Builder — current state
 
-Lives in the repo as the old root `index.html`. Works, but:
+Lives at `builder/index.html`. Three views: **Disciplines**, **Keystones**,
+**Program Builder**.
 
-- **Exercise data is hard-coded static.** Must be driven by the sheet, with
-  filters for importance and "hide variants" (there are far too many exercises
-  to list all).
-- Keystone view is also hard-coded; should be driven by `component` edges.
+✅ **Both data views are now driven by the live sheet** through
+`shared/loader.js` — the hard-coded `EMBEDDED_CSV` is deleted, and the Keystones
+view reads the `Breakdowns` tab, which already is the `component` edge table of
+§7.1. Filters for importance (1 / 1–2 / 1–3) and variants are exposed in the
+header, and disciplines are collapsible, all collapsed by default.
+
+⚠️ **The two data views take DIFFERENT models, deliberately.** The Discipline
+view uses the filtered model; the Keystones view uses an unfiltered one built
+once from `ALL_ROWS`. The importance and variants filters exist to keep a
+spectrum of 616 pills legible — they have no business narrowing a keystone
+breakdown, where the whole point is the nitty-gritty. Sharing one model meant a
+component's training exercises greyed out to "not in the master list" whenever
+they fell outside the filter, which accused the sheet of a gap it did not have.
+
+**Colour is by PILLAR, not by discipline**, in both views, computed from
+`shared/taxonomy.js` so this page and the wheel cannot drift (§6.2's trap, in a
+second place). The old 16-entry `--c-NN`/`--l-NN` palette is gone: it was one
+colour per discipline, so a 17th discipline either wrapped or resolved to a
+`var()` that does not exist and rendered white on white. Five pillar colours
+cannot run out. Large areas take a weak wash and chip-sized things a stronger
+one — a lane reads its hue from a very faint tint that leaves a 120px card
+looking grey.
+
+Still to fix:
+
 - Drag-and-drop into class timelines is **buggy** — needs fixing.
 - Shortlist is a plain flat list; should group by Session Role.
 - Sections are 3×20min / 3 concurrent; must become 10/5/15/15/15 with 4
