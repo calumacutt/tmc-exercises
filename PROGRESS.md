@@ -549,6 +549,22 @@ way they never are in a spreadsheet.
 
 - [x] **3.1 Lock the program file format.** ✅ Done — see 1.9 above and
       `data/PROGRAM_FORMAT.md`. Entering the history is now safe.
+- [x] **3.5 Implement the program parser** — `shared/programs.js`. ✅ Done
+      2026-09-24, and doing it BEFORE writing any history was the right order:
+      `PROGRAM_FORMAT.md` had been locked for a month but had never once been
+      machine-read. It survived — the committed example parses to exactly the
+      4 classes / 20 sessions / 32 exercises the document claimed, 0 problems,
+      0 warnings, and all 32 names resolve against the live 616-row sheet.
+      Every §5 fail-fast rule was checked against a deliberately broken file and
+      fires with a specific message. A near-miss is **not** fuzzy-matched:
+      `Muscle Up` and `Chin  Up` (double space) are both reported.
+      Two rules the parser ADDS to the locked spec and that need Calum's nod:
+      duplicate class in a file, and duplicate session number in a class. Both
+      are structurally ambiguous, so both refuse the file.
+      Punctuation (en/em dash, `-`/`*`/`+` bullets) is tolerated because §4's
+      "anything else is ignored" would otherwise drop an exercise silently — the
+      one fault this format cannot detect afterwards. Ignored lines are counted
+      and handed back for the same reason.
 - [ ] **3.2 Implement `shared/heat.js`** as one pure function, aggregating at
       exercise / line / discipline level. Single implementation — three copies
       is how the views end up disagreeing.

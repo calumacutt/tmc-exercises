@@ -54,6 +54,7 @@ directly. See §3 for the constraint this imposes.
 ├── shared/                      used by BOTH sites — no duplication
 │   ├── csv.js                   tolerant CSV parsing (parseCSV, field)
 │   ├── library.js               row → model, filterRows, groupData, validateRows
+│   ├── programs.js              program file → {date, classes}; the heat input
 │   ├── taxonomy.js              pillar order, colours, hsl helpers
 │   ├── graph.js                 typed edge list → graph          (task 2.3, not built)
 │   ├── heat.js                  hot/cold/half-baked/burnt engine (task 3.2, not built)

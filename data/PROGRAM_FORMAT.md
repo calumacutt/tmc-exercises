@@ -135,6 +135,52 @@ the same exercise appearing in Upper Body and Full Body is normal programming.
 
 ---
 
+## 5a. The parser — `shared/programs.js`
+
+✅ **Built 2026-09-24, and the format survived contact.** The example in
+`data/programs/` parses to exactly the 4 classes / 20 sessions / 32 exercises
+this document claimed, with zero problems and zero warnings. Every fail-fast rule
+in §5 was then checked against a deliberately broken file and fires with a
+specific, actionable message.
+
+`parseProgram(text)` handles structure and needs nothing else;
+`validateAgainstLibrary(program, names)` is the one §5 rule that needs the sheet,
+so it is separate and a file can be parsed offline. `exerciseSet(program)` is the
+heat input of §7. Problems are **objects**, not strings, with `formatProblem()`
+exported — same posture as `validateRows()`.
+
+⚠️ **All structural problems are collected, not thrown on the first.** The file
+is still refused, but three blocks of history are being entered by hand and one
+fault per reload would be miserable.
+
+### Punctuation is tolerated; data is not
+
+Em dash, en dash and hyphen all read as the session separator, and `-`, `*` and
+`+` all read as a bullet. None carries meaning. This is not leniency: §4 says
+"anything else — ignored", so an autocorrected en dash or a Markdown `*` would
+otherwise **silently drop an exercise**, which is the one fault this format cannot
+detect after the fact. The tolerance exists to prevent a silent loss.
+
+For the same reason the parser **counts every ignored line** and hands them back.
+Prose is expected and fine — but a mistyped bullet looks exactly like prose, so
+the count is reported rather than dropped. The example file's 6 ignored lines are
+its own description paragraph.
+
+### Two rules the parser adds — ⚠️ PENDING CONFIRMATION
+
+Neither is in §5 above. Both were found by writing the parser, which is what
+writing it first was for. Both are structurally ambiguous rather than merely odd,
+so they refuse the file:
+
+- **the same class twice in one file** (`## Upper Body` appearing twice) — a
+  class is a type, so the second is either a duplicate or a continuation and
+  there is no way to tell which;
+- **the same session number twice in one class** — same problem.
+
+Say if either should be a warning instead.
+
+---
+
 ## 6. Filing
 
 ```
