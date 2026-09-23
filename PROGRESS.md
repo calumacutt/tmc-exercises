@@ -573,8 +573,26 @@ original list for traceability.
       concurrent exercises. *(was 3×20min, 3 concurrent)* Export/import must be
       `data/PROGRAM_FORMAT.md`.
 - [ ] **4.2 Fix drag-and-drop.** Currently buggy.
-- [ ] **4.3 Drive the Library view from the sheet** instead of hard-coded data.
-      Add importance filter and "hide variants".
+- [x] **4.3 Drive the Discipline view from the sheet.** ✅ Done. The view was
+      renamed from "Movement Library" to **Disciplines**, the 326-line
+      `EMBEDDED_CSV` and its bespoke parser are deleted, and it reads the live
+      sheet through `shared/loader.js` — the same getters the wheel uses, so the
+      two cannot drift on what a row means.
+      Both filters are exposed: **importance** as a segmented control (1 / 1–2 /
+      1–3, since the options are nested ranges rather than independent toggles)
+      and **variants** as a pressed-state toggle. Defaults are importance ≤ 2
+      with variants hidden — 190 of 616.
+      **Disciplines are collapsible, and everything starts collapsed**, so the
+      first impression is 14 banners with exercise counts rather than a wall of
+      616 pills. A collapsed discipline builds **no rows at all** rather than
+      hiding them with CSS: placement measures `offsetWidth`, which is 0 inside a
+      `display:none` subtree, and that is exactly the zero-width bug that once put
+      28 pills on top of each other.
+      Verified at the heaviest setting — importance ≤ 3, variants shown, all 16
+      disciplines open, 727 pills across 60 lanes: **0 overlaps, 0 colourless
+      banners**, open set and scroll position both surviving a re-render.
+      Level-less rows are omitted with a counted warning (currently 0 — the sheet
+      is fully levelled).
 - [ ] **4.4 Drive the Keystone view from the sheet** via `component` edges —
       progression chains and component breakdowns.
 - [ ] **4.5 Group the shortlist by Session Role** (game/warm-up, strength,

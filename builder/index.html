@@ -1015,6 +1015,13 @@
   }
   .seg.active + .seg { border-left-color: var(--ink); }
 
+  /* Variants toggle. A plain on/off, unlike the importance ranges above, so it
+     is a pressed button rather than a segment. `aria-pressed` carries the state
+     for both the screen reader and the CSS, so there is one source of truth. */
+  .mini-btn.toggle-btn[aria-pressed="true"] {
+    background: var(--ink); color: var(--bg); border-color: var(--ink);
+  }
+
   #spectrum-container {
     padding: 16px 28px 8px;
     position: relative;
@@ -1116,7 +1123,32 @@
     padding: 8px 16px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    /* It is a <button> now. Collapsing is the banner's whole job, so the banner
+       IS the control — a separate chevron-sized hit target next to a full-width
+       coloured bar would be a worse thing to aim at. */
+    width: 100%;
+    border: 0;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .trait-banner:hover { filter: brightness(1.08); }
+  .trait-banner .chev {
+    font-size: 8px;
+    width: 8px;
+    opacity: 0.85;
+    transition: transform 0.12s ease;
+  }
+  .trait-banner.open .chev { transform: rotate(90deg); }
+  /* The count is what makes a COLLAPSED banner worth reading — otherwise the
+     default view is sixteen anonymous coloured bars. */
+  .trait-banner .count {
+    margin-left: auto;
+    font-size: 10px;
+    opacity: 0.75;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
   }
   .trait-banner .num {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
@@ -1273,10 +1305,15 @@
 
 
   /* ---------- Bottom info panel ----------
-     Fixed at the bottom of the viewport. Shows last-clicked exercise's
-     details. Visible only in the Discipline and Keystones views.
-     Main content gets padding-bottom equal to panel height so the bottom
-     of the spectrum is reachable. */
+     Fixed at the bottom of the viewport, showing the last-clicked exercise.
+     Visible in the Discipline and Keystones views only.
+
+     ⚠️ ONE LINE PER SECTION, deliberately. This was 140px tall — three
+     stacked rows in each of three columns — which occluded the better part of
+     two lanes of the very spectrum it describes, for a panel nothing reads from
+     yet. No information was dropped: it is laid out ACROSS instead of down. A
+     new field goes on the existing line, or the height creeps straight back.
+     `main` carries matching bottom padding so the last lane stays reachable. */
   .info-panel {
     position: fixed;
     left: 0;
@@ -1286,89 +1323,112 @@
     border-top: 1px solid var(--rule);
     box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
     z-index: 90;
-    padding: 14px 24px 14px 24px;
-    height: 140px;
+    padding: 0 20px;
+    height: 46px;
     box-sizing: border-box;
-    transition: transform 0.2s ease;
     display: none;
   }
-  body.show-info-panel .info-panel {
-    display: block;
-  }
-  body.show-info-panel main {
-    padding-bottom: 144px;
-  }
+  body.show-info-panel .info-panel { display: block; }
+  body.show-info-panel main { padding-bottom: 50px; }
 
   .info-content {
     display: flex;
-    gap: 24px;
-    align-items: stretch;
+    gap: 14px;
+    align-items: center;
     height: 100%;
+    overflow: hidden;
   }
 
   .info-empty {
     color: var(--ink-faint);
     font-style: italic;
-    font-size: 12px;
-    align-self: center;
+    font-size: 11px;
     width: 100%;
     text-align: center;
   }
 
-  /* Left column: exercise identity (name, level, anchor badge, trait/pathway) */
-  .info-identity {
-    flex: 0 0 240px;
+  /* The three sections are now horizontal runs, divided by rules rather than by
+     being in separate columns. `min-width: 0` on each is what actually lets a
+     flex item shrink — without it a long name pushes the chips off-screen
+     instead of the run scrolling. */
+  .info-identity,
+  .info-meta,
+  .info-progressions {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-right: 1px solid var(--rule);
-    padding-right: 20px;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    white-space: nowrap;
   }
+  .info-identity {
+    flex: 0 1 auto;
+    border-right: 1px solid var(--rule);
+    padding-right: 14px;
+    overflow: hidden;
+  }
+  .info-meta {
+    flex: 0 0 auto;
+    border-right: 1px solid var(--rule);
+    padding-right: 14px;
+  }
+  .info-progressions {
+    flex: 1 1 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Left run: identity */
   .info-identity .anchor-badge {
     display: inline-block;
     background: var(--anchor);
     color: white;
-    font-size: 9px;
+    font-size: 8.5px;
     letter-spacing: 0.1em;
-    padding: 2px 7px;
+    padding: 2px 6px;
     border-radius: 2px;
     text-transform: uppercase;
-    margin-bottom: 4px;
-    align-self: flex-start;
+    flex: 0 0 auto;
   }
+  /* The name is the one thing that must stay readable, so it gives up width
+     LAST. Without the lopsided shrink factors the flex default takes it from
+     both equally and a narrow window shows "Front L…" next to a perfectly
+     legible discipline path, which is the wrong thing to keep. */
   .info-identity .info-name {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: -0.01em;
     line-height: 1.2;
-    margin: 0 0 4px;
+    margin: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .info-identity .info-tp {
     font-size: 9.5px;
     color: var(--ink-soft);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    line-height: 1.5;
+    flex: 0 200 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .info-identity .info-tp .tp-line {
-    display: block;
+  /* An exercise can sit in several discipline/line pairs, which used to be one
+     per line. Inline, they need a separator of their own. */
+  .info-identity .info-tp .tp-line + .tp-line::before {
+    content: " \2044 ";
+    opacity: 0.55;
   }
 
-  /* Middle column: level + class types + split */
-  .info-meta {
-    flex: 0 0 180px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 6px;
-  }
+  /* Middle run: level, importance, pillar */
   .info-meta .level-display {
-    display: flex;
+    display: inline-flex;
     align-items: baseline;
-    gap: 4px;
+    gap: 3px;
   }
   .info-meta .level-display .num {
-    font-size: 28px;
+    font-size: 16px;
     font-weight: 700;
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     letter-spacing: -0.03em;
@@ -1376,66 +1436,29 @@
     line-height: 1;
   }
   .info-meta .level-display .scale {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--ink-faint);
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
   }
-  .info-meta .info-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .info-meta .info-label {
-    font-size: 9px;
-    color: var(--ink-faint);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    min-width: 50px;
-  }
-  .info-meta .chip {
-    background: #F0EDE6;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-size: 10px;
-    color: var(--ink);
-  }
-  .info-meta .chip.split-legs { background: #E0DCC6; }
-  .info-meta .chip.split-bent-arm { background: #DDD0D8; }
-  .info-meta .chip.split-straight-arm { background: #CFD8DC; }
-
-  /* Right column: regression/progression chips + equipment/notes */
-  .info-progressions {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    overflow: hidden;
-    justify-content: center;
-    min-width: 0;
-  }
-  .info-progressions .info-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
+  .info-meta .info-label,
   .info-progressions .info-label {
     font-size: 9px;
     color: var(--ink-faint);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    min-width: 80px;
+    flex: 0 0 auto;
   }
+  .info-meta .info-value,
   .info-progressions .info-value {
     font-size: 11px;
     color: var(--ink);
-    line-height: 1.4;
   }
+  .info-meta .info-value.empty-value,
   .info-progressions .info-value.empty-value {
     color: var(--ink-faint);
     font-style: italic;
   }
+  .info-meta .chip,
   .info-progressions .chip {
     background: #F0EDE6;
     padding: 2px 7px;
@@ -1445,6 +1468,7 @@
     border: none;
     font-family: inherit;
     cursor: default;
+    flex: 0 0 auto;
   }
   .info-progressions .chip.linked {
     cursor: pointer;
@@ -1455,15 +1479,34 @@
     color: var(--bg);
   }
 
+  /* Right run: the relationship groups, each label + its chips kept together. */
+  .info-progressions .info-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+  }
+  .info-progressions .info-row + .info-row {
+    border-left: 1px solid var(--rule);
+    padding-left: 10px;
+  }
+  .info-progressions .info-notes {
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
   /* Shortlist status indicator inside the panel */
   .info-shortlist-state {
-    font-size: 10px;
+    font-size: 8.5px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    padding: 3px 8px;
+    padding: 2px 7px;
     border-radius: 10px;
-    align-self: flex-start;
-    margin-bottom: 4px;
+    flex: 0 0 auto;
   }
   .info-shortlist-state.in {
     background: var(--anchor);
@@ -1502,6 +1545,8 @@
         <button class="seg" data-imp="2" title="Every program, plus every second program">1–2</button>
         <button class="seg" data-imp="3" title="Everything, including occasional">1–3</button>
       </span>
+      <button class="mini-btn toggle-btn" id="btn-variants" aria-pressed="false"
+              title="Variants are named &quot;Base - Modifier&quot;. There are far more of them than base exercises, so they are off by default.">Variants</button>
       <button class="mini-btn" id="btn-upload">Upload CSV</button>
       <button class="mini-btn" id="btn-url">Load from Sheet</button>
       <input type="file" id="file" accept=".csv,text/csv" hidden>
@@ -1784,15 +1829,50 @@ function render(model) {
       container.appendChild(spacer);
     }
 
-    // Trait banner: full-width header row introducing this trait's group
-    const banner = document.createElement('div');
-    banner.className = 'trait-banner';
+    // Trait banner: full-width header row introducing this trait's group, and
+    // the control that collapses it. Everything starts collapsed (Calum's call
+    // — sixteen disciplines at once is overwhelming as a first impression), so
+    // `viewState.expanded` holding only what is OPEN gives the right default for
+    // free, including for a discipline that appears later when the sheet grows.
+    const expanded = viewState.expanded.has(trait.name);
+
+    // Distinct NAMES, not placements. An exercise listed in two of this
+    // discipline's lines is one exercise, and counting it twice would make the
+    // banner disagree with the status line.
+    const traitCount = new Set();
+    for (const pw of trait.pathways) for (const ex of pw.exercises) traitCount.add(ex.name);
+
+    const banner = document.createElement('button');
+    banner.type = 'button';
+    banner.className = 'trait-banner' + (expanded ? ' open' : '');
+    banner.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     banner.style.setProperty('--label-colour', labelColour);
+
+    const chev = document.createElement('span');
+    chev.className = 'chev';
+    chev.textContent = '\u25B6';
+    banner.appendChild(chev);
+
     const nameEl = document.createElement('span');
     nameEl.className = 'name';
     nameEl.textContent = trait.name;
     banner.appendChild(nameEl);
+
+    const countEl = document.createElement('span');
+    countEl.className = 'count';
+    countEl.textContent = traitCount.size + (traitCount.size === 1 ? ' exercise' : ' exercises');
+    banner.appendChild(countEl);
+
+    banner.addEventListener('click', () => toggleTrait(trait.name));
     container.appendChild(banner);
+
+    // ⚠️ A collapsed discipline builds NO rows at all, rather than being
+    // hidden with CSS. Placement measures offsetWidth, which is 0 inside a
+    // display:none subtree — the exact zero-width bug that put 28 pills on top of
+    // each other (see the ATTACH BEFORE MEASURING note below). Hiding a laid-out
+    // lane would be safe; laying out a hidden one is not, and the two are one
+    // careless edit apart.
+    if (!expanded) return;
 
     trait.pathways.forEach((pathway) => {
       const rowEl = document.createElement('div');
@@ -2102,6 +2182,8 @@ function renderInfoPanel(ex, model) {
     ? '<div class="info-shortlist-state in">In Shortlist</div>'
     : '<div class="info-shortlist-state out">Not Shortlisted</div>';
 
+  // Inline, not one per line — the panel is a single row per section now, and
+  // an exercise in three discipline/line pairs would otherwise set its height.
   const tpLines = ex.traitPathways.map(tp =>
     `<span class="tp-line">${escapeHtml(tp.trait)} \u00b7 ${escapeHtml(tp.pathway)}</span>`
   ).join('');
@@ -2125,45 +2207,30 @@ function renderInfoPanel(ex, model) {
     ? renderInfoChips([ex.variantOf], model, '')
     : '<span class="info-value empty-value">Base exercise</span>';
 
-  const notesHtml = ex.notes
-    ? `<span class="info-value">${escapeHtml(ex.notes)}</span>`
-    : '';
+  const notesHtml = ex.notes ? escapeHtml(ex.notes) : '';
 
+  // Three sections, ONE LINE EACH. Everything the tall version showed is still
+  // here; it runs across instead of down. See the .info-panel CSS for why.
   infoContent.innerHTML = `
     <div class="info-identity">
       ${anchorBadge}
       ${shortlistState}
       <h2 class="info-name">${escapeHtml(ex.name)}</h2>
-      <div class="info-tp">${tpLines}</div>
+      <span class="info-tp">${tpLines}</span>
     </div>
     <div class="info-meta">
-      <div class="level-display">
+      <span class="level-display">
         <span class="num">${ex.level == null ? '—' : ex.level}</span>
-        <span class="scale">${ex.level == null ? 'no level yet' : '/ 10'}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Importance</span>
-        ${importanceHtml}
-      </div>
-      <div class="info-row">
-        <span class="info-label">Pillar</span>
-        ${pillarHtml}
-      </div>
+        <span class="scale">${ex.level == null ? 'no level' : '/ 10'}</span>
+      </span>
+      ${importanceHtml}
+      ${pillarHtml}
     </div>
     <div class="info-progressions">
-      <div class="info-row">
-        <span class="info-label">Regresses from</span>
-        ${regressesHtml}
-      </div>
-      <div class="info-row">
-        <span class="info-label">Progresses to</span>
-        ${progressesHtml}
-      </div>
-      <div class="info-row">
-        <span class="info-label">Variant of</span>
-        ${variantHtml}
-      </div>
-      ${notesHtml ? `<div class="info-row"><span class="info-label">Notes</span>${notesHtml}</div>` : ''}
+      <span class="info-row"><span class="info-label">From</span>${regressesHtml}</span>
+      <span class="info-row"><span class="info-label">To</span>${progressesHtml}</span>
+      <span class="info-row"><span class="info-label">Variant of</span>${variantHtml}</span>
+      ${notesHtml ? `<span class="info-notes">${notesHtml}</span>` : ''}
     </div>
   `;
 
@@ -3148,10 +3215,13 @@ window.addEventListener('resize', () => {
 // ---------- Init ----------
 // Default filter state, per Calum: importance <= 2 with variants hidden. That is
 // 192 of 490 exercises, which is the difference between a usable page and a wall.
-// The controls that expose these come with the layout work; the state lives here
-// so the data layer already honours them.
+// Both are now exposed as controls in the header — the segmented importance
+// range and the Variants toggle — and both write back here.
 const IMP_SLIDER_MAX = 3;
-const viewState = { impMax: 2, showVariants: false };
+// `expanded` holds the disciplines that are OPEN. Empty therefore means "all
+// collapsed", which is both the requested default and the right behaviour for a
+// discipline that does not exist yet.
+const viewState = { impMax: 2, showVariants: false, expanded: new Set() };
 
 let ALL_ROWS = [];        // every gate-passing row, unfiltered
 let BREAKDOWNS = new Map();   // Keystone -> [{component, exercises}]
@@ -3307,6 +3377,33 @@ impFilter.addEventListener('click', (e) => {
   if (rebuildModel()) renderActiveView();
 });
 syncImpFilter();
+
+// Variants toggle. Nothing to re-fetch: ALL_ROWS deliberately keeps the variants
+// (it filters at impSliderMax with showVariants true), so this is a pure
+// re-filter of rows already in memory.
+const variantsBtn = document.getElementById('btn-variants');
+function syncVariantsBtn() {
+  variantsBtn.setAttribute('aria-pressed', viewState.showVariants ? 'true' : 'false');
+}
+variantsBtn.addEventListener('click', () => {
+  viewState.showVariants = !viewState.showVariants;
+  syncVariantsBtn();
+  if (rebuildModel()) renderActiveView();
+});
+syncVariantsBtn();
+
+// Collapse / expand one discipline. A full re-render rather than a targeted DOM
+// update, because placement has to run against live, measurable elements and the
+// default state means there is usually very little on the page to rebuild.
+// Scroll position is restored: the banner that was clicked is above everything
+// that moves, so holding the offset keeps it under the cursor.
+function toggleTrait(name) {
+  if (viewState.expanded.has(name)) viewState.expanded.delete(name);
+  else viewState.expanded.add(name);
+  const y = window.scrollY;
+  renderActiveView();
+  window.scrollTo(0, y);
+}
 
 async function init() {
   // Both tabs in parallel: the Breakdowns fetch has nothing to do with the
