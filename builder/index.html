@@ -712,7 +712,11 @@
   .tree {
     position: relative;
     display: grid;
-    grid-template-columns: 220px 1fr 1fr;
+    /* The components column is a FIXED narrow width, not 1fr. At 1fr it took
+       half the remaining width for text that is mostly two or three short words,
+       and the progression chain — which can run to six chips and arrows — was
+       left squeezed into the other half and wrapping. */
+    grid-template-columns: 220px 190px 1fr;
     gap: 0;
     align-items: stretch;
     margin-top: 12px;
@@ -785,15 +789,16 @@
     background: #F7F4EE;
     border: 1px solid var(--rule);
     border-radius: 4px;
-    padding: 10px 14px;
+    padding: 8px 10px;
     position: relative;
   }
+  /* No margin-bottom: `.component-count` is styled but never rendered, so the
+     6px it reserved was dead space at the foot of every block. */
   .component-block .component-name {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--ink);
     line-height: 1.3;
-    margin-bottom: 6px;
   }
   /* The Primary Pattern row: the keystone's own progression chain, rendered as
      if it were a component, because that is what it is — the pattern the
@@ -2406,7 +2411,7 @@ function renderKeystoneBreakdown(model, keystoneName) {
   header.className = 'breakdown-header';
   header.innerHTML = `
     <h3>${escapeHtml(ex.name)}</h3>
-    <span class="breakdown-meta">${ex.level == null ? 'No level yet' : 'Level ' + ex.level}${ex.importance ? ' · importance ' + ex.importance : ''}</span>
+    <span class="breakdown-meta">${ex.level == null ? 'No level yet' : 'Level ' + ex.level}${ex.importance ? ' · Importance ' + ex.importance : ''}</span>
   `;
   wrap.appendChild(header);
 
@@ -2463,7 +2468,6 @@ function renderKeystoneBreakdown(model, keystoneName) {
     keystoneCard.innerHTML = `
       <div class="star">★</div>
       <div class="name">${escapeHtml(ex.name)}</div>
-      <div class="lvl-line">Level ${ex.level}</div>
     `;
     keystoneCol.appendChild(keystoneCard);
     tree.appendChild(keystoneCol);
@@ -3392,8 +3396,8 @@ function rebuildModel() {
   currentModel = model;
   statusEl.style.color = '';
   statusEl.textContent = `${rows.length - model.skippedNoLevel} of ${ALL_ROWS.length} exercises`
-    + ` · importance \u2264 ${viewState.impMax}`
-    + (viewState.showVariants ? ' · variants shown' : ' · variants hidden')
+    + ` · Importance \u2264 ${viewState.impMax}`
+    + (viewState.showVariants ? ' · Variants shown' : ' · Variants hidden')
     + (model.skippedNoLevel ? ` · ${model.skippedNoLevel} hidden (no level)` : '');
   if (model.skippedNoLevel) {
     console.warn('[builder] ' + model.skippedNoLevel + ' exercise(s) omitted from the '

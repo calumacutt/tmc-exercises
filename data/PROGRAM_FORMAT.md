@@ -93,7 +93,8 @@ in a heading — never buried in prose, so a human can reword freely around it.
 | `## <name>` | Starts a class. The whole line after `## ` is the class name; must be one of §3. |
 | `### Session N — <role> (M min)` | Starts a session. `N` integer, `<role>` free text, `M` integer minutes. Either `—` or `-` accepted as the separator. |
 | `- <exercise name>` | An exercise in the current session. The rest of the line, trimmed, is the name. |
-| anything else | Ignored — blank lines, prose, italic notes, `_(not programmed)_`. |
+| `<!-- ... -->` | A note. Spans lines. Renders as nothing, so the poster stays clean. |
+| anything else | ⚠️ **ERROR.** See below. |
 
 **There is no block index.** The date *is* the block identifier; ordering the
 files by date gives the block sequence, so a separate counter could only ever
@@ -153,6 +154,19 @@ exported — same posture as `validateRows()`.
 is still refused, but three blocks of history are being entered by hand and one
 fault per reload would be miserable.
 
+### An unrecognised line is an ERROR (changed 2026-09-24)
+
+This table used to say "anything else — ignored", which meant **a mistyped bullet
+dropped an exercise silently**. That is the one fault a program file cannot be
+audited for afterwards, because the evidence is the absence of a line nobody
+remembers writing. Calum's call, and the right one.
+
+The cost is that prose can no longer sit loose in a file. `<!-- ... -->` is the
+escape hatch: a note has to be *marked* as a note, which is cheap, and an
+exercise can never go missing without the file refusing to load, which is not.
+An unclosed `<!--` is itself an error, since it would silently swallow the rest
+of the file.
+
 ### Punctuation is tolerated; data is not
 
 Em dash, en dash and hyphen all read as the session separator, and `-`, `*` and
@@ -161,10 +175,9 @@ Em dash, en dash and hyphen all read as the session separator, and `-`, `*` and
 otherwise **silently drop an exercise**, which is the one fault this format cannot
 detect after the fact. The tolerance exists to prevent a silent loss.
 
-For the same reason the parser **counts every ignored line** and hands them back.
-Prose is expected and fine — but a mistyped bullet looks exactly like prose, so
-the count is reported rather than dropped. The example file's 6 ignored lines are
-its own description paragraph.
+This matters more now that an unrecognised line is refused outright: a `*` bullet
+would go from silently vanishing to loudly failing, and neither is what the writer
+meant.
 
 ### Two rules the parser adds — ⚠️ PENDING CONFIRMATION
 

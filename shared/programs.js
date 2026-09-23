@@ -70,7 +70,6 @@ function isIsoDate(s) {
 function parseProgram(text, { filename = '' } = {}) {
   const problems = [];
   const warnings = [];
-  const ignoredLines = [];
   const classes = [];
   let date = null;
   let dateLine = 0;
@@ -81,6 +80,7 @@ function parseProgram(text, { filename = '' } = {}) {
 
   let currentClass = null;
   let currentSession = null;
+  let inComment = false;
 
   const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
 
@@ -88,6 +88,20 @@ function parseProgram(text, { filename = '' } = {}) {
     const lineNo = i + 1;
     const line = raw.trim();
     if (!line) return;
+
+    // --- Notes -------------------------------------------------------------
+    // An HTML comment is the ONLY way to write a note in a program file, because
+    // every other unrecognised line is now an error (see the end of this loop).
+    // HTML comments render as nothing in Markdown, so the file stays clean as a
+    // poster source.
+    if (inComment) {
+      if (line.includes('-->')) inComment = false;
+      return;
+    }
+    if (line.startsWith('<!--')) {
+      if (!line.includes('-->')) inComment = true;
+      return;
+    }
 
     // --- Date --------------------------------------------------------------
     const dm = line.match(DATE_RE);
@@ -183,11 +197,16 @@ function parseProgram(text, { filename = '' } = {}) {
     }
 
     // --- Anything else -----------------------------------------------------
-    // §4 says ignore it, and prose between sections is expected. But an ignored
-    // line is also exactly what a mistyped bullet looks like, and that is the one
-    // fault this format cannot detect after the fact — so they are COUNTED and
-    // handed back rather than dropped on the floor.
-    ignoredLines.push({ line: lineNo, text: line });
+    // ⚠️ AN UNRECOGNISED LINE IS AN ERROR (Calum, 2026-09-24). The format used to
+    // ignore these, which meant a mistyped bullet dropped an exercise SILENTLY —
+    // the one fault a program file cannot be audited for afterwards, because the
+    // evidence is the absence of a line nobody remembers writing.
+    //
+    // The cost is that prose can no longer sit loose in the file. That is what the
+    // HTML-comment escape hatch above is for, and it is a better trade: a note has
+    // to be marked as a note, which is cheap, and an exercise can never go missing
+    // without the file refusing to load, which is not.
+    problems.push(problem('unparsed-line', { line: lineNo, text: line }));
   });
 
   // --- Whole-file checks ---------------------------------------------------
@@ -216,10 +235,11 @@ function parseProgram(text, { filename = '' } = {}) {
     exercises: classes.reduce((n, c) =>
       n + c.sessions.reduce((m, s) => m + s.exercises.length, 0), 0),
     distinctExercises: exerciseSet({ classes }).size,
-    ignored: ignoredLines.length,
   };
 
-  return { date, classes, problems, warnings, ignoredLines, counts };
+  if (inComment) problems.push(problem('unclosed-comment', {}));
+
+  return { date, classes, problems, warnings, counts };
 }
 
 /**
@@ -303,6 +323,12 @@ function formatProblem(p) {
       return `"${p.name}" is listed twice${inWhere}${at}.`;
     case 'too-many-concurrent':
       return `${p.count} exercises${inWhere}${at} — the limit is ${MAX_CONCURRENT}.`;
+    case 'unparsed-line':
+      return `Line ${p.line} is not a class, session, bullet or note: "${p.text}". `
+        + 'Wrap a note in `<!-- ... -->` if it is deliberate.';
+    case 'unclosed-comment':
+      return 'An `<!--` comment is never closed with `-->`, so the rest of the file '
+        + 'was skipped.';
     case 'unknown-exercise':
       return `"${p.name}"${inWhere} is not in the Movement Library.`;
     case 'missing-core-class':
