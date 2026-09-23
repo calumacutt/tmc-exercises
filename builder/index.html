@@ -95,6 +95,16 @@
     border-color: var(--ink);
     background: #FAFAFA;
   }
+  /* The Program Builder is switched off (see BUILDER_ENABLED). The shortlist
+     itself still works — clicking an exercise still toggles it and the count
+     still updates — it just has nowhere to jump to, so the pills stop
+     advertising a destination they cannot reach. */
+  body.builder-disabled .tab[data-view="builder"] { display: none; }
+  body.builder-disabled .shortlist-pill { cursor: default; }
+  body.builder-disabled .shortlist-pill:hover {
+    border-color: var(--rule);
+    background: white;
+  }
   .shortlist-pill .count {
     background: var(--ink);
     color: white;
@@ -1629,6 +1639,18 @@ import { parseCSV, rowsToObjects, field } from '../shared/csv.js';
 import { normaliseRows, filterRows, validateRows } from '../shared/library.js';
 import { BREAKDOWNS_CSV_URL } from '../shared/sheet.js';
 import { PILLAR_ORDER, pillarBase, hsl } from '../shared/taxonomy.js';
+
+// ---------- Feature flags ----------
+// ⚠️ The Program Builder view is SWITCHED OFF, not deleted. Nothing about it is
+// removed: the markup, the CSS, the class timelines, the drag-and-drop and the
+// export all stay exactly where they are, and flipping this back to true restores
+// the tab with no other change.
+//
+// Three routes lead into that view and all three are gated. The one that matters
+// is `setActiveView`, because it is what any future caller goes through — hiding
+// only the tab would leave the view one stray call away from appearing with a
+// half-finished drag-and-drop in it.
+const BUILDER_ENABLED = false;
 import { wireDataSource } from '../shared/loader.js';
 
 /* =========================================================================
@@ -1812,7 +1834,7 @@ function render(model) {
   // via updateShortlistPill().
   const inAxisPill = document.createElement('button');
   inAxisPill.className = 'shortlist-pill in-axis-pill';
-  inAxisPill.title = 'Jump to Program Builder';
+  if (BUILDER_ENABLED) inAxisPill.title = 'Jump to Program Builder';
   inAxisPill.innerHTML = `Shortlist <span class="count">${builderState.shortlist.length}</span>`;
   if (builderState.shortlist.length > 0) inAxisPill.classList.add('has-items');
   corner.appendChild(inAxisPill);
@@ -3267,6 +3289,8 @@ function buildExportText(model) {
 let activeView = 'spectrum';
 
 function setActiveView(name) {
+  // Gate the VIEW, not just the controls that reach it.
+  if (!BUILDER_ENABLED && name === 'builder') return;
   activeView = name;
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.toggle('active', t.dataset.view === name);
@@ -3303,9 +3327,19 @@ document.querySelectorAll('.tab').forEach(t => {
 // Any shortlist pill anywhere in the document jumps to Program Builder.
 // Using delegation since the in-axis pill is created dynamically.
 document.addEventListener('click', (e) => {
+  if (!BUILDER_ENABLED) return;
   const pill = e.target.closest('.shortlist-pill');
   if (pill) setActiveView('builder');
 });
+
+// Apply the flag to the chrome. `body.builder-disabled` hides the tab from CSS
+// rather than the `hidden` attribute, because an author `display` rule on .tab
+// would beat the UA stylesheet's [hidden] and the tab would stay visible.
+if (!BUILDER_ENABLED) {
+  document.body.classList.add('builder-disabled');
+  const headerPill = document.getElementById('shortlist-pill-header');
+  if (headerPill) headerPill.removeAttribute('title');
+}
 
 let resizeTimer = null;
 window.addEventListener('resize', () => {

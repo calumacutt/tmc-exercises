@@ -996,6 +996,15 @@ Useful assertions beyond "no errors":
 Lives at `builder/index.html`. Three views: **Disciplines**, **Keystones**,
 **Program Builder**.
 
+⚠️ **The Program Builder view is SWITCHED OFF** behind `BUILDER_ENABLED`
+(`false`), because it is not in use yet. Nothing is deleted — markup, CSS,
+timelines, drag-and-drop and export all stay put, and flipping the one boolean
+restores the tab with no other change (verified both ways). Three routes lead
+into it and all three are gated; the one that matters is `setActiveView`, since
+hiding only the tab would leave the view one stray call away. The shortlist still
+works and still counts, it just has nowhere to jump to, so the pills stop
+advertising a destination.
+
 ✅ **Both data views are now driven by the live sheet** through
 `shared/loader.js` — the hard-coded `EMBEDDED_CSV` is deleted, and the Keystones
 view reads the `Breakdowns` tab, which already is the `component` edge table of
