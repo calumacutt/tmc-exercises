@@ -1087,11 +1087,17 @@
     min-height: 48px;
   }
 
-  /* Separator between vertically adjacent lines. Only BETWEEN them, so a
-     discipline's first lane does not get a rule sitting under its banner. */
+  /* Separator between vertically adjacent lines, in the discipline's own header
+     colour. Only BETWEEN them, so a discipline's first lane does not get a rule
+     sitting under its banner.
+
+     ⚠️ `.pathway-label-cell`, not `.pathway-label`. The old selector matched
+     NOTHING — there is no element with that class — so the rule stopped at the
+     track and the 160px label column was left with no line at all. It read as
+     deliberate because the label column is a slightly different tone. */
   .pathway-row + .pathway-row .pathway-track,
-  .pathway-row + .pathway-row .pathway-label {
-    border-top: 1px solid rgba(255, 255, 255, 0.28);
+  .pathway-row + .pathway-row .pathway-label-cell {
+    border-top: 1px solid var(--label-colour);
   }
 
   /* Thin white spacer row between trait blocks for visual separation, wider
@@ -1905,17 +1911,20 @@ function render(model) {
     trait.pathways.forEach((pathway) => {
       const rowEl = document.createElement('div');
       rowEl.className = 'pathway-row';
+      // Both colours go on the ROW and inherit down. The lane separator needs the
+      // banner colour, which used to be set only on the banner element itself, so
+      // it had no way to reach the cells that draw the line.
+      rowEl.style.setProperty('--trait-bg', traitBg);
+      rowEl.style.setProperty('--label-colour', labelColour);
 
       // Pathway label cell (now in the leftmost column)
       const pwCell = document.createElement('div');
       pwCell.className = 'pathway-label-cell';
-      pwCell.style.setProperty('--trait-bg', traitBg);
       pwCell.textContent = pathway.name;
 
       // Spectrum track
       const trackEl = document.createElement('div');
       trackEl.className = 'pathway-track';
-      trackEl.style.setProperty('--trait-bg', traitBg);
 
       // Level guides
       for (let lvl = 1; lvl <= 10; lvl++) {
