@@ -620,8 +620,21 @@ original list for traceability.
       — accusing the sheet of a gap it did not have — and hid a progression chain
       entirely if one step fell outside the filter. `undefined-ex` now means only
       what it says: a Breakdowns key matching no exercise anywhere.
+      **The progression chain is now a ROW of the tree**, titled `Primary Pattern`
+      and coloured with the keystone's pillar, rather than a detached section
+      underneath. A keystone's chain is the pattern it BELONGS to, which sits at the
+      same level as the capacities it is built from — hanging it below looked like
+      an afterthought. It is placed at the MIDDLE index: floor(N/2) components above
+      and ceil(N/2) below, so an even number of components centres it exactly and an
+      odd number puts the spare below (Calum's rule). The keystone card is then
+      measured and nudged onto the same horizontal line, because `space-evenly` only
+      centres the middle row when the blocks happen to be equal height — with an
+      uneven column the connector was out by 78px in testing. The nudge is clamped
+      to the tree box, which `.breakdown` clips, and warns if the clamp ever bites.
       **Remaining:** 2 of the 3 breakdowns define components with no exercises
-      against them, so they render an empty tree. That is sheet data, not code.
+      against them, so they render an empty tree, and only 1 of the 36 keystones has
+      any `Progressions`/`Regressions`, so only 1 shows a Primary Pattern row. Both
+      are sheet data, not code.
 - [ ] **4.5 Group the shortlist by Session Role** (game/warm-up, strength,
       skill, mobility, conditioning) rather than a flat list.
 - [ ] **4.6 Program history upload** → heat map across disciplines, lines and

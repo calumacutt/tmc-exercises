@@ -1010,6 +1010,13 @@ breakdown, where the whole point is the nitty-gritty. Sharing one model meant a
 component's training exercises greyed out to "not in the master list" whenever
 they fell outside the filter, which accused the sheet of a gap it did not have.
 
+In the Keystones view the **progression chain is a row of the component tree**,
+titled `Primary Pattern` and coloured with the keystone's pillar, placed at the
+middle index so the connector from the keystone card runs level through it —
+floor(N/2) components above, ceil(N/2) below. The card is measured and nudged
+onto that line rather than assumed onto it: the column is `space-evenly`, which
+centres the middle row only when the blocks are equal height.
+
 **Colour is by PILLAR, not by discipline**, in both views, computed from
 `shared/taxonomy.js` so this page and the wheel cannot drift (§6.2's trap, in a
 second place). The old 16-entry `--c-NN`/`--l-NN` palette is gone: it was one

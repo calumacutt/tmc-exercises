@@ -732,7 +732,7 @@
     padding: 8px 16px 8px 0;
   }
   .tree-keystone-card {
-    background: var(--keystone);
+    background: var(--k-bar, var(--keystone));
     color: white;
     border-radius: 6px;
     padding: 20px 18px;
@@ -785,6 +785,16 @@
     line-height: 1.3;
     margin-bottom: 6px;
   }
+  /* The Primary Pattern row: the keystone's own progression chain, rendered as
+     if it were a component, because that is what it is — the pattern the
+     keystone belongs to, alongside the capacities it needs. Coloured with the
+     keystone's pillar so the eye ties it back to the card on the left. */
+  .component-block.primary-pattern {
+    background: var(--k-bar, var(--keystone));
+    border-color: var(--k-bar, var(--keystone));
+  }
+  .component-block.primary-pattern .component-name { color: white; }
+
   .component-block .component-count {
     font-size: 9px;
     color: var(--ink-faint);
@@ -812,6 +822,21 @@
     align-content: flex-start;
     padding: 6px 0;
     min-height: 24px;
+  }
+  /* A chain is a SEQUENCE, so its chips centre on the arrows between them
+     rather than hanging from a common top edge like an unordered set. */
+  .exercise-group.primary-chain {
+    align-items: center;
+    align-content: center;
+    gap: 6px;
+  }
+  /* An arrow belongs to the step it points AT, so a wrap carries it down to the
+     next line with that step instead of leaving it dangling at the end of the
+     previous one. */
+  .chain-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
   .br-ex {
     background: white;
@@ -899,26 +924,8 @@
     opacity: 1;
   }
 
-  /* Progression chain section at the bottom */
-  .progression-chain {
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid var(--rule);
-  }
-  .progression-chain h4 {
-    margin: 0 0 10px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--ink-faint);
-    font-weight: 600;
-  }
-  .chain-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  /* Chain steps live inside the tree's Primary Pattern row. There is no longer a
+     separate progression-chain section below the breakdown. */
   .chain-step {
     background: white;
     border: 1px solid var(--rule);
@@ -932,10 +939,12 @@
     gap: 5px;
   }
   .chain-step:hover { border-color: var(--ink); }
+  /* The keystone's own step in its chain, in the pillar colour so the card, the
+     Primary Pattern block and this chip all read as the same thing. */
   .chain-step.current {
-    background: var(--keystone);
+    background: var(--k-bar, var(--keystone));
     color: white;
-    border-color: var(--keystone);
+    border-color: var(--k-bar, var(--keystone));
     font-weight: 600;
   }
   .chain-step.current .lvl { background: rgba(255,255,255,0.2); color: white; opacity: 1; }
@@ -2378,7 +2387,25 @@ function renderKeystoneBreakdown(model, keystoneName) {
   ).join('  &nbsp;|&nbsp;  ');
   wrap.appendChild(traitsLine);
 
-  if (breakdown.length === 0) {
+  // The progression chain is rendered as a row of the tree, not as a separate
+  // section below it. A keystone's chain is the pattern it BELONGS to, which sits
+  // at the same level as the capacities it is built from — showing it detached
+  // underneath made it look like an afterthought.
+  const chain = buildProgressionChain(model, ex);
+
+  // ⚠️ The Primary Pattern goes in the MIDDLE of the stack, so the connector from
+  // the keystone card runs straight through it. floor(N/2) components above and
+  // ceil(N/2) below: with an even number of components the row lands exactly in
+  // the centre, and with an odd number the spare goes BELOW, per Calum.
+  const rows = breakdown.map(entry => ({
+    kind: 'component', title: entry.component, names: entry.exercises,
+  }));
+  if (chain) {
+    rows.splice(Math.floor(breakdown.length / 2), 0,
+                { kind: 'primary', title: 'Primary Pattern', chain });
+  }
+
+  if (rows.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'breakdown-empty';
     empty.textContent = `${ex.name} hasn't been broken down into components yet. Add a row to the sheet's Breakdowns tab keyed on this exact name.`;
@@ -2393,12 +2420,15 @@ function renderKeystoneBreakdown(model, keystoneName) {
     linesSvg.classList.add('tree-lines');
     tree.appendChild(linesSvg);
 
+    // One variable for the pillar colour, read by the card, the Primary Pattern
+    // block and the keystone's own step in the chain.
+    tree.style.setProperty('--k-bar', pillarBanner(ex.pillar));
+
     // Column 1: keystone card (spans full height visually via flex centering)
     const keystoneCol = document.createElement('div');
     keystoneCol.className = 'tree-keystone';
     const keystoneCard = document.createElement('div');
     keystoneCard.className = 'tree-keystone-card';
-    keystoneCard.style.background = pillarBanner(ex.pillar);
     keystoneCard.innerHTML = `
       <div class="star">★</div>
       <div class="name">${escapeHtml(ex.name)}</div>
@@ -2415,38 +2445,73 @@ function renderKeystoneBreakdown(model, keystoneName) {
     const exercisesCol = document.createElement('div');
     exercisesCol.className = 'tree-exercises';
 
-    breakdown.forEach((entry, idx) => {
+    rows.forEach((row, idx) => {
       // Component card
       const comp = document.createElement('div');
-      comp.className = 'component-block';
+      comp.className = 'component-block' + (row.kind === 'primary' ? ' primary-pattern' : '');
       comp.dataset.idx = idx;
       comp.innerHTML = `
-        <div class="component-name">${escapeHtml(entry.component)}</div>
+        <div class="component-name">${escapeHtml(row.title)}</div>
       `;
       componentsCol.appendChild(comp);
 
-      // Exercise group for this component
+      // Exercise group for this row
       const exGroup = document.createElement('div');
-      exGroup.className = 'exercise-group';
+      exGroup.className = 'exercise-group' + (row.kind === 'primary' ? ' primary-chain' : '');
       exGroup.dataset.idx = idx;
-      for (const exName of entry.exercises) {
-        const known = model.exercisesByName.get(exName);
-        const chip = document.createElement('button');
-        if (known) {
-          chip.className = 'br-ex' + (known.isKeystone ? ' keystone-ex' : '');
-          chip.dataset.name = exName;
-          chip.innerHTML = `<span class="lvl">${known.level}</span><span>${escapeHtml(exName)}</span>`;
-          chip.addEventListener('click', () => {
-            toggleShortlist(exName);
-            selectExercise(exName, model, { anchorEl: chip });
+
+      if (row.kind === 'primary') {
+        row.chain.forEach((step, i) => {
+          // Each step after the first is bound to its incoming arrow so the
+          // pair wraps as one unit.
+          let host = exGroup;
+          if (i > 0) {
+            host = document.createElement('span');
+            host.className = 'chain-link';
+            const arrow = document.createElement('span');
+            arrow.className = 'chain-arrow';
+            arrow.textContent = '\u2192';
+            host.appendChild(arrow);
+            exGroup.appendChild(host);
+          }
+          const stepEl = document.createElement('button');
+          stepEl.className = 'chain-step' + (step.name === ex.name ? ' current' : '');
+          stepEl.dataset.name = step.name;
+          stepEl.innerHTML = `<span class="lvl">${step.level}</span><span>${escapeHtml(step.name)}</span>`;
+          stepEl.addEventListener('click', () => {
+            toggleShortlist(step.name);
+            // Clicking another keystone in the chain switches the whole view to it,
+            // which is the fastest way to walk a progression; anything else just
+            // opens in the info panel.
+            if (step.isKeystone && step.name !== ex.name) {
+              keystoneState.selectedKeystone = step.name;
+              renderKeystones(model);
+            } else {
+              selectExercise(step.name, model, { anchorEl: stepEl });
+            }
           });
-        } else {
-          chip.className = 'br-ex undefined-ex';
-          chip.disabled = true;
-          chip.innerHTML = `<span>${escapeHtml(exName)}</span>`;
-          chip.title = 'Not yet in the master list';
+          host.appendChild(stepEl);
+        });
+      } else {
+        for (const exName of row.names) {
+          const known = model.exercisesByName.get(exName);
+          const chip = document.createElement('button');
+          if (known) {
+            chip.className = 'br-ex' + (known.isKeystone ? ' keystone-ex' : '');
+            chip.dataset.name = exName;
+            chip.innerHTML = `<span class="lvl">${known.level}</span><span>${escapeHtml(exName)}</span>`;
+            chip.addEventListener('click', () => {
+              toggleShortlist(exName);
+              selectExercise(exName, model, { anchorEl: chip });
+            });
+          } else {
+            chip.className = 'br-ex undefined-ex';
+            chip.disabled = true;
+            chip.innerHTML = `<span>${escapeHtml(exName)}</span>`;
+            chip.title = 'Not yet in the master list';
+          }
+          exGroup.appendChild(chip);
         }
-        exGroup.appendChild(chip);
       }
       exercisesCol.appendChild(exGroup);
     });
@@ -2455,15 +2520,46 @@ function renderKeystoneBreakdown(model, keystoneName) {
     tree.appendChild(exercisesCol);
     wrap.appendChild(tree);
 
-    // Defer line drawing until layout is done
-    requestAnimationFrame(() => drawTreeLines(tree, linesSvg, breakdown.length));
+    // Defer until layout is done: the nudge measures real geometry, and the
+    // lines have to be drawn AFTER it or they would connect to the old position.
+    requestAnimationFrame(() => {
+      alignKeystoneToPrimary(tree);
+      drawTreeLines(tree, linesSvg, rows.length);
+    });
   }
 
-  // Progression chain
-  const chainSection = renderProgressionChain(model, ex);
-  if (chainSection) wrap.appendChild(chainSection);
-
   detailSection.appendChild(wrap);
+}
+
+// Put the keystone card on the SAME horizontal line as the Primary Pattern row,
+// so the connector between them is dead straight and the chain visibly reads as
+// the keystone's own spine.
+//
+// Index-centring alone does not guarantee this: the components column is
+// `space-evenly`, and rows have different heights depending on how many chips
+// they hold, so the middle ROW is not necessarily at the middle HEIGHT. This
+// measures and nudges rather than assuming.
+//
+// Clamped to the tree box because `.breakdown` clips overflow — a card shoved
+// past the edge would simply disappear. The clamp is a guard, not a mechanism:
+// with the Primary Pattern at the middle index the nudge is small.
+function alignKeystoneToPrimary(tree) {
+  const card = tree.querySelector('.tree-keystone-card');
+  const primary = tree.querySelector('.component-block.primary-pattern');
+  if (!card || !primary) return;
+  card.style.transform = '';          // measure un-nudged, so this is idempotent
+  const treeRect = tree.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  const primRect = primary.getBoundingClientRect();
+  const want = (primRect.top + primRect.height / 2) - (cardRect.top + cardRect.height / 2);
+  const dy = Math.max(treeRect.top - cardRect.top,
+                      Math.min(treeRect.bottom - cardRect.bottom, want));
+  if (Math.abs(dy - want) > 0.5) {
+    console.warn('[builder] keystone card clamped to the tree box: wanted '
+      + Math.round(want) + 'px, applied ' + Math.round(dy) + 'px. The connector to '
+      + 'Primary Pattern will not be level.');
+  }
+  card.style.transform = `translateY(${dy}px)`;
 }
 
 function drawTreeLines(tree, svg, count) {
@@ -2513,9 +2609,10 @@ function drawTreeLines(tree, svg, count) {
   });
 }
 
-function renderProgressionChain(model, keystoneEx) {
-  // Walk backwards via regressesFrom and forwards via progressesTo, up to a few steps.
-  // Return null if there's nothing meaningful to show.
+// The walk only — the chain is DRAWN inside the tree now (see the Primary Pattern
+// row), so this returns data rather than DOM. Returns null when there is nothing
+// worth showing, i.e. the keystone has no progression either side of it.
+function buildProgressionChain(model, keystoneEx) {
   const chain = [];
 
   // Walk back
@@ -2546,37 +2643,7 @@ function renderProgressionChain(model, keystoneEx) {
     cursor = next;
   }
 
-  if (chain.length === 1) return null;
-
-  const section = document.createElement('div');
-  section.className = 'progression-chain';
-  section.innerHTML = `<h4>Progression chain in this pathway</h4>`;
-  const row = document.createElement('div');
-  row.className = 'chain-row';
-  chain.forEach((step, i) => {
-    if (i > 0) {
-      const arrow = document.createElement('span');
-      arrow.className = 'chain-arrow';
-      arrow.textContent = '→';
-      row.appendChild(arrow);
-    }
-    const stepEl = document.createElement('button');
-    stepEl.className = 'chain-step' + (step.name === keystoneEx.name ? ' current' : '');
-    stepEl.dataset.name = step.name;
-    stepEl.innerHTML = `<span class="lvl">${step.level}</span><span>${escapeHtml(step.name)}</span>`;
-    stepEl.addEventListener('click', () => {
-      toggleShortlist(step.name);
-      if (step.isKeystone) {
-        keystoneState.selectedKeystone = step.name;
-        renderKeystones(model);
-      } else {
-        selectExercise(step.name, model, { anchorEl: stepEl });
-      }
-    });
-    row.appendChild(stepEl);
-  });
-  section.appendChild(row);
-  return section;
+  return chain.length === 1 ? null : chain;
 }
 
 
