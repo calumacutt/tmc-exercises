@@ -790,9 +790,21 @@ lightness, hue stays with the pillar.
   read back as a value.
 - **Line:** the whole lane darkens (`pillarLane()`). Lanes are the largest areas
   on the page, which is exactly where a lightness ramp reads well.
-- **Exercise:** a pill is tinted by its own heat (`pillarHeatPill()`), on the
-  same hue, running darker than the lane it sits on. Chips need more saturation
-  than large areas to read as coloured at all. Heat 0 stays white with dark ink.
+- **Exercise:** a pill carrying heat goes DARK — the discipline heading's
+  register (`pillarHeatPill()`, L34→20) with white text and a light outline.
+  Heat 0 stays white with dark ink.
+
+⚠️ **A hot pill must live in a band no LANE ever occupies.** The first version
+ramped pills 88→54 while lanes ran 86→66, so a hot pill on a hot lane
+disappeared into it. Pills now sit at 34→20, below every lane tone: the fill
+separates them from a light lane, the white outline from a dark one. Measured in
+Hot mode, pill against the lane it actually sits on: 5.3–8.5:1.
+
+The L34 ceiling is set by contrast, not taste. Pill text is 10.5px, and white on
+the gold pillar — the brightest hue at any given lightness — is 5.0:1 at L34 but
+only 3.1:1 at L44. Every other pillar is darker at the same L, so 34 bounds the
+whole palette. Everything inside the pill flips with it: the level badge and the
+keystone star are both tuned for a white pill and vanish on a dark one.
 
 ⚠️ **A pill shows HEAT IN BOTH MODES** — it does not follow the Cold/Hot toggle
 the way the lane and banner do. Deliberate: at exercise granularity the question

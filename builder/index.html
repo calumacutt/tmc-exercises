@@ -1250,7 +1250,11 @@
     font-size: 11px;
     color: rgba(0,0,0,0.7);
     text-align: right;
-    border-right: 1px solid rgba(255,255,255,0.4);
+    /* The SAME colour as the horizontal lane separators, not white. A white rule
+       here competed with the vertical level guides inside the track, so the eye
+       read two different grids crossing. Matching the horizontals makes it part
+       of the lane frame instead. */
+    border-right: 1px solid var(--label-colour);
   }
 
   .pathway-track {
@@ -1355,6 +1359,27 @@
     line-height: 1;
     margin-right: -2px;
   }
+
+  /* A pill carrying heat: dark fill, white text, light outline. The outline is
+     what separates it from a DARK lane; the fill is what separates it from a
+     light one. Everything inside has to flip with it — the level badge and the
+     keystone star are both tuned for a white pill and vanish on a dark one. */
+  .exercise.hot {
+    border-color: rgba(255,255,255,0.55);
+    color: white;
+  }
+  .exercise.hot .ex-name { color: white; }
+  .exercise.hot .lvl {
+    background: rgba(255,255,255,0.24);
+    color: white;
+    opacity: 1;
+  }
+  /* Keystones keep their star, but plum on a dark pill is unreadable. */
+  .exercise.hot.keystone { border-color: rgba(255,255,255,0.75); }
+  .exercise.hot.keystone .ex-name { color: white; }
+  /* Literal gold: the builder has no `--accent` (that lives in the wheel), and
+     a var() that resolves to nothing would silently inherit the text colour. */
+  .exercise.hot.keystone::before { color: #E8C24A; }
 
   /* Selected (transient highlight after click) */
   .exercise.selected {
@@ -1913,15 +1938,21 @@ function pillarFillBg(p) {
   return pillarBanner(p);
 }
 /**
- * A PILL at heat value `v` (0..1). Chips need more saturation than large areas
- * to read as coloured at all (the same reason keystone cards have their own
- * tint), and they sit ON a lane, so they run darker than it at the same `v`.
- * Dark ink stays legible across the whole ramp — 6.1:1 at v=1 on the lightest
- * pillar — so the label never has to flip.
+ * A PILL at heat value `v` (0..1) — DARK, in the discipline heading's register.
+ *
+ * ⚠️ The first version ramped 88 → 54 lightness, which overlapped the LANE ramp
+ * (86 → 66) and meant a hot pill on a hot lane disappeared into it. A pill has to
+ * read against every lane tone, so it lives in a band no lane ever occupies:
+ * 34 → 20, the same register as the banner's dark fill, with white text.
+ *
+ * The ceiling of 34 is set by contrast, not taste. Pill text is 10.5px, and
+ * white on the gold pillar — the brightest hue at any given lightness — is
+ * 5.0:1 at L34 but only 3.1:1 at L44. Every other pillar is darker still at the
+ * same L, so 34 is the safe bound for the whole palette.
  */
 function pillarHeatPill(p, v) {
   const b = pillarBase(p);
-  return hsl(b.h, Math.round(b.s * (0.5 + 0.4 * v)), 88 - 34 * v);
+  return hsl(b.h, Math.round(b.s * (0.9 + 0.1 * v)), 34 - 14 * v);
 }
 
 /** A lane at heat value `v` (0..1). v=0 is exactly `pillarTint`. */
@@ -2136,6 +2167,7 @@ function render(model) {
         // mode question is answered by the lane behind them.
         const xHeat = HEAT && HEAT.exercise.get(ex.name);
         if (viewState.heat !== 'off' && xHeat && xHeat.heat > 0) {
+          exEl.classList.add('hot');
           exEl.style.setProperty('--pill-bg', pillarHeatPill(trait.pillar, xHeat.heat));
           exEl.title = ex.name + ' \u2014 heat ' + xHeat.heat.toFixed(2)
             + ', trained ' + xHeat.staleness + ' days ago';
