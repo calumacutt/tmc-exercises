@@ -565,7 +565,24 @@ way they never are in a spreadsheet.
       "anything else is ignored" would otherwise drop an exercise silently — the
       one fault this format cannot detect afterwards. Ignored lines are counted
       and handed back for the same reason.
-- [ ] **3.2 Implement `shared/heat.js`** as one pure function, aggregating at
+- [x] **3.2 `shared/heat.js` — BUILT 2026-10-08.** coldness = days since last
+      trained ÷ the target interval its importance implies, straight from the
+      sheet's own `Importance legend`. Nothing tuned.
+      Aggregation as agreed: exercise → line is a MAX (a line is trained if any
+      member was, expressed as a min over staleness), line → discipline → pillar
+      are MEANS. Importance aggregates separately and first, in urgency space.
+      Measured on the real block: 38 of 61 lines trained, disciplines spread
+      0.00–0.22, pillars 0.07–0.15 — a usable gradient from ONE block, which is
+      what Calum predicted and I had wrongly called a blocker.
+- [x] **3.7 Render heat in the Discipline view.** Off / Cold / Hot segmented
+      control. Glow on the discipline banner (mean of its lines) and on each lane
+      (the line's own importance against its most recently trained member), plus a
+      percentage on the banner — a halo alone cannot be read back as a value.
+      `data/programs/index.json` is a DIRECTORY LISTING only; static hosting
+      cannot list a folder. Blocks are still grouped solely by `Date:`.
+      ⚠️ **A class file missing from the manifest is invisible to heat.**
+      Still to do: the wheel view, and pill-level glow.
+- [ ] **3.2b Implement `cook` / half-baked** — blocked on having 2+ blocks. as one pure function, aggregating at
       exercise / line / discipline level. Single implementation — three copies
       is how the views end up disagreeing.
       **Input is settled:** a program is a date plus a SET of exercise names.

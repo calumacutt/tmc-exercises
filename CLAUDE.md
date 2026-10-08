@@ -57,7 +57,7 @@ directly. See §3 for the constraint this imposes.
 │   ├── programs.js              class file → sessions; groups into blocks; heat input
 │   ├── taxonomy.js              pillar order, colours, hsl helpers
 │   ├── graph.js                 typed edge list → graph          (task 2.3, not built)
-│   ├── heat.js                  hot/cold/half-baked/burnt engine (task 3.2, not built)
+│   ├── heat.js                  coldness = days since ÷ target interval
 │   └── selection.js             cross-view selected exercise    (task 4.10, not built)
 ├── wheel/
 │   ├── index.html               thin shell + boot wiring only
@@ -577,6 +577,36 @@ its discipline is cold and urgent.
 
 ### 7.5 Heat engine — one pure function
 
+✅ **BUILT 2026-10-08** — `shared/heat.js`, and the model is simpler than this
+section assumed. Importance is not an abstract priority: the sheet's own
+`Importance legend` defines it as a FREQUENCY (1 = every program, 2 = every
+second, 3 = occasional), so it states a target interval directly and
+
+    coldness = days since last trained ÷ target interval for its importance
+
+0 = just trained, 1 = due now, >1 = overdue. Nothing was tuned; the numbers come
+from the legend. Blocks are 42 days, so the targets are 42 / 84 / 168.
+
+⚠️ **Aggregates are computed in URGENCY space, not raw 1/2/3.** The scale is
+inverted and non-linear, so averaging the raw numbers is nonsense — a discipline
+with one must-do line and four occasional ones averages 2.6 and reads as
+unimportant. `weightOf()` maps to expected frequency (1, 0.5, 0.25) where higher
+means more important and a mean means something. Importance is aggregated FIRST
+and INDEPENDENTLY of heat (Calum): it is a property of the structure, so it does
+not move when a program is logged.
+
+⚠️ **"Never trained" is NOT infinitely cold.** It means "not in the recorded
+history", so its staleness is the age of the RECORD. With one block logged five
+weeks ago an untrained importance-1 line sits at 0.88 and an occasional one at
+0.22 — a real gradient from a single block, deepening honestly as history grows.
+Infinite coldness would paint 520 exercises the same and claim more than the data
+supports.
+
+⚠️ **`cook` / half-baked is NOT implemented and cannot be yet.** It is defined
+over CONSECUTIVE blocks (§7.3) and there is one block. `halfBaked` is always
+null, deliberately, rather than guessed.
+
+Old description, still the shape of it:
 `heat(programsSinceLastTrained, importance)`, aggregated at exercise, line and
 discipline level. Consumed by the heat map, the goal-selection targets, and the
 end-of-program score. The score is literally *"what would this discipline's

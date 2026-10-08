@@ -1017,6 +1017,38 @@
   }
   .seg.active + .seg { border-left-color: var(--ink); }
 
+  /* ---------- Heat ----------
+     Two modes, because they answer opposite questions. COLD draws the eye to
+     what needs work; HOT shows what has already been covered. Same numbers, one
+     inverted (Calum, 2026-09-23).
+
+     The signal is an inset halo whose alpha scales with the value, applied to
+     the discipline banner and the lane. A light theme cannot carry a literal
+     glow — a bright halo on a pale ground is invisible — so this reads as the
+     area being flooded with the mode's colour. */
+  .trait-banner, .pathway-track, .pathway-label-cell {
+    --glow: 0;
+    --glow-rgb: 232, 131, 58;
+  }
+  body.heat-cold { --glow-rgb: 232, 131, 58; }   /* amber: needs attention */
+  body.heat-hot  { --glow-rgb: 74, 158, 111; }   /* green: recently covered */
+
+  body.heat-on .pathway-track,
+  body.heat-on .pathway-label-cell {
+    box-shadow: inset 0 0 40px rgba(var(--glow-rgb), calc(var(--glow) * 0.85));
+  }
+  body.heat-on .trait-banner {
+    box-shadow: inset 0 0 26px rgba(var(--glow-rgb), calc(var(--glow) * 0.95));
+  }
+  /* A number as well as a colour — a halo alone cannot be read back as a value,
+     and the whole point is deciding what to program next. */
+  .trait-banner .heat-val {
+    font-size: 10px;
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+    margin-left: 10px;
+  }
+
   /* Variants toggle. A plain on/off, unlike the importance ranges above, so it
      is a pressed button rather than a segment. `aria-pressed` carries the state
      for both the screen reader and the CSS, so there is one source of truth. */
@@ -1555,6 +1587,12 @@
         <button class="seg" data-imp="2" title="Every program, plus every second program">1–2</button>
         <button class="seg" data-imp="3" title="Everything, including occasional">1–3</button>
       </span>
+      <span class="filter-group" id="heat-filter" role="group" aria-label="Heat">
+        <span class="filter-label">Heat</span>
+        <button class="seg" data-heat="off" title="No heat shading">Off</button>
+        <button class="seg" data-heat="cold" title="Glow on what needs work">Cold</button>
+        <button class="seg" data-heat="hot" title="Glow on what has been covered recently">Hot</button>
+      </span>
       <button class="mini-btn toggle-btn" id="btn-variants" aria-pressed="false"
               title="Variants are named &quot;Base - Modifier&quot;. There are far more of them than base exercises, so they are off by default.">Variants</button>
       <button class="mini-btn" id="btn-upload">Upload CSV</button>
@@ -1644,6 +1682,10 @@ import { parseCSV, rowsToObjects, field } from '../shared/csv.js';
 import { normaliseRows, filterRows, validateRows } from '../shared/library.js';
 import { BREAKDOWNS_CSV_URL } from '../shared/sheet.js';
 import { PILLAR_ORDER, pillarBase, hsl } from '../shared/taxonomy.js';
+import { fetchLineImportance } from '../shared/loader.js';
+import { parseClassFile, groupIntoBlocks, exerciseSet, formatProblem }
+  from '../shared/programs.js';
+import { buildHeat } from '../shared/heat.js';
 
 // ---------- Feature flags ----------
 // ⚠️ The Program Builder view is SWITCHED OFF, not deleted. Nothing about it is
@@ -1924,6 +1966,18 @@ function render(model) {
     countEl.textContent = traitCount.size + (traitCount.size === 1 ? ' exercise' : ' exercises');
     banner.appendChild(countEl);
 
+    // Discipline-level heat: the mean of its lines' coldness (shared/heat.js).
+    const dHeat = HEAT && HEAT.discipline.get(trait.name);
+    banner.style.setProperty('--glow', heatValue(dHeat));
+    if (dHeat && viewState.heat !== 'off') {
+      const val = document.createElement('span');
+      val.className = 'heat-val';
+      val.textContent = Math.round(heatValue(dHeat) * 100) + '%';
+      val.title = 'Coldness ' + dHeat.coldness.toFixed(2) + ' · line importance '
+        + dHeat.importance + ' · last trained ' + dHeat.staleness + ' days ago';
+      banner.appendChild(val);
+    }
+
     banner.addEventListener('click', () => toggleTrait(trait.name));
     container.appendChild(banner);
 
@@ -1943,6 +1997,18 @@ function render(model) {
       // it had no way to reach the cells that draw the line.
       rowEl.style.setProperty('--trait-bg', traitBg);
       rowEl.style.setProperty('--label-colour', labelColour);
+
+      // Line-level heat. A line counts as trained if ANY of its exercises was,
+      // so this is the most recently trained member measured against the line's
+      // own importance.
+      const lHeat = HEAT && HEAT.line.get(trait.name + ' - ' + pathway.name);
+      rowEl.style.setProperty('--glow', heatValue(lHeat));
+      if (lHeat) {
+        rowEl.title = pathway.name + ' — importance ' + lHeat.importance
+          + ', coldness ' + lHeat.coldness.toFixed(2)
+          + (lHeat.trained ? ', last trained ' + lHeat.staleness + ' days ago'
+                           : ', not in the recorded history');
+      }
 
       // Pathway label cell (now in the leftmost column)
       const pwCell = document.createElement('div');
@@ -3365,7 +3431,63 @@ const IMP_SLIDER_MAX = 3;
 // `expanded` holds the disciplines that are OPEN. Empty therefore means "all
 // collapsed", which is both the requested default and the right behaviour for a
 // discipline that does not exist yet.
-const viewState = { impMax: 2, showVariants: false, expanded: new Set() };
+const viewState = { impMax: 2, showVariants: false, expanded: new Set(), heat: 'off' };
+
+// The heat picture, or null until the programs and the Lists tab have loaded.
+// Everything renders without it; heat is an overlay, never a dependency.
+let HEAT = null;
+
+/**
+ * Load the class files and build the heat picture.
+ *
+ * ⚠️ The manifest is a DIRECTORY LISTING, nothing more — static hosting cannot
+ * list a folder. Blocks are still grouped only by the `Date:` inside each file.
+ * A file missing from the manifest is invisible to heat, so the count is
+ * reported rather than assumed.
+ */
+async function loadHeat() {
+  const base = '../data/programs/';
+  const manifest = await (await fetch(base + 'index.json')).json();
+  const files = [];
+  const bad = [];
+  for (const name of manifest.files || []) {
+    const text = await (await fetch(base + encodeURIComponent(name))).text();
+    const f = parseClassFile(text, { filename: name });
+    if (f.problems.length) {
+      bad.push(name + ': ' + f.problems.map(formatProblem).join('; '));
+      continue;
+    }
+    files.push(f);
+  }
+  if (bad.length) {
+    // Fail loud, but do not take the page down over it — the Discipline view
+    // works perfectly well with no heat at all.
+    console.error('[heat] ' + bad.length + ' class file(s) refused:' + '\n' + bad.join('\n'));
+  }
+  if (!files.length) return null;
+
+  const lineImportance = await fetchLineImportance();
+  const blocks = groupIntoBlocks(files);
+  const today = new Date().toISOString().slice(0, 10);
+  const heat = buildHeat({ blocks, today, exercises: ALL_ROWS, lineImportance,
+                           exerciseSetOf: exerciseSet });
+  console.info('[heat] ' + files.length + ' class file(s), ' + blocks.length
+    + ' block(s), record ' + heat.meta.recordStart + ' → ' + today
+    + ' (' + heat.meta.recordAge + ' days). '
+    + [...heat.line.values()].filter(l => l.trained).length + ' of '
+    + heat.line.size + ' lines trained.'
+    + (heat.meta.blocks < 2 ? ' ⚠️ One block: exercise-level heat is binary and '
+      + 'half-baked cannot be computed.' : ''));
+  return heat;
+}
+
+// Value 0..1 for the current mode. Cold is the clamped coldness; hot is its
+// complement — one number, shown from either end.
+function heatValue(entry) {
+  if (!entry || viewState.heat === 'off') return 0;
+  const cold = Math.max(0, Math.min(1, entry.coldness));
+  return viewState.heat === 'cold' ? cold : 1 - cold;
+}
 
 let ALL_ROWS = [];        // every gate-passing row, unfiltered
 let BREAKDOWNS = new Map();   // Keystone -> [{component, exercises}]
@@ -3499,6 +3621,16 @@ const dataSource = wireDataSource({
     // Breakdowns tab that matches no exercise anywhere in the sheet.
     fullModel = buildModelFromRows(ALL_ROWS, BREAKDOWNS);
     if (!rebuildModel()) return;
+    // Heat needs ALL_ROWS, so it is built here rather than at init. It is an
+    // overlay: a failure disables the toggle and leaves every view working.
+    loadHeat().then(h => {
+      HEAT = h;
+      if (!h) heatFilter.style.display = 'none';
+      else renderActiveView();
+    }).catch(err => {
+      console.error('[heat] unavailable:', err);
+      heatFilter.style.display = 'none';
+    });
     // First load boots the view. A later reload re-renders whatever is on screen
     // instead of yanking the user back to the Discipline view.
     if (!bootedOnce) {
@@ -3535,6 +3667,27 @@ impFilter.addEventListener('click', (e) => {
   if (rebuildModel()) renderActiveView();
 });
 syncImpFilter();
+
+// Heat mode. Off / Cold / Hot — the same number read from either end, because
+// "what needs work" and "what is already covered" are opposite questions over
+// one dataset.
+const heatFilter = document.getElementById('heat-filter');
+function syncHeatFilter() {
+  for (const b of heatFilter.querySelectorAll('.seg')) {
+    b.classList.toggle('active', b.dataset.heat === viewState.heat);
+  }
+  document.body.classList.toggle('heat-on', viewState.heat !== 'off');
+  document.body.classList.toggle('heat-cold', viewState.heat === 'cold');
+  document.body.classList.toggle('heat-hot', viewState.heat === 'hot');
+}
+heatFilter.addEventListener('click', (e) => {
+  const btn = e.target.closest('.seg');
+  if (!btn || btn.dataset.heat === viewState.heat) return;
+  viewState.heat = btn.dataset.heat;
+  syncHeatFilter();
+  renderActiveView();
+});
+syncHeatFilter();
 
 // Variants toggle. Nothing to re-fetch: ALL_ROWS deliberately keeps the variants
 // (it filters at impSliderMax with showVariants true), so this is a pure

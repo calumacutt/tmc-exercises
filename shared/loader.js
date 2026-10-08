@@ -13,9 +13,9 @@
 //     Views keep their own markup and their own status rendering; only the
 //     behaviour is shared.
 
-import { parseCSV, rowsToObjects } from './csv.js';
+import { parseCSV, rowsToObjects, field } from './csv.js';
 import { normaliseRows } from './library.js';
-import { SHEET_CSV_URL } from './sheet.js';
+import { SHEET_CSV_URL, LISTS_CSV_URL } from './sheet.js';
 
 // CSV text -> normalised model rows. Throws on an empty or Name-less table,
 // because "loaded nothing" is a real failure and silently rendering an empty
@@ -100,4 +100,34 @@ function wireDataSource({ uploadBtn, fileInput, sheetBtn, onRows, onStatus, auto
   return { loadSheet, loadFile };
 }
 
-export { fetchSheetRows, readFileRows, rowsFromText, wireDataSource };
+// The `Lists` tab's per-line rating — the manual half of heat (CLAUDE.md §7.4).
+//
+// ⚠️ Read the `Line Importance` column, NOT `Importance`. The Lists tab is two
+// independent tables side by side: A-E is the LineKey table, F is a blank
+// separator, and the columns after it are DROPDOWN VOCABULARY lists — one of
+// which is called `Importance` and holds exactly one each of 1, 2, 3. Matching
+// the wrong header would silently give three lines a rating and 58 nothing.
+//
+// Returns Map('Discipline - Line' -> 1|2|3).
+async function fetchLineImportance(url = LISTS_CSV_URL) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching the Lists tab');
+  const rows = rowsToObjects(parseCSV(await res.text()));
+  const out = new Map();
+  for (const o of rows) {
+    const key = field(o, ['LineKey (Discipline - Line)', 'LineKey']).trim();
+    const imp = Number(field(o, ['Line Importance']).trim());
+    if (!key) continue;
+    if (!Number.isFinite(imp) || imp < 1 || imp > 3) continue;
+    out.set(key, imp);
+  }
+  if (!out.size) {
+    throw new Error('No `Line Importance` values found in the Lists tab — is the '
+      + 'column still called that?');
+  }
+  return out;
+}
+
+export {
+  fetchSheetRows, readFileRows, rowsFromText, wireDataSource, fetchLineImportance,
+};

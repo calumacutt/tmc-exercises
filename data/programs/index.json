@@ -1,0 +1,22 @@
+{
+  "_README": [
+    "A DIRECTORY LISTING, not block metadata. Static hosting (GitHub Pages) cannot",
+    "list a folder, so the page has to be told which class files exist.",
+    "",
+    "It carries filenames and NOTHING ELSE. Blocks are still grouped only by the",
+    "`Date:` inside each file - a manifest that also claimed block membership could",
+    "disagree with the dates, and the dates are what heat sorts on.",
+    "",
+    "WARNING: a file missing from this list is INVISIBLE TO HEAT. Add a class file,",
+    "add it here. The builder reports how many it loaded, so a gap is visible."
+  ],
+  "files": [
+    "Flocomotion - 2026-09-01.md",
+    "Full Body - 2026-09-01.md",
+    "Full Body Mobility - 2026-09-01.md",
+    "Handstand + Stretch (Beg-Int) - 2026-09-01.md",
+    "Handstand + Stretch (Int-Adv) - 2026-09-01.md",
+    "Lower Body - 2026-09-01.md",
+    "Upper Body - 2026-09-01.md"
+  ]
+}
