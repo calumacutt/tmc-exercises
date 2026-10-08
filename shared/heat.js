@@ -61,17 +61,29 @@
 //     line.staleness   = min(staleness of its exercises)       ← nulls dropped
 //     line.heat        = heat(line.staleness, line's OWN importance)
 //
-//     discipline.heat  = mean(heat of its lines)
-//     pillar.heat      = mean(heat of its disciplines)
+//     discipline.heat  = MAX(heat of its lines)
+//     pillar.heat      = MAX(heat of its disciplines)
 //
-// The min at line level IS the agreed "max of members": a line counts as trained
-// if any one exercise in it was, and the most recent member is the one with the
-// smallest staleness. Aggregating coldness with a max instead would light up a
-// line you had just trained, because of its one neglected exercise.
+// The min at line level IS "max of members": a line counts as trained if any one
+// exercise in it was, and the most recent member is the one with the smallest
+// staleness.
 //
-// Discipline and pillar heat take a plain mean and apply NO importance of their
-// own — each line's importance is already baked into its heat, so weighting
-// again here would count it twice.
+// ⚠️ DISCIPLINE AND PILLAR TAKE A MAX, NOT A MEAN (Calum, 2026-10-08). A mean
+// was wrong for a domain reason: nobody trains Vertical Press and Horizontal
+// Press in the same block, so averaging over a discipline's lines meant
+// `Pressing Strength` could never read as hot however recently it was
+// programmed. A discipline is as hot as its hottest line, which is the same rule
+// already used one level down.
+//
+// The cost, knowingly accepted: a max flattens the gradient. Most disciplines
+// hold at least one recently trained line, so most sit at or near 1. The
+// discipline level now answers "has this been touched at all", and the LINE
+// level is where the detail lives.
+//
+// Heat applies NO importance of its own above line level — each line's
+// importance is already baked into its heat, so weighting again would count it
+// twice. Aggregate IMPORTANCE is still a mean (see `weight` below); it is a
+// different quantity and Calum has not asked for it to change.
 //
 // ---- Not implemented ------------------------------------------------------
 //
@@ -238,11 +250,10 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
     const ls = [...keys].map(k => line.get(k)).filter(Boolean);
     if (!ls.length) continue;
     const weight = mean(ls.map(l => l.weight));
-    // Mean of HEAT, which is bounded 0..1 by construction, so there is nothing
-    // to clamp and no way for one never-trained line to swallow the average.
-    // Each line's importance is already inside its heat; re-weighting here would
-    // count it twice.
-    const heat = mean(ls.map(l => l.heat));
+    // MAX, not mean — see the note at the top. A discipline is as hot as its
+    // hottest line, because its lines are alternatives rather than a set you
+    // would train together.
+    const heat = Math.max(...ls.map(l => l.heat));
     const seenD = ls.map(l => l.staleness).filter(d => d !== null);
     discipline.set(name, {
       staleness: seenD.length ? Math.min(...seenD) : null,
@@ -257,7 +268,10 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
     const ds = [...discs].map(d => discipline.get(d)).filter(Boolean);
     if (!ds.length) continue;
     const weight = mean(ds.map(d => d.weight));
-    const heat = mean(ds.map(d => d.heat));
+    // ⚠️ Also a max, extending Calum's reasoning one level up: a pillar's
+    // disciplines are no more trained-together than a discipline's lines are.
+    // He asked only about line → discipline, so flag this if it should differ.
+    const heat = Math.max(...ds.map(d => d.heat));
     const seenP = ds.map(d => d.staleness).filter(x => x !== null);
     pillar.set(name, {
       staleness: seenP.length ? Math.min(...seenP) : null,

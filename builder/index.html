@@ -1889,24 +1889,27 @@ function pillarChipTint(p) {
 // All three stay inside the pillar's own hue; only lightness and saturation
 // move. See the Heat CSS block for why a separate accent colour does not work.
 
-/** The filled part of a discipline bar: the pillar at full strength, darker. */
+/**
+ * ⚠️ THE ZERO END OF EVERY RAMP IS THE NORMAL COLOUR. Heat only ever ADDS ink,
+ * it never takes colour away. The first version desaturated the quiet end —
+ * unfilled at half saturation, lanes lighter than the plain tint — and the whole
+ * page looked washed out the moment heat was switched on, which read as the
+ * colour being removed rather than emphasis being added.
+ */
+
+/** The filled part of a discipline bar: the pillar, richer and much darker. */
 function pillarFillInk(p) {
   const b = pillarBase(p);
-  return hsl(b.h, b.s, 26);
+  return hsl(b.h, b.s, 22);
 }
-/** The unfilled part: the pillar flattened and lifted, still taking white text. */
+/** The unfilled part: EXACTLY the normal banner, so nothing is lost at v=0. */
 function pillarFillBg(p) {
-  const b = pillarBase(p);
-  return hsl(b.h, Math.round(b.s * 0.5), 44);
+  return pillarBanner(p);
 }
-/**
- * A lane at heat value `v` (0..1). More ink = more of what the mode is showing,
- * so v=1 is the darkest and richest. v=0 lands slightly lighter than the plain
- * `pillarTint`, which keeps the two ends of the ramp clearly apart.
- */
+/** A lane at heat value `v` (0..1). v=0 is exactly `pillarTint`. */
 function pillarLane(p, v) {
   const b = pillarBase(p);
-  return hsl(b.h, Math.round(b.s * (0.35 + 0.45 * v)), 90 - 22 * v);
+  return hsl(b.h, Math.round(b.s * (0.5 + 0.4 * v)), 86 - 20 * v);
 }
 
 function pillarRank(p) {

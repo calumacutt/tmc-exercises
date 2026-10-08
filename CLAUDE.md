@@ -591,8 +591,8 @@ coldness(x)  = 1 - heat(x)
 
 line.staleness   = min(staleness of its exercises)        ← nulls dropped
 line.heat        = heat(line.staleness, line's OWN importance)
-discipline.heat  = mean(heat of its lines)
-pillar.heat      = mean(heat of its disciplines)
+discipline.heat  = MAX(heat of its lines)
+pillar.heat      = MAX(heat of its disciplines)
 
 discipline.weight = mean(weight of its lines)
 pillar.weight     = mean(weight of its disciplines)
@@ -606,9 +606,27 @@ stops. Heat decaying to 0 and staying there says exactly that, needs no clamping
 inside the aggregates, and makes never-trained the natural limit rather than a
 special case.
 
+⚠️ **Discipline and pillar take a MAX, not a mean** (Calum, 2026-10-08). A mean
+was wrong for a domain reason: nobody trains Vertical Press and Horizontal Press
+in the same block, so averaging over a discipline's lines meant `Pressing
+Strength` could never read as hot however recently it was programmed.
+
+Two consequences, both knowingly accepted:
+
+- **The banner is now near-binary.** A mean encoded "how much of the discipline
+  was covered"; a max encodes "was any of it covered". That coverage information
+  is not lost from the page — it is visible in the LANES, where you can see four
+  of five dark — it has just left the banner.
+- ⚠️ **A max systematically favours the LEAST important line**, because low
+  importance means slow cooling means more heat for the same staleness. Measured
+  six weeks past the block: `Pressing Strength` reads 0.74, driven by
+  `Arms & Accessory` and `Horizontal Press` (both importance 3), while its
+  importance-2 lines sit at 0.49. So a discipline can look covered on the
+  strength of what matters least. Flagged, not silently fixed.
+
 ⚠️ **Discipline and pillar heat apply NO importance of their own** — each line's
 importance is already inside its heat, so weighting again would count it twice.
-Their `weight` is computed separately, for display and future use.
+Their `weight` is still a MEAN; it is a different quantity and has not changed.
 
 The rest of this section is the reasoning behind those formulas. Importance is not an abstract priority: the sheet's own
 `Importance legend` defines it as a FREQUENCY (1 = every program, 2 = every
