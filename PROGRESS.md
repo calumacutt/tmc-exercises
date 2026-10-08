@@ -571,9 +571,19 @@ way they never are in a spreadsheet.
       Aggregation as agreed: exercise → line is a MAX (a line is trained if any
       member was, expressed as a min over staleness), line → discipline → pillar
       are MEANS. Importance aggregates separately and first, in urgency space.
+      ⚠️ **Never trained = infinitely cold** (Calum's call, 2026-10-08). The first
+      version aged it from the start of the record; that was a hard-wired idea of
+      when history began and it flattered a thin record. Aggregates average
+      CLAMPED coldness so one never-trained member cannot take a whole discipline
+      to Infinity.
       Measured on the real block: 38 of 61 lines trained, disciplines spread
-      0.00–0.22, pillars 0.07–0.15 — a usable gradient from ONE block, which is
-      what Calum predicted and I had wrongly called a blocker.
+      20%–50% — a usable gradient from ONE block, which is what Calum predicted
+      and I had wrongly called a blocker.
+      **A "today" override** sits beside the Heat control: coldness is measured
+      from a date, so moving that date is the only way to exercise the model
+      without waiting weeks. It recomputes from the parsed files — nothing is
+      refetched — and turns plum when it is not actually today, so a shifted date
+      cannot be mistaken for the real picture.
 - [x] **3.7 Render heat in the Discipline view.** Off / Cold / Hot segmented
       control. Glow on the discipline banner (mean of its lines) and on each lane
       (the line's own importance against its most recently trained member), plus a

@@ -27,12 +27,19 @@
 // frequency (1 → 1.0, 2 → 0.5, 3 → 0.25), where higher means more important and
 // a mean is meaningful. Every aggregate is computed in that space.
 //
-// ⚠️ "NEVER TRAINED" IS NOT INFINITELY COLD. It means "not in the recorded
-// history", so its staleness is the age of the RECORD, not of the world. With
-// one block logged five weeks ago, an untrained importance-1 line sits at 0.88
-// coldness and an occasional one at 0.22 — a real gradient from a single block,
-// and one that deepens honestly as history accumulates. Treating it as infinite
-// would paint 520 exercises the same colour and say more than the data supports.
+// ⚠️ "NEVER TRAINED" IS INFINITELY COLD (Calum, 2026-10-08). Unless a record says
+// an exercise was done, the only safe assumption is that it was not. An earlier
+// version aged it from the start of the record instead; that was a hard-wired
+// notion of when history began, it quietly flattered a thin record, and it is
+// gone. If the result looks wrong, the fix is more program files, not a softer
+// default.
+//
+// The consequence to hold onto: `coldness` is UNBOUNDED and can be Infinity, so a
+// mean over raw coldness would be Infinity the moment one member was never
+// trained — destroying the gradient at discipline and pillar level. Every
+// aggregate therefore averages CLAMPED coldness (`min(1, c)`), which is finite and
+// is also exactly what gets rendered. Raw coldness survives at exercise and line
+// level, so "twice overdue" is still legible in a tooltip.
 //
 // ⚠️ `cook` / half-baked IS NOT IMPLEMENTED, and cannot be yet. It is defined as
 // CONSECUTIVE blocks (CLAUDE.md §7.3), so it needs at least two in the history
@@ -94,28 +101,28 @@ function mean(xs) {
  */
 function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) {
   const ordered = blocks.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const recordStart = ordered.length ? ordered[0].date : today;
-  // How stale something not in the record is: the age of the record itself.
-  const recordAge = Math.max(0, daysBetween(recordStart, today) || 0);
 
-  // When was each name last trained? Newest block first; a block's exercises
-  // stop ageing when the block ENDS, not when it starts — and a block still
-  // running has not started ageing at all.
+  // When was each name last trained? A block's exercises stop ageing when the
+  // block ENDS, not when it starts — and a block still running has not started
+  // ageing at all. Later blocks overwrite earlier ones, so the newest wins.
   const lastEnd = new Map();
   for (const b of ordered) {
     const end = b.ends && b.ends < today ? b.ends : today;
     for (const name of exerciseSetOf(b)) lastEnd.set(name, end);
   }
 
+  // `days` is null for never trained — not a large number, so nothing downstream
+  // can mistake it for a measurement.
   const stalenessOf = (name) => {
     const end = lastEnd.get(name);
-    if (!end) return { days: recordAge, trained: false };
+    if (!end) return { days: null, trained: false };
     return { days: Math.max(0, daysBetween(end, today) || 0), trained: true };
   };
 
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
   const scoreFrom = (days, importance) => {
-    const coldness = days / targetDaysFor(importance);
-    return { coldness, heat: 1 - Math.max(0, Math.min(1, coldness)) };
+    const coldness = days === null ? Infinity : days / targetDaysFor(importance);
+    return { coldness, clamped: clamp01(coldness), heat: 1 - clamp01(coldness) };
   };
 
   // ---- Exercise level -------------------------------------------------------
@@ -145,8 +152,12 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
   const line = new Map();
   for (const [key, exs] of members) {
     const imp = lineImportance.get(key) || 3;
+    // The MOST RECENTLY trained member. `null` (never) must not win a min against
+    // a real number, so nulls are dropped rather than coerced — which is exactly
+    // what `Math.min` would do with them.
     const stale = exs.map(e => stalenessOf(e.name));
-    const days = Math.min(...stale.map(s => s.days));
+    const seenDays = stale.map(s => s.days).filter(d => d !== null);
+    const days = seenDays.length ? Math.min(...seenDays) : null;
     line.set(key, {
       staleness: days, trained: stale.some(s => s.trained),
       importance: imp, weight: weightOf(imp), members: exs.length,
@@ -157,9 +168,9 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
   for (const [key, imp] of lineImportance) {
     if (line.has(key)) continue;
     line.set(key, {
-      staleness: recordAge, trained: false, importance: imp,
+      staleness: null, trained: false, importance: imp,
       weight: weightOf(imp), members: 0,
-      ...scoreFrom(recordAge, imp), halfBaked: null,
+      ...scoreFrom(null, imp), halfBaked: null,
     });
   }
 
@@ -184,12 +195,15 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
     const ls = [...keys].map(k => line.get(k)).filter(Boolean);
     if (!ls.length) continue;
     const weight = mean(ls.map(l => l.weight));
-    const coldness = mean(ls.map(l => l.coldness));
+    // CLAMPED, so one never-trained line cannot take the whole discipline to
+    // Infinity and wipe out the gradient.
+    const coldness = mean(ls.map(l => l.clamped));
+    const seenD = ls.map(l => l.staleness).filter(d => d !== null);
     discipline.set(name, {
-      staleness: Math.min(...ls.map(l => l.staleness)),
+      staleness: seenD.length ? Math.min(...seenD) : null,
       trained: ls.some(l => l.trained),
       weight, importance: importanceOfWeight(weight), lines: ls.length,
-      coldness, heat: 1 - Math.max(0, Math.min(1, coldness)), halfBaked: null,
+      coldness, clamped: coldness, heat: 1 - coldness, halfBaked: null,
     });
   }
 
@@ -198,19 +212,22 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
     const ds = [...discs].map(d => discipline.get(d)).filter(Boolean);
     if (!ds.length) continue;
     const weight = mean(ds.map(d => d.weight));
-    const coldness = mean(ds.map(d => d.coldness));
+    const coldness = mean(ds.map(d => d.clamped));
+    const seenP = ds.map(d => d.staleness).filter(x => x !== null);
     pillar.set(name, {
-      staleness: Math.min(...ds.map(d => d.staleness)),
+      staleness: seenP.length ? Math.min(...seenP) : null,
       trained: ds.some(d => d.trained),
       weight, importance: importanceOfWeight(weight), disciplines: ds.length,
-      coldness, heat: 1 - Math.max(0, Math.min(1, coldness)), halfBaked: null,
+      coldness, clamped: coldness, heat: 1 - coldness, halfBaked: null,
     });
   }
 
   return {
     exercise, line, discipline, pillar,
     meta: {
-      today, recordStart, recordAge, blocks: ordered.length,
+      today, blocks: ordered.length,
+      firstBlock: ordered.length ? ordered[0].date : null,
+      lastBlock: ordered.length ? ordered[ordered.length - 1].date : null,
       // Honest about what one block can and cannot show.
       coldnessIsBinaryAtExerciseLevel: ordered.length < 2,
       halfBakedAvailable: false,

@@ -595,12 +595,17 @@ means more important and a mean means something. Importance is aggregated FIRST
 and INDEPENDENTLY of heat (Calum): it is a property of the structure, so it does
 not move when a program is logged.
 
-⚠️ **"Never trained" is NOT infinitely cold.** It means "not in the recorded
-history", so its staleness is the age of the RECORD. With one block logged five
-weeks ago an untrained importance-1 line sits at 0.88 and an occasional one at
-0.22 — a real gradient from a single block, deepening honestly as history grows.
-Infinite coldness would paint 520 exercises the same and claim more than the data
-supports.
+⚠️ **"Never trained" IS infinitely cold** (Calum, 2026-10-08). Unless a record
+says an exercise was done, the only safe assumption is that it was not. An earlier
+version aged it from the start of the record; that was a hard-wired notion of when
+history began, it flattered a thin record, and it is gone. If the result looks
+wrong the fix is more program files, not a softer default.
+
+The consequence: `coldness` is UNBOUNDED, so a mean over raw coldness would be
+Infinity the moment one member was never trained, destroying the gradient above
+line level. Every aggregate averages **clamped** coldness (`min(1, c)`) — finite,
+and exactly what gets rendered. Raw coldness survives at exercise and line level
+so "twice overdue" stays legible in a tooltip.
 
 ⚠️ **`cook` / half-baked is NOT implemented and cannot be yet.** It is defined
 over CONSECUTIVE blocks (§7.3) and there is one block. `halfBaked` is always

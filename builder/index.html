@@ -1042,6 +1042,28 @@
   }
   /* A number as well as a colour — a halo alone cannot be read back as a value,
      and the whole point is deciding what to program next. */
+  /* The "today" override. Coldness is measured from a date, so being able to move
+     that date is the only way to see the model behave without waiting weeks. */
+  #heat-date {
+    font: inherit;
+    font-size: 11px;
+    padding: 2px 6px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: transparent;
+    color: #6b6357;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  }
+  #heat-date:hover { border-color: var(--ink); color: var(--ink); }
+  /* Loud when it is NOT today, so a shifted date can never be mistaken for the
+     real picture. */
+  #heat-date.overridden {
+    border-color: var(--keystone);
+    color: var(--keystone);
+    font-weight: 700;
+  }
+  body:not(.heat-on) #heat-date { display: none; }
+
   .trait-banner .heat-val {
     font-size: 10px;
     opacity: 0.85;
@@ -1592,6 +1614,7 @@
         <button class="seg" data-heat="off" title="No heat shading">Off</button>
         <button class="seg" data-heat="cold" title="Glow on what needs work">Cold</button>
         <button class="seg" data-heat="hot" title="Glow on what has been covered recently">Hot</button>
+        <input type="date" id="heat-date" title="The date coldness is measured from. Defaults to today.">
       </span>
       <button class="mini-btn toggle-btn" id="btn-variants" aria-pressed="false"
               title="Variants are named &quot;Base - Modifier&quot;. There are far more of them than base exercises, so they are off by default.">Variants</button>
@@ -3436,6 +3459,13 @@ const viewState = { impMax: 2, showVariants: false, expanded: new Set(), heat: '
 // The heat picture, or null until the programs and the Lists tab have loaded.
 // Everything renders without it; heat is an overlay, never a dependency.
 let HEAT = null;
+// The parsed inputs, kept so changing the date is a recompute rather than a
+// refetch of seven files and the Lists tab.
+let HEAT_SOURCE = null;
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 /**
  * Load the class files and build the heat picture.
@@ -3467,16 +3497,23 @@ async function loadHeat() {
   if (!files.length) return null;
 
   const lineImportance = await fetchLineImportance();
-  const blocks = groupIntoBlocks(files);
-  const today = new Date().toISOString().slice(0, 10);
-  const heat = buildHeat({ blocks, today, exercises: ALL_ROWS, lineImportance,
+  HEAT_SOURCE = { blocks: groupIntoBlocks(files), lineImportance, fileCount: files.length };
+  return recomputeHeat(heatDate.value || todayIso());
+}
+
+/** Rebuild the heat picture for a given "today". Cheap: nothing is refetched. */
+function recomputeHeat(today) {
+  if (!HEAT_SOURCE) return null;
+  const heat = buildHeat({ blocks: HEAT_SOURCE.blocks, today, exercises: ALL_ROWS,
+                           lineImportance: HEAT_SOURCE.lineImportance,
                            exerciseSetOf: exerciseSet });
-  console.info('[heat] ' + files.length + ' class file(s), ' + blocks.length
-    + ' block(s), record ' + heat.meta.recordStart + ' → ' + today
-    + ' (' + heat.meta.recordAge + ' days). '
-    + [...heat.line.values()].filter(l => l.trained).length + ' of '
-    + heat.line.size + ' lines trained.'
-    + (heat.meta.blocks < 2 ? ' ⚠️ One block: exercise-level heat is binary and '
+  const trained = [...heat.line.values()].filter(l => l.trained).length;
+  console.info('[heat] ' + HEAT_SOURCE.fileCount + ' class file(s), '
+    + heat.meta.blocks + ' block(s) ' + heat.meta.firstBlock + '..'
+    + heat.meta.lastBlock + ', as at ' + today
+    + (today === todayIso() ? '' : ' (OVERRIDDEN)')
+    + '. ' + trained + ' of ' + heat.line.size + ' lines trained.'
+    + (heat.meta.blocks < 2 ? ' One block: exercise-level heat is binary and '
       + 'half-baked cannot be computed.' : ''));
   return heat;
 }
@@ -3672,6 +3709,18 @@ syncImpFilter();
 // "what needs work" and "what is already covered" are opposite questions over
 // one dataset.
 const heatFilter = document.getElementById('heat-filter');
+const heatDate = document.getElementById('heat-date');
+heatDate.value = todayIso();
+
+// Changing the date recomputes from the already-parsed files. Nothing is
+// refetched, so it is instant and can be scrubbed freely.
+heatDate.addEventListener('change', () => {
+  if (!heatDate.value) heatDate.value = todayIso();
+  heatDate.classList.toggle('overridden', heatDate.value !== todayIso());
+  HEAT = recomputeHeat(heatDate.value);
+  renderActiveView();
+});
+
 function syncHeatFilter() {
   for (const b of heatFilter.querySelectorAll('.seg')) {
     b.classList.toggle('active', b.dataset.heat === viewState.heat);
