@@ -5,51 +5,85 @@
 // up disagreeing (CLAUDE.md §2).
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// THE MODEL
+// THE MODEL — all of it
+//
+// ⚠️ HEAT is the stored quantity. Coldness is just `1 - heat`, for display.
+//
+// An earlier version had it the other way round, with coldness unbounded and
+// Infinity for never-trained. That was wrong, and Calum caught it: a thing does
+// not get infinitely colder, it reaches the point where it is indistinguishable
+// from never having been done, and then stops. Heat decaying to zero and
+// staying there says exactly that, needs no clamping inside the aggregates, and
+// makes "never trained" the natural limit rather than a special case.
 //
 // `Importance` is not an abstract priority. The sheet's own `Importance legend`
-// defines it as a PROGRAMMING FREQUENCY:
+// defines it as a PROGRAMMING FREQUENCY, so it states a cooling time directly:
 //
-//     1 = every program · 2 = every second program · 3 = occasional
+//     coolDays(1) = 42    every program      (a TMC block is 6 weeks)
+//     coolDays(2) = 84    every 2nd program
+//     coolDays(3) = 168   occasional
 //
-// So importance states a target interval directly, and coldness is just how far
-// past that interval you are:
+// ---- Heat -----------------------------------------------------------------
 //
-//     coldness = days since last trained ÷ target interval for its importance
+//     staleness(x) = days from when x was last trained to `today`,  null if never
 //
-// 0 means just trained, 1 means due now, above 1 means overdue. Nothing was
-// tuned: the numbers come from the legend. That is the whole engine.
+//     heat(x) = staleness === null
+//                 ? 0
+//                 : clamp01(1 - staleness / coolDays(importance(x)))
 //
-// ⚠️ WORK IN "URGENCY", NOT IN THE RAW 1/2/3. The importance scale is INVERTED
-// (1 is most important) and non-linear, so averaging the raw numbers gives
-// nonsense — a discipline holding one must-do line and four occasional ones
-// averages to 2.6 and reads as unimportant. `weightOf()` converts to expected
-// frequency (1 → 1.0, 2 → 0.5, 3 → 0.25), where higher means more important and
-// a mean is meaningful. Every aggregate is computed in that space.
+//     coldness(x) = 1 - heat(x)
 //
-// ⚠️ "NEVER TRAINED" IS INFINITELY COLD (Calum, 2026-10-08). Unless a record says
-// an exercise was done, the only safe assumption is that it was not. An earlier
-// version aged it from the start of the record instead; that was a hard-wired
-// notion of when history began, it quietly flattered a thin record, and it is
-// gone. If the result looks wrong, the fix is more program files, not a softer
-// default.
+// So heat is 1 the day it is trained, falls linearly, and hits 0 after exactly
+// one cooling period — at which point it is level with never having been done,
+// which is the whole point. A block that is still running counts as trained
+// today, so it does not start cooling until the block ENDS.
 //
-// The consequence to hold onto: `coldness` is UNBOUNDED and can be Infinity, so a
-// mean over raw coldness would be Infinity the moment one member was never
-// trained — destroying the gradient at discipline and pillar level. Every
-// aggregate therefore averages CLAMPED coldness (`min(1, c)`), which is finite and
-// is also exactly what gets rendered. Raw coldness survives at exercise and line
-// level, so "twice overdue" is still legible in a tooltip.
+// ---- Importance -----------------------------------------------------------
 //
-// ⚠️ `cook` / half-baked IS NOT IMPLEMENTED, and cannot be yet. It is defined as
-// CONSECUTIVE blocks (CLAUDE.md §7.3), so it needs at least two in the history
-// to say anything at all. There is one. `halfBaked` is therefore always null,
+// Only LINES carry a manual importance (the `Line Importance` column in the
+// Lists tab). Disciplines and pillars do not, by decision, so theirs is derived.
+//
+// ⚠️ Aggregate importance in URGENCY space, never the raw 1/2/3. The scale is
+// inverted and non-linear, so averaging the raw numbers is nonsense — a
+// discipline with one must-do line and four occasional ones averages 2.6 and
+// reads as unimportant. Convert first:
+//
+//     weight(1) = 1.0 · weight(2) = 0.5 · weight(3) = 0.25    (expected frequency)
+//
+//     discipline.weight = mean(weight of each of its lines)
+//     pillar.weight     = mean(weight of each of its disciplines)
+//
+// Importance is a property of the STRUCTURE, so it is computed first and
+// independently; logging a program does not move it.
+//
+// ---- Propagation ----------------------------------------------------------
+//
+//     line.staleness   = min(staleness of its exercises)       ← nulls dropped
+//     line.heat        = heat(line.staleness, line's OWN importance)
+//
+//     discipline.heat  = mean(heat of its lines)
+//     pillar.heat      = mean(heat of its disciplines)
+//
+// The min at line level IS the agreed "max of members": a line counts as trained
+// if any one exercise in it was, and the most recent member is the one with the
+// smallest staleness. Aggregating coldness with a max instead would light up a
+// line you had just trained, because of its one neglected exercise.
+//
+// Discipline and pillar heat take a plain mean and apply NO importance of their
+// own — each line's importance is already baked into its heat, so weighting
+// again here would count it twice.
+//
+// ---- Not implemented ------------------------------------------------------
+//
+// ⚠️ `cook` / half-baked cannot be computed yet. It is defined over CONSECUTIVE
+// blocks (CLAUDE.md §7.3) and there is one block. `halfBaked` is always null,
 // deliberately, rather than guessed from a single block.
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Target interval in days per importance, straight from the Importance legend.
-// A TMC block is six weeks, so "every program" is 42 days.
+// How long something takes to cool from fully trained to cold, per importance.
+// Straight from the Importance legend; a TMC block is six weeks.
 const BLOCK_DAYS = 42;
-const TARGET_DAYS = { 1: BLOCK_DAYS, 2: BLOCK_DAYS * 2, 3: BLOCK_DAYS * 4 };
+const COOL_DAYS = { 1: BLOCK_DAYS, 2: BLOCK_DAYS * 2, 3: BLOCK_DAYS * 4 };
 
 // Expected frequency per importance — the space all averaging happens in.
 const WEIGHT = { 1: 1, 2: 0.5, 3: 0.25 };
@@ -69,8 +103,21 @@ function importanceOfWeight(w) {
   return best;
 }
 
-function targetDaysFor(importance) {
-  return TARGET_DAYS[importance] != null ? TARGET_DAYS[importance] : TARGET_DAYS[3];
+function coolDaysFor(importance) {
+  return COOL_DAYS[importance] != null ? COOL_DAYS[importance] : COOL_DAYS[3];
+}
+
+/** heat(staleness, importance). `null` staleness means never trained — heat 0. */
+function heatOf(days, importance) {
+  if (days === null) return 0;
+  const h = 1 - days / coolDaysFor(importance);
+  return Math.max(0, Math.min(1, h));
+}
+
+/** The pair every level stores: heat, and coldness as its complement. */
+function scoreOf(days, importance) {
+  const heat = heatOf(days, importance);
+  return { heat, coldness: 1 - heat };
 }
 
 function daysBetween(fromIso, toIso) {
@@ -119,11 +166,7 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
     return { days: Math.max(0, daysBetween(end, today) || 0), trained: true };
   };
 
-  const clamp01 = (x) => Math.max(0, Math.min(1, x));
-  const scoreFrom = (days, importance) => {
-    const coldness = days === null ? Infinity : days / targetDaysFor(importance);
-    return { coldness, clamped: clamp01(coldness), heat: 1 - clamp01(coldness) };
-  };
+  const scoreFrom = scoreOf;
 
   // ---- Exercise level -------------------------------------------------------
   const exercise = new Map();
@@ -195,15 +238,17 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
     const ls = [...keys].map(k => line.get(k)).filter(Boolean);
     if (!ls.length) continue;
     const weight = mean(ls.map(l => l.weight));
-    // CLAMPED, so one never-trained line cannot take the whole discipline to
-    // Infinity and wipe out the gradient.
-    const coldness = mean(ls.map(l => l.clamped));
+    // Mean of HEAT, which is bounded 0..1 by construction, so there is nothing
+    // to clamp and no way for one never-trained line to swallow the average.
+    // Each line's importance is already inside its heat; re-weighting here would
+    // count it twice.
+    const heat = mean(ls.map(l => l.heat));
     const seenD = ls.map(l => l.staleness).filter(d => d !== null);
     discipline.set(name, {
       staleness: seenD.length ? Math.min(...seenD) : null,
       trained: ls.some(l => l.trained),
       weight, importance: importanceOfWeight(weight), lines: ls.length,
-      coldness, clamped: coldness, heat: 1 - coldness, halfBaked: null,
+      heat, coldness: 1 - heat, halfBaked: null,
     });
   }
 
@@ -212,13 +257,13 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
     const ds = [...discs].map(d => discipline.get(d)).filter(Boolean);
     if (!ds.length) continue;
     const weight = mean(ds.map(d => d.weight));
-    const coldness = mean(ds.map(d => d.clamped));
+    const heat = mean(ds.map(d => d.heat));
     const seenP = ds.map(d => d.staleness).filter(x => x !== null);
     pillar.set(name, {
       staleness: seenP.length ? Math.min(...seenP) : null,
       trained: ds.some(d => d.trained),
       weight, importance: importanceOfWeight(weight), disciplines: ds.length,
-      coldness, clamped: coldness, heat: 1 - coldness, halfBaked: null,
+      heat, coldness: 1 - heat, halfBaked: null,
     });
   }
 
@@ -236,6 +281,6 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
 }
 
 export {
-  buildHeat, weightOf, importanceOfWeight, targetDaysFor,
-  TARGET_DAYS, WEIGHT, BLOCK_DAYS,
+  buildHeat, weightOf, importanceOfWeight, coolDaysFor, heatOf,
+  COOL_DAYS, WEIGHT, BLOCK_DAYS,
 };

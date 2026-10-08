@@ -577,8 +577,40 @@ its discipline is cold and urgent.
 
 ### 7.5 Heat engine — one pure function
 
-✅ **BUILT 2026-10-08** — `shared/heat.js`, and the model is simpler than this
-section assumed. Importance is not an abstract priority: the sheet's own
+✅ **BUILT 2026-10-08** — `shared/heat.js`. The whole model, as formulas:
+
+```
+coolDays(1) = 42   coolDays(2) = 84   coolDays(3) = 168        [6-week block]
+weight(1)   = 1.0  weight(2)   = 0.5  weight(3)   = 0.25       [expected frequency]
+
+staleness(x) = days from when x was last trained to `today`,  null if never
+
+heat(x)      = staleness === null ? 0
+                                  : clamp01(1 - staleness / coolDays(importance(x)))
+coldness(x)  = 1 - heat(x)
+
+line.staleness   = min(staleness of its exercises)        ← nulls dropped
+line.heat        = heat(line.staleness, line's OWN importance)
+discipline.heat  = mean(heat of its lines)
+pillar.heat      = mean(heat of its disciplines)
+
+discipline.weight = mean(weight of its lines)
+pillar.weight     = mean(weight of its disciplines)
+```
+
+⚠️ **HEAT is the stored quantity; coldness is just `1 - heat`.** The first
+version had it the other way round, with coldness unbounded and Infinity for
+never-trained. Calum caught that: a thing does not get infinitely colder, it
+reaches the point where it is indistinguishable from never having been done, and
+stops. Heat decaying to 0 and staying there says exactly that, needs no clamping
+inside the aggregates, and makes never-trained the natural limit rather than a
+special case.
+
+⚠️ **Discipline and pillar heat apply NO importance of their own** — each line's
+importance is already inside its heat, so weighting again would count it twice.
+Their `weight` is computed separately, for display and future use.
+
+The rest of this section is the reasoning behind those formulas. Importance is not an abstract priority: the sheet's own
 `Importance legend` defines it as a FREQUENCY (1 = every program, 2 = every
 second, 3 = occasional), so it states a target interval directly and
 

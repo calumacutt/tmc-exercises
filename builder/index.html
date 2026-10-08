@@ -1996,7 +1996,7 @@ function render(model) {
       const val = document.createElement('span');
       val.className = 'heat-val';
       val.textContent = Math.round(heatValue(dHeat) * 100) + '%';
-      val.title = 'Coldness ' + dHeat.coldness.toFixed(2) + ' · line importance '
+      val.title = 'Heat ' + dHeat.heat.toFixed(2) + ' · line importance '
         + dHeat.importance + ' · last trained ' + dHeat.staleness + ' days ago';
       banner.appendChild(val);
     }
@@ -2028,7 +2028,7 @@ function render(model) {
       rowEl.style.setProperty('--glow', heatValue(lHeat));
       if (lHeat) {
         rowEl.title = pathway.name + ' — importance ' + lHeat.importance
-          + ', coldness ' + lHeat.coldness.toFixed(2)
+          + ', heat ' + lHeat.heat.toFixed(2)
           + (lHeat.trained ? ', last trained ' + lHeat.staleness + ' days ago'
                            : ', not in the recorded history');
       }
@@ -3522,8 +3522,9 @@ function recomputeHeat(today) {
 // complement — one number, shown from either end.
 function heatValue(entry) {
   if (!entry || viewState.heat === 'off') return 0;
-  const cold = Math.max(0, Math.min(1, entry.coldness));
-  return viewState.heat === 'cold' ? cold : 1 - cold;
+  // `heat` is stored and already bounded 0..1, so there is nothing to clamp and
+  // the two modes are literally the same number read from either end.
+  return viewState.heat === 'cold' ? 1 - entry.heat : entry.heat;
 }
 
 let ALL_ROWS = [];        // every gate-passing row, unfiltered
