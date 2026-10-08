@@ -13,37 +13,58 @@ Locked so the three 6-week blocks of history can be entered by hand once.
 
 | Term | Meaning |
 |---|---|
-| **Program** | One file. One 6-week block, identified by its **start date**. |
-| **Class** | A class *type* — what it trains, not when it runs. Free text. |
-| **Session** | A titled, optionally timed block *within* a class. |
-| **Bullet** | One poster line. Free text, plus the exercises it maps to. |
+| **Class file** | One file. One class as it ran for one block. |
+| **Block** | The set of class files sharing a `Date:`. Not a file. |
+| **Session** | A titled, optionally timed part of a class. |
+| **Bullet** | One poster line: free text, plus the exercises it maps to. |
 | **Exercise** | A row in the Movement Library, referenced as `[[Name]]`. |
 
-⚠️ **A class is a TYPE, not an instance.** Each runs many times across the six
-weeks, so no day, time, room or coach is recorded.
+⚠️ **ONE FILE PER CLASS** (Calum, 2026-10-08), named
+`<Class Name> - <YYYY-MM-DD>.md`. One file per thing on the wall, with a name you
+can read without opening it. Adding a class to a block is dropping in a file, not
+editing a big one.
+
+⚠️ **A BLOCK IS NOT A FILE.** Nothing groups class files but their `Date:` — no
+manifest, no block index, no folder per block. Either could disagree with the
+dates, and the dates are what heat sorts on, so there is nothing else to
+disagree with. `groupIntoBlocks()` does the grouping.
+
+⚠️ **A class is a TYPE, not an instance.** It runs many times across the block,
+so no day, time, room or coach is recorded.
 
 ---
 
 ## 2. The format
 
 ```markdown
-# TMC Program
+# Lower Body
 
 Date: 2026-09-01
+Ends: 2026-10-13
 
 <!-- A note. This is the only way to write prose in the file. -->
 
-## Lower Body
-
-### Juggling Lesson (5 min)
+## Juggling Lesson (5 min)
 - 3 ball cascade (reverse cascade), 4 ball (fountain) [[3 Ball Cascade]] [[4 Ball Fountain]]
 - Or hacky sack [[Hacky Sack]]
 
-### Movement Game (10 min)
+## Movement Game (10 min)
 - Teachers choice (lower body focus)
 ```
 
-That is the whole grammar.
+That is the whole grammar. `# ` is the class name, `## ` is a session, `- ` is a
+bullet.
+
+**`Ends:` is optional.** Without it a block is assumed to run
+`DEFAULT_BLOCK_WEEKS` (6) from `Date:`. It exists because that is a default, not
+a rule, and because heat measures staleness from when a block *stopped* being
+trained, not when it started.
+
+### The class name is also the filename
+
+So it cannot contain `\ / : * ? " < > |`, and the parser refuses one that does.
+Found the hard way: the poster's `Handstand + Stretch - Beg/Int` could not be
+written to disk at all, and became `Handstand + Stretch (Beg-Int)`.
 
 ---
 
@@ -110,11 +131,11 @@ exercise linked. Nothing is lost that heat would have used.
 
 | Line | Rule |
 |---|---|
-| `# ...` | Title. Free text, **ignored**. |
-| `Date: YYYY-MM-DD` | **Required, ISO only.** Block start, and the sort key for heat. |
+| `# <class name>` | **Required.** The class. Any name, minus filename-hostile characters. |
+| `Date: YYYY-MM-DD` | **Required, ISO only.** Block start, the sort key for heat, and the only thing grouping a block. |
+| `Ends: YYYY-MM-DD` | Optional. Defaults to `Date:` + 6 weeks. |
 | `<!-- ... -->` | A note. Spans lines. Renders as nothing, so the poster stays clean. |
-| `## <name>` | Starts a class. Any name. |
-| `### <title>` or `### <title> (M min)` | Starts a session. Duration optional. |
+| `## <title>` or `## <title> (M min)` | Starts a session. Duration optional. |
 | `- <text> [[Name]] ...` | A bullet: free text plus zero or more exercise references. |
 | anything else | ⚠️ **ERROR.** See below. |
 
@@ -146,19 +167,21 @@ Same posture as `validateRows()` (CLAUDE.md §6.1). Import **refuses the file** 
 - **An exercise name in `[[...]]` that is not in the library.** Name is the
   primary key; a near-miss must not be fuzzy-matched. Reports the name, class and
   session.
-- **Missing, non-ISO or duplicated `Date`.**
+- **A missing `# Class Name`**, or a second one — one file is one class.
+- **A class name containing `\ / : * ? " < > |`**, since it is also the filename.
+- **Missing, non-ISO or duplicated `Date`**; a non-ISO or duplicated `Ends`; an
+  `Ends` before its `Date`.
 - **A line that is not a class, session, bullet or note** (above).
 - **An unclosed `<!--`.**
 - **An empty `[[]]`**, an empty bullet, an empty class name, an empty session
   title, or a file with no classes.
-- **The same class twice in one file** — it is either a duplicate or a
-  continuation and there is no way to tell which.
-- **A session before any class**, or a bullet before any session.
+- **A file with no sessions**, or a bullet before any session.
 
 Warn, but load:
 
 - **unlinked bullets** (count);
-- a **class name seen in only one program** of several;
+- a **class name seen in only one block** of several;
+- **two sessions with the same title** in one class;
 - the same exercise **referenced twice in one bullet**;
 - a **filename that disagrees with `Date:`**.
 
@@ -170,10 +193,12 @@ takes a set.
 
 ## 5a. The parser — `shared/programs.js`
 
-`parseProgram(text)` handles structure and needs nothing else, so a file can be
-parsed, diffed or round-tripped offline. `validateAgainstLibrary(program, names)`
-is the one rule needing the sheet. `exerciseSet(program)` is the heat input of
-§7. `checkClassVocabulary(programs)` is the cross-file typo check. Problems are
+`parseClassFile(text)` handles structure and needs nothing else, so a file can be
+parsed, diffed or round-tripped offline. `validateAgainstLibrary(file, names)` is
+the one rule needing the sheet. `groupIntoBlocks(files)` groups by `Date:`.
+`exerciseSet(fileOrBlock)` is the heat input of §7 and takes either.
+`blockEnd(file)` resolves `Ends:` or the 6-week default.
+`checkClassVocabulary(files)` is the cross-block typo check. Problems are
 **objects**, not strings, with `formatProblem()` exported.
 
 ⚠️ **All structural problems are collected, not thrown on the first.** The file
@@ -185,7 +210,7 @@ be miserable.
 ## 6. Filing
 
 ```
-data/programs/YYYY-MM-DD.md
+data/programs/<Class Name> - <YYYY-MM-DD>.md
 ```
 
 ⚠️ **`data/programs/` is HEAT INPUT. Nothing invented goes in it.** A program

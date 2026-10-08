@@ -574,10 +574,13 @@ way they never are in a spreadsheet.
 - [ ] **3.3 Unit-test the heat engine** against hand-worked examples,
       especially: high-importance items cooling fast (handstand almost always
       cold), `cook` producing half-baked, `burn` producing burnt.
-- [~] **3.4 Enter the historical programs.** **1 of 3 done.**
-      `data/programs/2026-09-01.md` — the seven class posters transcribed into the
-      revised format: 7 classes, 36 sessions, 103 bullets, **95 distinct exercises,
-      all resolving against the live sheet**, 0 problems.
+- [~] **3.4 Enter the historical programs.** **1 block of 3 done.**
+      Seven `data/programs/<Class> - 2026-09-01.md` files — one per class, the
+      shape Calum asked for — transcribed from the posters: 7 classes, 36 sessions,
+      103 bullets, **96 distinct exercises, all resolving against the live sheet**,
+      0 problems.
+      `CSD` decoded by Calum: Cossack Squat, Split Squat, Diagonal Stretch in
+      sequence. All three linked.
       ⚠️ **Its date is a PLACEHOLDER.** The posters carry no date; the photos were
       taken 2026-09-24 and a six-week block from 2026-09-01 would be running then.
       Correct it, and rename the file, before this is treated as history — `Date:`

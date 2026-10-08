@@ -54,7 +54,7 @@ directly. See §3 for the constraint this imposes.
 ├── shared/                      used by BOTH sites — no duplication
 │   ├── csv.js                   tolerant CSV parsing (parseCSV, field)
 │   ├── library.js               row → model, filterRows, groupData, validateRows
-│   ├── programs.js              program file → {date, classes}; the heat input
+│   ├── programs.js              class file → sessions; groups into blocks; heat input
 │   ├── taxonomy.js              pillar order, colours, hsl helpers
 │   ├── graph.js                 typed edge list → graph          (task 2.3, not built)
 │   ├── heat.js                  hot/cold/half-baked/burnt engine (task 3.2, not built)
@@ -602,8 +602,15 @@ with it in four ways and the format moved, not the posters. In short: a bullet i
 free text plus `[[Exercise]]` references (real lines are `Pull up/Chin up x 5-8`,
 not names); class names are OPEN with a cross-file typo warning; sessions are
 TITLED with an optional duration; §7.7's fixed 10/5/15/15/15 and the 4-concurrent
-limit are gone. The first real program — seven classes transcribed from the
-posters — is `data/programs/2026-09-01.md`, 95 distinct exercises, all resolving.
+limit are gone.
+
+⚠️ **ONE FILE PER CLASS** (2026-10-08), named `<Class Name> - <YYYY-MM-DD>.md`,
+and **a BLOCK is just the set of files sharing a `Date:`** — no manifest, no block
+index, no folder per block, because any of those could disagree with the dates and
+the dates are what heat sorts on. The first real block is the seven
+`* - 2026-09-01.md` files transcribed from the posters: 7 classes, 36 sessions,
+96 distinct exercises, all resolving. A class name is also its filename, so it
+cannot contain `\ / : * ? " < > |`.
 
 ⚠️ **`data/programs/` is HEAT INPUT. Nothing invented goes in it.** Fixtures live
 in `data/examples/`. The format gives a fixture and real history the same shape,
