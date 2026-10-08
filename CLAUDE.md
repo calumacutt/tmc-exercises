@@ -594,7 +594,22 @@ structure, so frequency weighting could be added later without re-entering data.
 up disagreeing. **Not built** — Phase 3, and it needs the program history entered
 in the now-locked format first.
 
-### 7.6 Program format — ✅ LOCKED (2026-08-21), see `data/PROGRAM_FORMAT.md`
+### 7.6 Program format — LOCKED 2026-08-21, **REVISED 2026-10-08**
+
+⚠️ **Read `data/PROGRAM_FORMAT.md` §3 before trusting anything below.** The format
+was locked against an *imagined* program; seven real class posters then disagreed
+with it in four ways and the format moved, not the posters. In short: a bullet is
+free text plus `[[Exercise]]` references (real lines are `Pull up/Chin up x 5-8`,
+not names); class names are OPEN with a cross-file typo warning; sessions are
+TITLED with an optional duration; §7.7's fixed 10/5/15/15/15 and the 4-concurrent
+limit are gone. The first real program — seven classes transcribed from the
+posters — is `data/programs/2026-09-01.md`, 95 distinct exercises, all resolving.
+
+⚠️ **`data/programs/` is HEAT INPUT. Nothing invented goes in it.** Fixtures live
+in `data/examples/`. The format gives a fixture and real history the same shape,
+so the folder is the only thing keeping them apart.
+
+### 7.6a Original lock (2026-08-21), kept for the reasoning
 
 Markdown, one file per program, so the file is simultaneously the record, the
 machine-readable history and the **poster source**. Export equals import.

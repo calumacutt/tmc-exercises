@@ -11,24 +11,16 @@ Locked so the three 6-week blocks of history can be entered by hand once.
 
 ## 1. Terminology
 
-Calum's words, and they win over the older draft:
-
 | Term | Meaning |
 |---|---|
 | **Program** | One file. One 6-week block, identified by its **start date**. |
-| **Class** | A class *type* — what it trains, not when it runs. See §3. |
-| **Session** | A timed block *within* a class. Numbered, with a duration. |
-| **Exercise** | A row in the Movement Library. Matched by name. |
+| **Class** | A class *type* — what it trains, not when it runs. Free text. |
+| **Session** | A titled, optionally timed block *within* a class. |
+| **Bullet** | One poster line. Free text, plus the exercises it maps to. |
+| **Exercise** | A row in the Movement Library, referenced as `[[Name]]`. |
 
-⚠️ **`Session` is what CLAUDE.md §7.7 used to call `Section`.** Same thing —
-the five timed blocks of 10/5/15/15/15 min. §7.7 has been renamed to match.
-"Session" reads as "a whole class" in most gyms, so the distinction to hold onto
-is: a class *contains* sessions.
-
-⚠️ **A class is a TYPE, not an instance.** Each one runs many times across the
-six weeks, on various days and at various times. The program records *what was
-programmed*, so no day, time, room or coach is captured — and none should be
-added, because a class type has no single one.
+⚠️ **A class is a TYPE, not an instance.** Each runs many times across the six
+weeks, so no day, time, room or coach is recorded.
 
 ---
 
@@ -37,160 +29,156 @@ added, because a class type has no single one.
 ```markdown
 # TMC Program
 
-Date: 2026-08-21
+Date: 2026-09-01
 
-## Upper Body
+<!-- A note. This is the only way to write prose in the file. -->
 
-### Session 1 — Warm Up (10 min)
-- Stick Dislocate
-- Bear Walk
+## Lower Body
 
-### Session 2 — Personal Goals (5 min)
+### Juggling Lesson (5 min)
+- 3 ball cascade (reverse cascade), 4 ball (fountain) [[3 Ball Cascade]] [[4 Ball Fountain]]
+- Or hacky sack [[Hacky Sack]]
 
-### Session 3 — Skill (15 min)
-- Skin the Cat
-- German Hang
+### Movement Game (10 min)
+- Teachers choice (lower body focus)
 ```
 
-That is the whole grammar. Nothing else is significant.
+That is the whole grammar.
 
 ---
 
-## 3. Class vocabulary
+## 3. Revised 2026-10-08, after reading seven real posters
 
-Three **core** classes, in every program:
+The format was locked in August against an *imagined* program. Seven real class
+posters then disagreed with it in four ways, and **the format moved, not the
+posters.** What changed, and why:
 
-`Upper Body` · `Full Body` · `Lower Body`
+### A bullet is FREE TEXT plus `[[links]]`
 
-Three **optional** classes, included when the block calls for them:
+Real lines are programming instructions, not exercise names: `Pull up/Chin up
+x 5-8` offers a choice and a dose, `Teachers choice` names nothing, and one
+`Banded routine` line referenced eight exercises. The old rule — one bullet is
+one exercise name — was contradicted by most real lines.
 
-`Handstand` · `Mobility` · `Flocomotion`
+So the bullet text is what goes on the poster, and `[[Exercise Name]]` references
+are what the machine reads. One mechanism covers choices, dose, prose and lists,
+and `export == import` still holds.
 
-So a program holds **3 to 6 classes**. Order in the file is presentation order;
-it carries no meaning.
+A bullet with **no links is legitimate** — `x 3 sets` is not an exercise. But it
+is also what a forgotten `[[...]]` looks like, so unlinked bullets are **counted
+and warned**, never silently accepted. In the first real program, 35 of 103
+bullets are unlinked and every one is an instruction or a known library gap.
 
-An unrecognised class name is an **error**, not a new class — same posture as the
-taxonomy, where `Lists` is authoritative and an undeclared value is a fault
-rather than a discovery (CLAUDE.md §6.4). Adding a class type means adding it to
-this list first, deliberately. That is what stops `Lower body`, `Legs` and
-`Lower Body` quietly becoming three classes in the history.
+### Class names are OPEN
 
-A **missing core class** should warn rather than fail: it is far more likely to be
-a program that genuinely did not run one than a typo, and refusing to load real
-history would be the worse error.
+They were a closed list of six. That was only ever typo protection — stopping
+`Legs`, `Lower body` and `Lower Body` becoming three classes — and it is the
+wrong tool, because the gym changes its classes and the real posters already
+carried seven, two of them Handstand streams (`Beg/Int`, `Int/Adv`).
+
+**Class names mean nothing to heat**, which reads a date and a set of exercise
+names. So they are free text, and `checkClassVocabulary()` does the typo job
+across files instead: a class name appearing in exactly one program out of
+several is **warned**, since recurrence is what separates a new class type from a
+typo. A warning, not an error — the first program to introduce a real new class
+would trip it too.
+
+### Sessions are TITLED, and timed per program
+
+`### <Title>` with an optional `(M min)`. The number is gone: file order gives
+the sequence, exactly as bullet order does within a session.
+
+"The Monkey Flip" and "Ring Play / Build to Routines" are the most informative
+thing on a poster, and `### Session 3` threw that away for an invented ordinal.
+
+⚠️ **§7.7's fixed 10/5/15/15/15 is GONE, and so is the 4-concurrent limit.**
+Every poster disagreed with both. Observed: 5/10/15/20/10, 5/5/15/20/15,
+10/10/10/15/15, 5/15/3/15/10/5 — five or six sessions, varying lengths, some
+printing no duration at all. The duration is therefore **optional**: recording
+null is honest, guessing a number is not. And no poster had a Personal Goals
+session.
+
+### Weeks are not modelled
+
+One poster ran its ring section week by week across the block. Heat counts
+anything in the block as trained, so the weeks stay as free text with every
+exercise linked. Nothing is lost that heat would have used.
 
 ---
 
 ## 4. Parsing rules
 
-Read top to bottom. Every machine-critical value sits on its own labelled line or
-in a heading — never buried in prose, so a human can reword freely around it.
-
 | Line | Rule |
 |---|---|
 | `# ...` | Title. Free text, **ignored**. |
-| `Date: YYYY-MM-DD` | **Required, ISO only.** The **start of the 6-week block**, and the sort key for heat. |
-| `## <name>` | Starts a class. The whole line after `## ` is the class name; must be one of §3. |
-| `### Session N — <role> (M min)` | Starts a session. `N` integer, `<role>` free text, `M` integer minutes. Either `—` or `-` accepted as the separator. |
-| `- <exercise name>` | An exercise in the current session. The rest of the line, trimmed, is the name. |
+| `Date: YYYY-MM-DD` | **Required, ISO only.** Block start, and the sort key for heat. |
 | `<!-- ... -->` | A note. Spans lines. Renders as nothing, so the poster stays clean. |
+| `## <name>` | Starts a class. Any name. |
+| `### <title>` or `### <title> (M min)` | Starts a session. Duration optional. |
+| `- <text> [[Name]] ...` | A bullet: free text plus zero or more exercise references. |
 | anything else | ⚠️ **ERROR.** See below. |
 
-**There is no block index.** The date *is* the block identifier; ordering the
-files by date gives the block sequence, so a separate counter could only ever
-disagree with it.
+**Concurrent slot is bullet order**; **session order is file order**.
 
-**Concurrent slot is the list order.** §7.6 requires the slot to be carried;
-bullet position 1-4 *is* the slot, so no extra syntax is needed and the builder
-can rebuild its lanes exactly.
+### An unrecognised line is an ERROR
 
-**A session with no bullets is legitimate** — that is how Session 2 (personal
-goals, not programmed by the teacher) is recorded. Do not write a placeholder
-exercise.
+The table used to say "anything else — ignored", which meant **a mistyped bullet
+dropped an exercise silently**. That is the one fault a program file cannot be
+audited for afterwards, because the evidence is the absence of a line nobody
+remembers writing.
+
+The cost is that prose cannot sit loose in a file. `<!-- ... -->` is the escape
+hatch: a note has to be *marked* as a note, which is cheap, and an exercise can
+never go missing without the file refusing to load, which is not. An unclosed
+`<!--` is itself an error, since it would swallow the rest of the file.
+
+### Punctuation is tolerated; data is not
+
+`-`, `*` and `+` all read as the same bullet. The marker carries no meaning, and
+a Markdown `*` would otherwise be refused for no reason.
 
 ---
 
 ## 5. Fail-fast rules
 
-Same posture as `validateRows()` (CLAUDE.md §6.1): loud and specific, no silent
-degradation. Import **refuses the file** on any of these:
+Same posture as `validateRows()` (CLAUDE.md §6.1). Import **refuses the file** on:
 
-- **An exercise name that is not in the library.** Name is the primary key; a
-  near-miss must not be quietly dropped or fuzzy-matched. Report the name, the
-  class, and the session.
-- **A class name not in §3.**
-- **Missing or non-ISO `Date`.** Heat cannot be ordered without it.
-- **A `### Session` line that does not parse.** Do not guess a duration.
-- **The same exercise twice in one session.**
-- **More than 4 exercises in one session** (§7.7's concurrent limit).
-- **An exercise line before any `### Session` heading**, or a session before any
-  `## Class` heading — the file is structurally broken.
+- **An exercise name in `[[...]]` that is not in the library.** Name is the
+  primary key; a near-miss must not be fuzzy-matched. Reports the name, class and
+  session.
+- **Missing, non-ISO or duplicated `Date`.**
+- **A line that is not a class, session, bullet or note** (above).
+- **An unclosed `<!--`.**
+- **An empty `[[]]`**, an empty bullet, an empty class name, an empty session
+  title, or a file with no classes.
+- **The same class twice in one file** — it is either a duplicate or a
+  continuation and there is no way to tell which.
+- **A session before any class**, or a bullet before any session.
 
 Warn, but load:
 
-- a **missing core class** (see §3);
+- **unlinked bullets** (count);
+- a **class name seen in only one program** of several;
+- the same exercise **referenced twice in one bullet**;
 - a **filename that disagrees with `Date:`**.
 
-Duplicate exercise names *across* sessions or classes are fine and expected —
-the same exercise appearing in Upper Body and Full Body is normal programming.
+Duplicate exercises *across* bullets, sessions or classes are fine and expected —
+the same exercise in Upper Body and Full Body is normal programming, and heat
+takes a set.
 
 ---
 
 ## 5a. The parser — `shared/programs.js`
 
-✅ **Built 2026-09-24, and the format survived contact.** The example in
-`data/programs/` parses to exactly the 4 classes / 20 sessions / 32 exercises
-this document claimed, with zero problems and zero warnings. Every fail-fast rule
-in §5 was then checked against a deliberately broken file and fires with a
-specific, actionable message.
-
-`parseProgram(text)` handles structure and needs nothing else;
-`validateAgainstLibrary(program, names)` is the one §5 rule that needs the sheet,
-so it is separate and a file can be parsed offline. `exerciseSet(program)` is the
-heat input of §7. Problems are **objects**, not strings, with `formatProblem()`
-exported — same posture as `validateRows()`.
+`parseProgram(text)` handles structure and needs nothing else, so a file can be
+parsed, diffed or round-tripped offline. `validateAgainstLibrary(program, names)`
+is the one rule needing the sheet. `exerciseSet(program)` is the heat input of
+§7. `checkClassVocabulary(programs)` is the cross-file typo check. Problems are
+**objects**, not strings, with `formatProblem()` exported.
 
 ⚠️ **All structural problems are collected, not thrown on the first.** The file
-is still refused, but three blocks of history are being entered by hand and one
-fault per reload would be miserable.
-
-### An unrecognised line is an ERROR (changed 2026-09-24)
-
-This table used to say "anything else — ignored", which meant **a mistyped bullet
-dropped an exercise silently**. That is the one fault a program file cannot be
-audited for afterwards, because the evidence is the absence of a line nobody
-remembers writing. Calum's call, and the right one.
-
-The cost is that prose can no longer sit loose in a file. `<!-- ... -->` is the
-escape hatch: a note has to be *marked* as a note, which is cheap, and an
-exercise can never go missing without the file refusing to load, which is not.
-An unclosed `<!--` is itself an error, since it would silently swallow the rest
-of the file.
-
-### Punctuation is tolerated; data is not
-
-Em dash, en dash and hyphen all read as the session separator, and `-`, `*` and
-`+` all read as a bullet. None carries meaning. This is not leniency: §4 says
-"anything else — ignored", so an autocorrected en dash or a Markdown `*` would
-otherwise **silently drop an exercise**, which is the one fault this format cannot
-detect after the fact. The tolerance exists to prevent a silent loss.
-
-This matters more now that an unrecognised line is refused outright: a `*` bullet
-would go from silently vanishing to loudly failing, and neither is what the writer
-meant.
-
-### Two rules the parser adds — ⚠️ PENDING CONFIRMATION
-
-Neither is in §5 above. Both were found by writing the parser, which is what
-writing it first was for. Both are structurally ambiguous rather than merely odd,
-so they refuse the file:
-
-- **the same class twice in one file** (`## Upper Body` appearing twice) — a
-  class is a type, so the second is either a duplicate or a continuation and
-  there is no way to tell which;
-- **the same session number twice in one class** — same problem.
-
-Say if either should be a warning instead.
+is still refused, but history is entered by hand and one fault per reload would
+be miserable.
 
 ---
 
@@ -200,8 +188,10 @@ Say if either should be a warning instead.
 data/programs/YYYY-MM-DD.md
 ```
 
-Dated filename so the directory sorts chronologically and the block start is
-visible without opening anything. `Date:` inside the file remains authoritative.
+⚠️ **`data/programs/` is HEAT INPUT. Nothing invented goes in it.** A program
+nobody ran would quietly cool every exercise it names, and the format gives a
+fixture and real history exactly the same shape. Fixtures live in
+`data/examples/` — that is why `program-format-example.md` was moved there.
 
 ---
 

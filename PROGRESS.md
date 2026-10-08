@@ -574,9 +574,30 @@ way they never are in a spreadsheet.
 - [ ] **3.3 Unit-test the heat engine** against hand-worked examples,
       especially: high-importance items cooling fast (handstand almost always
       cold), `cook` producing half-baked, `burn` producing burnt.
-- [ ] **3.4 Enter the historical programs** (3 × 6-week blocks) in the locked
-      format, one file per program under `data/programs/`. **Unblocked and next.**
-      This is the input the whole heat engine waits on.
+- [~] **3.4 Enter the historical programs.** **1 of 3 done.**
+      `data/programs/2026-09-01.md` — the seven class posters transcribed into the
+      revised format: 7 classes, 36 sessions, 103 bullets, **95 distinct exercises,
+      all resolving against the live sheet**, 0 problems.
+      ⚠️ **Its date is a PLACEHOLDER.** The posters carry no date; the photos were
+      taken 2026-09-24 and a six-week block from 2026-09-01 would be running then.
+      Correct it, and rename the file, before this is treated as history — `Date:`
+      is the heat sort key, so a wrong one silently reorders the picture.
+      35 of 103 bullets carry no `[[link]]`; every one is checked and is either an
+      instruction ("x 3 sets", "Teachers choice") or a library gap.
+      **10 library gaps found**, worth adding to the sheet: `Dragon Stretch`,
+      `Pike Stretch`, `Deadlift` (plain — only RDL/Sumo/Kettlebell/Single Leg
+      exist), `Esdobrado`, `Arm Swings`, `Chest to Floor Drill`,
+      `Freestyle Crawling`, `Speed Dating Wrist Prep`, `Floor Hips Sequence`,
+      `Step Back`. Plus one undecodable: **`CSD x 5 reps`** on the Upper Body
+      poster — Calum to identify.
+      **Heat needs at least two programs to say anything**; with one, every
+      exercise is either trained or never-trained. Two more posters sets needed.
+- [x] **3.6 Revise the program format against real data.** The locked format was
+      designed against an imagined program. See `data/PROGRAM_FORMAT.md` §3 for the
+      four mismatches and what each became. The old committed example was MOVED to
+      `data/examples/`: under the revised format its 32 bullets carried no links,
+      so it parsed clean and yielded zero exercises — a fake program silently
+      cooling every exercise it named, in the folder that feeds heat.
 
 ---
 
