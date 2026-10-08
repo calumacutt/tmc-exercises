@@ -1616,6 +1616,9 @@
         <button class="seg" data-heat="hot" title="Glow on what has been covered recently">Hot</button>
         <input type="date" id="heat-date" title="The date coldness is measured from. Defaults to today.">
       </span>
+      <button class="mini-btn" id="btn-classes"
+              title="Upload class files (.md). Replaces whatever heat is currently built from.">Upload classes</button>
+      <input type="file" id="class-files" accept=".md,text/markdown" multiple hidden>
       <button class="mini-btn toggle-btn" id="btn-variants" aria-pressed="false"
               title="Variants are named &quot;Base - Modifier&quot;. There are far more of them than base exercises, so they are off by default.">Variants</button>
       <button class="mini-btn" id="btn-upload">Upload CSV</button>
@@ -1706,8 +1709,8 @@ import { normaliseRows, filterRows, validateRows } from '../shared/library.js';
 import { BREAKDOWNS_CSV_URL } from '../shared/sheet.js';
 import { PILLAR_ORDER, pillarBase, hsl } from '../shared/taxonomy.js';
 import { fetchLineImportance } from '../shared/loader.js';
-import { parseClassFile, groupIntoBlocks, exerciseSet, formatProblem }
-  from '../shared/programs.js';
+import { parseClassFile, groupIntoBlocks, exerciseSet, formatProblem,
+         validateAgainstLibrary, checkClassVocabulary } from '../shared/programs.js';
 import { buildHeat } from '../shared/heat.js';
 
 // ---------- Feature flags ----------
@@ -3475,13 +3478,12 @@ function todayIso() {
  * A file missing from the manifest is invisible to heat, so the count is
  * reported rather than assumed.
  */
-async function loadHeat() {
-  const base = '../data/programs/';
-  const manifest = await (await fetch(base + 'index.json')).json();
-  const files = [];
-  const bad = [];
-  for (const name of manifest.files || []) {
-    const text = await (await fetch(base + encodeURIComponent(name))).text();
+// Parse a list of { name, text } into class files, reporting anything refused.
+// Shared by the bundled path and the upload path so they cannot drift — an
+// uploaded file is held to exactly the same contract as a committed one.
+function parseClassFiles(named) {
+  const files = [], bad = [];
+  for (const { name, text } of named) {
     const f = parseClassFile(text, { filename: name });
     if (f.problems.length) {
       bad.push(name + ': ' + f.problems.map(formatProblem).join('; '));
@@ -3489,16 +3491,69 @@ async function loadHeat() {
     }
     files.push(f);
   }
-  if (bad.length) {
-    // Fail loud, but do not take the page down over it — the Discipline view
-    // works perfectly well with no heat at all.
-    console.error('[heat] ' + bad.length + ' class file(s) refused:' + '\n' + bad.join('\n'));
+  return { files, bad };
+}
+
+/**
+ * Build the heat picture from parsed class files.
+ *
+ * ⚠️ Unknown exercise names are REPORTED, not silently skipped. A name that does
+ * not resolve contributes nothing to heat, so a typo would quietly make a line
+ * look colder than it is — which is the one way this feature can lie.
+ */
+async function adoptClassFiles(files, source) {
+  if (!files.length) {
+    flashStatus('No usable class files — heat is off.', true);
+    return null;
   }
-  if (!files.length) return null;
+  const names = new Set(ALL_ROWS.map(r => r.name));
+  const unknown = [];
+  for (const f of files) {
+    for (const p of validateAgainstLibrary(f, names)) unknown.push(f.className + ': ' + p.name);
+  }
+  if (unknown.length) {
+    console.warn('[heat] ' + unknown.length + ' exercise reference(s) match no library '
+      + 'row, so they contribute nothing to heat:\n' + [...new Set(unknown)].join('\n'));
+  }
 
   const lineImportance = await fetchLineImportance();
-  HEAT_SOURCE = { blocks: groupIntoBlocks(files), lineImportance, fileCount: files.length };
-  return recomputeHeat(heatDate.value || todayIso());
+  const blocks = groupIntoBlocks(files);
+  for (const w of checkClassVocabulary(files)) console.warn('[heat] ' + formatProblem(w));
+
+  HEAT_SOURCE = { blocks, lineImportance, fileCount: files.length, source };
+  HEAT = recomputeHeat(heatDate.value || todayIso());
+  heatFilter.style.display = '';
+  flashStatus(files.length + ' class file(s) from ' + source + ' · '
+    + blocks.length + ' block(s) ' + blocks.map(b => b.date).join(', ')
+    + (unknown.length ? ' · ⚠\uFE0F ' + unknown.length + ' unknown exercise name(s), see console' : ''),
+    unknown.length > 0);
+  renderActiveView();
+  return HEAT;
+}
+
+/**
+ * The class files committed in this repo, as a convenience default so the page
+ * does something useful when opened. Uploading REPLACES them.
+ *
+ * ⚠️ The manifest is a DIRECTORY LISTING, nothing more — static hosting cannot
+ * list a folder. Blocks are still grouped only by the `Date:` inside each file.
+ * A file missing from the manifest is invisible to heat, so the count is
+ * reported rather than assumed.
+ */
+async function loadBundledClassFiles() {
+  const base = '../data/programs/';
+  const manifest = await (await fetch(base + 'index.json')).json();
+  const named = [];
+  for (const name of manifest.files || []) {
+    named.push({ name, text: await (await fetch(base + encodeURIComponent(name))).text() });
+  }
+  const { files, bad } = parseClassFiles(named);
+  if (bad.length) {
+    // Loud, but it does not take the page down — the Discipline view works
+    // perfectly well with no heat at all.
+    console.error('[heat] ' + bad.length + ' bundled class file(s) refused:' + '\n' + bad.join('\n'));
+  }
+  return adoptClassFiles(files, 'the repo');
 }
 
 /** Rebuild the heat picture for a given "today". Cheap: nothing is refetched. */
@@ -3661,10 +3716,8 @@ const dataSource = wireDataSource({
     if (!rebuildModel()) return;
     // Heat needs ALL_ROWS, so it is built here rather than at init. It is an
     // overlay: a failure disables the toggle and leaves every view working.
-    loadHeat().then(h => {
-      HEAT = h;
+    loadBundledClassFiles().then(h => {
       if (!h) heatFilter.style.display = 'none';
-      else renderActiveView();
     }).catch(err => {
       console.error('[heat] unavailable:', err);
       heatFilter.style.display = 'none';
@@ -3720,6 +3773,31 @@ heatDate.addEventListener('change', () => {
   heatDate.classList.toggle('overridden', heatDate.value !== todayIso());
   HEAT = recomputeHeat(heatDate.value);
   renderActiveView();
+});
+
+// Upload. Any number of .md class files; they REPLACE the current set rather
+// than merging, because a merge would silently keep a file you thought you had
+// swapped out, and the blocks are grouped by date regardless of where the files
+// came from.
+const classFilesInput = document.getElementById('class-files');
+document.getElementById('btn-classes').addEventListener('click', () => classFilesInput.click());
+classFilesInput.addEventListener('change', async (e) => {
+  const picked = [...e.target.files];
+  // Reset first, or re-picking the same files fires no change event and the
+  // page looks dead.
+  e.target.value = '';
+  if (!picked.length) return;
+  flashStatus('Reading ' + picked.length + ' class file(s)\u2026', false);
+  const named = [];
+  for (const file of picked) named.push({ name: file.name, text: await file.text() });
+  const { files, bad } = parseClassFiles(named);
+  if (bad.length) {
+    console.error('[heat] ' + bad.length + ' class file(s) refused:' + '\n' + bad.join('\n'));
+    flashStatus(bad.length + ' of ' + picked.length + ' file(s) refused — see console. '
+      + bad[0].slice(0, 120), true);
+    if (!files.length) return;
+  }
+  await adoptClassFiles(files, 'upload');
 });
 
 function syncHeatFilter() {

@@ -679,6 +679,16 @@ the dates are what heat sorts on. The first real block is the seven
 96 distinct exercises, all resolving. A class name is also its filename, so it
 cannot contain `\ / : * ? " < > |`.
 
+⚠️ **Class files are UPLOADABLE** (2026-10-08). "Upload classes" takes any
+number of `.md` class files and they REPLACE the current set — not merge, because
+a merge would silently keep a file you thought you had swapped out. The repo's own
+files still load on open as a convenience default, so the page does something
+useful when opened; the upload path and the bundled path share `parseClassFiles()`
+so an uploaded file is held to exactly the same contract as a committed one.
+Unknown `[[names]]` are reported, never skipped silently — a name that does not
+resolve contributes nothing to heat, so a typo would quietly make a line look
+colder than it is, which is the one way this feature can lie.
+
 ⚠️ **`data/programs/` is HEAT INPUT. Nothing invented goes in it.** Fixtures live
 in `data/examples/`. The format gives a fixture and real history the same shape,
 so the folder is the only thing keeping them apart.
