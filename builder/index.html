@@ -1022,26 +1022,40 @@
      what needs work; HOT shows what has already been covered. Same numbers, one
      inverted (Calum, 2026-09-23).
 
-     The signal is an inset halo whose alpha scales with the value, applied to
-     the discipline banner and the lane. A light theme cannot carry a literal
-     glow — a bright halo on a pale ground is invisible — so this reads as the
-     area being flooded with the mode's colour. */
-  .trait-banner, .pathway-track, .pathway-label-cell {
-    --glow: 0;
-    --glow-rgb: 232, 131, 58;
-  }
-  body.heat-cold { --glow-rgb: 232, 131, 58; }   /* amber: needs attention */
-  body.heat-hot  { --glow-rgb: 74, 158, 111; }   /* green: recently covered */
+     ⚠️ **MORE INK = MORE OF WHATEVER THE MODE IS SHOWING.** The toggle flips the
+     mapping, not the meaning, so "the dark ones are the ones I am looking for"
+     is true in both modes and you never have to remember which way round you
+     are.
 
-  body.heat-on .pathway-track,
-  body.heat-on .pathway-label-cell {
-    box-shadow: inset 0 0 40px rgba(var(--glow-rgb), calc(var(--glow) * 0.85));
+     ⚠️ **The signal is LIGHTNESS WITHIN THE PILLAR'S OWN HUE — never a new
+     colour.** An amber halo was tried first and failed: it was a sixth hue
+     sitting on top of five pillar hues, and it went muddy wherever the two were
+     close (worst on the gold Handstands banner, amber on amber). This is the
+     same lesson §8.1 records for the wheel — large areas carry lightness, hue
+     stays with the pillar.
+
+     DISCIPLINE: the banner fills left to right like a status bar.
+     LANE: the whole lane darkens. Lanes are the largest areas on the page,
+     which is exactly where a lightness ramp reads well. */
+  .trait-banner {
+    --fill-pct: 0%;
   }
+
+  /* ⚠️ The filled part is DARKER than the normal banner; the unfilled part IS
+     the normal banner. Calum described it the other way round — filled = normal,
+     unfilled = lighter — but the banner's label is WHITE, and a lighter unfilled
+     zone makes it unreadable. Measured: white on the gold pillar at L52 is
+     2.1:1, which fails outright. Shifting the pair down instead keeps white
+     legible across the whole bar (6.0:1 filled, 3.4:1 unfilled, the latter being
+     exactly what already ships) and looks identical — it is still one hue in two
+     tones with a hard edge. */
   body.heat-on .trait-banner {
-    box-shadow: inset 0 0 26px rgba(var(--glow-rgb), calc(var(--glow) * 0.95));
+    background: linear-gradient(to right,
+      var(--fill-ink) 0 var(--fill-pct),
+      var(--fill-bg) var(--fill-pct) 100%);
   }
-  /* A number as well as a colour — a halo alone cannot be read back as a value,
-     and the whole point is deciding what to program next. */
+  /* A number as well as a colour — a bar is read at a glance but not read back
+     as a value, and the whole point is deciding what to program next. */
   /* The "today" override. Coldness is measured from a date, so being able to move
      that date is the only way to see the model behave without waiting weeks. */
   #heat-date {
@@ -1227,7 +1241,7 @@
   }
 
   .pathway-label-cell {
-    background: var(--trait-bg);
+    background: var(--lane-bg, var(--trait-bg));
     padding: 0 12px;
     display: flex;
     align-items: center;
@@ -1240,7 +1254,7 @@
   }
 
   .pathway-track {
-    background: var(--trait-bg);
+    background: var(--lane-bg, var(--trait-bg));
     position: relative;
     height: 48px;
   }
@@ -1871,6 +1885,30 @@ function pillarChipTint(p) {
 // A pillar the vocabulary does not know sorts to the END, not the front, so a
 // typo shows up as a visibly odd group at the bottom instead of quietly taking
 // over the top of the page.
+// ---------- Heat shading ----------
+// All three stay inside the pillar's own hue; only lightness and saturation
+// move. See the Heat CSS block for why a separate accent colour does not work.
+
+/** The filled part of a discipline bar: the pillar at full strength, darker. */
+function pillarFillInk(p) {
+  const b = pillarBase(p);
+  return hsl(b.h, b.s, 26);
+}
+/** The unfilled part: the pillar flattened and lifted, still taking white text. */
+function pillarFillBg(p) {
+  const b = pillarBase(p);
+  return hsl(b.h, Math.round(b.s * 0.5), 44);
+}
+/**
+ * A lane at heat value `v` (0..1). More ink = more of what the mode is showing,
+ * so v=1 is the darkest and richest. v=0 lands slightly lighter than the plain
+ * `pillarTint`, which keeps the two ends of the ramp clearly apart.
+ */
+function pillarLane(p, v) {
+  const b = pillarBase(p);
+  return hsl(b.h, Math.round(b.s * (0.35 + 0.45 * v)), 90 - 22 * v);
+}
+
 function pillarRank(p) {
   const i = PILLAR_ORDER.indexOf(p);
   return i < 0 ? PILLAR_ORDER.length : i;
@@ -1992,9 +2030,12 @@ function render(model) {
     countEl.textContent = traitCount.size + (traitCount.size === 1 ? ' exercise' : ' exercises');
     banner.appendChild(countEl);
 
-    // Discipline-level heat: the mean of its lines' coldness (shared/heat.js).
+    // Discipline-level heat: the mean of its lines' heat (shared/heat.js),
+    // rendered as a bar filling left to right.
     const dHeat = HEAT && HEAT.discipline.get(trait.name);
-    banner.style.setProperty('--glow', heatValue(dHeat));
+    banner.style.setProperty('--fill-pct', (heatValue(dHeat) * 100).toFixed(1) + '%');
+    banner.style.setProperty('--fill-ink', pillarFillInk(trait.pillar));
+    banner.style.setProperty('--fill-bg', pillarFillBg(trait.pillar));
     if (dHeat && viewState.heat !== 'off') {
       const val = document.createElement('span');
       val.className = 'heat-val';
@@ -2028,7 +2069,9 @@ function render(model) {
       // so this is the most recently trained member measured against the line's
       // own importance.
       const lHeat = HEAT && HEAT.line.get(trait.name + ' - ' + pathway.name);
-      rowEl.style.setProperty('--glow', heatValue(lHeat));
+      if (viewState.heat !== 'off') {
+        rowEl.style.setProperty('--lane-bg', pillarLane(trait.pillar, heatValue(lHeat)));
+      }
       if (lHeat) {
         rowEl.title = pathway.name + ' — importance ' + lHeat.importance
           + ', heat ' + lHeat.heat.toFixed(2)

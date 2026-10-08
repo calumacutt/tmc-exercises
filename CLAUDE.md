@@ -750,6 +750,41 @@ even though this ships last, so it is not retrofitted.
 
 Decide these before rebuilding the render layer.
 
+### 8.1a Heat rendering in the Discipline view — ✅ SETTLED 2026-10-08
+
+⚠️ **MORE INK = MORE OF WHATEVER THE MODE IS SHOWING.** The Cold/Hot toggle
+flips the mapping, not the meaning, so "the dark ones are the ones I am looking
+for" holds in both modes and the reader never has to remember which way round
+they are.
+
+⚠️ **The signal is LIGHTNESS WITHIN THE PILLAR'S OWN HUE — never a new colour.**
+An amber halo was built first and failed: a sixth hue sitting on five pillar
+hues goes muddy wherever the two are close, worst on the gold Handstands banner
+where it was amber on amber. Same lesson as §8.1 below — large areas carry
+lightness, hue stays with the pillar.
+
+- **Discipline:** the banner fills left to right like a status bar
+  (`--fill-pct`), plus a percentage, because a bar is read at a glance but not
+  read back as a value.
+- **Line:** the whole lane darkens (`pillarLane()`). Lanes are the largest areas
+  on the page, which is exactly where a lightness ramp reads well.
+
+⚠️ **The filled part is DARKER than the normal banner; the unfilled part IS the
+normal banner.** Calum specified it the other way round — filled = normal,
+unfilled = lighter — but the banner label is WHITE, and a lighter unfilled zone
+makes it unreadable: white on the gold pillar at L52 measures 2.1:1. Shifting the
+pair down keeps white legible across the whole bar (6.0:1 filled, 3.4:1 unfilled,
+the latter being exactly what already ships) and looks the same — still one hue
+in two tones with a hard edge.
+
+Rejected: changing the banner's overall darkness instead of filling it. It has no
+reference point, so a value cannot be read off it, and it would dissolve the
+contiguous-colour blocks that make the five pillar groups legible.
+
+Held in reserve: flame/snowflake glyphs. Redundant while the lightness ramp
+works, and they fight the serif poster aesthetic — but they are the only option
+that survives greyscale and print, which may matter for the poster use case.
+
 ### 8.1 Colour is oversubscribed — ✅ SETTLED
 
 Three things wanted the colour channel: **pillar hue**, **discipline/line
