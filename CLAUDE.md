@@ -589,13 +589,14 @@ heat(x)      = staleness === null ? 0
                                   : clamp01(1 - staleness / coolDays(importance(x)))
 coldness(x)  = 1 - heat(x)
 
-line.staleness   = min(staleness of its exercises)        ← nulls dropped
-line.heat        = heat(line.staleness, line's OWN importance)
-discipline.heat  = MAX(heat of its lines)
-pillar.heat      = MAX(heat of its disciplines)
+ONE RULE, APPLIED AT EVERY LEVEL — aggregate the INPUTS, not the heat:
 
-discipline.weight = mean(weight of its lines)
-pillar.weight     = mean(weight of its disciplines)
+  group.staleness  = min(staleness of its children)        ← nulls dropped
+  group.importance = min(importance of its children)       ← strongest wins
+  group.heat       = heat(group.staleness, group.importance)
+
+line.importance  = the MANUAL `Line Importance` from the Lists tab
+line.staleness   = min(staleness of its exercises)
 ```
 
 ⚠️ **HEAT is the stored quantity; coldness is just `1 - heat`.** The first
@@ -606,23 +607,26 @@ stops. Heat decaying to 0 and staying there says exactly that, needs no clamping
 inside the aggregates, and makes never-trained the natural limit rather than a
 special case.
 
-⚠️ **Discipline and pillar take a MAX, not a mean** (Calum, 2026-10-08). A mean
-was wrong for a domain reason: nobody trains Vertical Press and Horizontal Press
-in the same block, so averaging over a discipline's lines meant `Pressing
-Strength` could never read as hot however recently it was programmed.
+⚠️ **Aggregate the INPUTS to heat, never heat itself.** This took three
+attempts; the first two are recorded because both look reasonable:
 
-Two consequences, both knowingly accepted:
+| | why it failed |
+|---|---|
+| mean of child heats | Nobody trains Vertical Press and Horizontal Press in one block, so `Pressing Strength` could never read hot however recently it ran. |
+| max of child heats | Fixes that, but favours the LEAST important child — low importance means slow cooling means more heat for the same staleness. At +6 weeks `Pressing Strength` read 0.74 on two importance-3 lines while its importance-2 lines sat at 0.49. |
+| weighted mean | Measured: a discipline trained TODAY scores 0.14. The first problem again. |
+| geometric mean | 0 whenever any child was never trained, which is nearly always. |
 
-- **The banner is now near-binary.** A mean encoded "how much of the discipline
-  was covered"; a max encodes "was any of it covered". That coverage information
-  is not lost from the page — it is visible in the LANES, where you can see four
-  of five dark — it has just left the banner.
-- ⚠️ **A max systematically favours the LEAST important line**, because low
-  importance means slow cooling means more heat for the same staleness. Measured
-  six weeks past the block: `Pressing Strength` reads 0.74, driven by
-  `Arms & Accessory` and `Horizontal Press` (both importance 3), while its
-  importance-2 lines sit at 0.49. So a discipline can look covered on the
-  strength of what matters least. Flagged, not silently fixed.
+Heat is a function of (staleness, importance), so a group takes the staleness of
+its **most recently trained** child and the importance of its **most important**
+one, and runs the same function. Train one line today → the discipline is fully
+hot; and the cooling rate is the group's own, so an occasional child cannot make
+the group look covered for longer than it should. Measured at +12 weeks,
+`Pressing Strength` now reads **0.00** where the max rule said 0.49.
+
+⚠️ **A group is as important as its MOST important member.** A discipline
+holding a must-do-every-program line must itself appear every program; averaging
+would bury that line under four occasional ones.
 
 ⚠️ **Discipline and pillar heat apply NO importance of their own** — each line's
 importance is already inside its heat, so weighting again would count it twice.

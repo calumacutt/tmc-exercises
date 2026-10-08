@@ -43,47 +43,62 @@
 // Only LINES carry a manual importance (the `Line Importance` column in the
 // Lists tab). Disciplines and pillars do not, by decision, so theirs is derived.
 //
-// ⚠️ Aggregate importance in URGENCY space, never the raw 1/2/3. The scale is
-// inverted and non-linear, so averaging the raw numbers is nonsense — a
-// discipline with one must-do line and four occasional ones averages 2.6 and
-// reads as unimportant. Convert first:
+// ⚠️ A group is as important as its MOST important member — not the average of
+// them. A discipline holding a must-do-every-program line must itself appear
+// every program, and averaging would bury that line under four occasional ones.
+// (Averaging the RAW 1/2/3 would be worse still: the scale is inverted and
+// non-linear, so that discipline would average 2.6 and read as unimportant.
+// `weightOf()` exists for anywhere a magnitude is genuinely wanted:
+// weight(1) = 1.0 · weight(2) = 0.5 · weight(3) = 0.25, expected frequency.)
 //
-//     weight(1) = 1.0 · weight(2) = 0.5 · weight(3) = 0.25    (expected frequency)
-//
-//     discipline.weight = mean(weight of each of its lines)
-//     pillar.weight     = mean(weight of each of its disciplines)
+//     discipline.importance = min(importance of its lines)       ← strongest wins
+//     pillar.importance     = min(importance of its disciplines)
 //
 // Importance is a property of the STRUCTURE, so it is computed first and
 // independently; logging a program does not move it.
 //
 // ---- Propagation ----------------------------------------------------------
 //
-//     line.staleness   = min(staleness of its exercises)       ← nulls dropped
-//     line.heat        = heat(line.staleness, line's OWN importance)
+//     ONE RULE, APPLIED AT EVERY LEVEL:
 //
-//     discipline.heat  = MAX(heat of its lines)
-//     pillar.heat      = MAX(heat of its disciplines)
+//       group.staleness  = min(staleness of its children)        ← nulls dropped
+//       group.importance = min(importance of its children)       ← strongest wins
+//       group.heat       = heat(group.staleness, group.importance)
 //
-// The min at line level IS "max of members": a line counts as trained if any one
-// exercise in it was, and the most recent member is the one with the smallest
-// staleness.
+//     line.staleness   = min(staleness of its exercises)
+//     line.importance  = the MANUAL `Line Importance` from the Lists tab
+//     line.heat        = heat(line.staleness, line.importance)
 //
-// ⚠️ DISCIPLINE AND PILLAR TAKE A MAX, NOT A MEAN (Calum, 2026-10-08). A mean
-// was wrong for a domain reason: nobody trains Vertical Press and Horizontal
-// Press in the same block, so averaging over a discipline's lines meant
-// `Pressing Strength` could never read as hot however recently it was
-// programmed. A discipline is as hot as its hottest line, which is the same rule
-// already used one level down.
+//     discipline.staleness  = min(staleness of its lines)
+//     discipline.importance = min(importance of its lines)
+//     discipline.heat       = heat(discipline.staleness, discipline.importance)
 //
-// The cost, knowingly accepted: a max flattens the gradient. Most disciplines
-// hold at least one recently trained line, so most sit at or near 1. The
-// discipline level now answers "has this been touched at all", and the LINE
-// level is where the detail lives.
+//     pillar.*              = the same, over its disciplines
 //
-// Heat applies NO importance of its own above line level — each line's
-// importance is already baked into its heat, so weighting again would count it
-// twice. Aggregate IMPORTANCE is still a mean (see `weight` below); it is a
-// different quantity and Calum has not asked for it to change.
+// ⚠️ AGGREGATE STALENESS, THEN APPLY IMPORTANCE — never aggregate heat itself.
+// This took three attempts and the first two were both wrong:
+//
+//   MEAN of child heats. Nobody trains Vertical Press and Horizontal Press in
+//   the same block, so averaging a discipline's lines meant `Pressing Strength`
+//   could never read as hot however recently it was programmed.
+//
+//   MAX of child heats. Fixes that, but systematically favours the LEAST
+//   important child: low importance means slow cooling means more heat for the
+//   same staleness. Six weeks past the block, `Pressing Strength` read 0.74 on
+//   the strength of two importance-3 lines while its importance-2 lines sat at
+//   0.49 — so the discipline looked covered because of what mattered least.
+//
+//   WEIGHTED MEAN and GEOMETRIC MEAN were both considered and measured. A
+//   weighted mean puts a discipline trained TODAY at 0.14, which is the first
+//   problem again; a geometric mean is 0 whenever any child was never trained,
+//   which is nearly always.
+//
+// The fix is to aggregate the INPUT rather than the output. Heat is a function
+// of (staleness, importance), so a group takes the staleness of its most
+// recently trained child and the importance of its most important one, then runs
+// the same function. Trained one line today → fully hot. And the cooling rate
+// comes from the group's own importance, so an occasional child can no longer
+// make the group look covered for longer than it should.
 //
 // ---- Not implemented ------------------------------------------------------
 //
@@ -103,16 +118,6 @@ const WEIGHT = { 1: 1, 2: 0.5, 3: 0.25 };
 /** Importance 1|2|3 → urgency weight, where HIGHER means more important. */
 function weightOf(importance) {
   return WEIGHT[importance] != null ? WEIGHT[importance] : WEIGHT[3];
-}
-
-/** Urgency weight → the nominal 1|2|3 it is closest to, for display. */
-function importanceOfWeight(w) {
-  let best = 3, bestD = Infinity;
-  for (const k of [1, 2, 3]) {
-    const d = Math.abs(WEIGHT[k] - w);
-    if (d < bestD) { bestD = d; best = Number(k); }
-  }
-  return best;
 }
 
 function coolDaysFor(importance) {
@@ -137,10 +142,6 @@ function daysBetween(fromIso, toIso) {
   const b = Date.parse(toIso + 'T00:00:00Z');
   if (Number.isNaN(a) || Number.isNaN(b)) return null;
   return Math.round((b - a) / 86400000);
-}
-
-function mean(xs) {
-  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 }
 
 /**
@@ -249,17 +250,15 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
   for (const [name, keys] of discOf) {
     const ls = [...keys].map(k => line.get(k)).filter(Boolean);
     if (!ls.length) continue;
-    const weight = mean(ls.map(l => l.weight));
-    // MAX, not mean — see the note at the top. A discipline is as hot as its
-    // hottest line, because its lines are alternatives rather than a set you
-    // would train together.
-    const heat = Math.max(...ls.map(l => l.heat));
+    // A group is as important as its MOST important member: a discipline holding
+    // a must-do-every-program line must itself appear every program.
+    const importance = Math.min(...ls.map(l => l.importance));
     const seenD = ls.map(l => l.staleness).filter(d => d !== null);
+    const staleness = seenD.length ? Math.min(...seenD) : null;
     discipline.set(name, {
-      staleness: seenD.length ? Math.min(...seenD) : null,
-      trained: ls.some(l => l.trained),
-      weight, importance: importanceOfWeight(weight), lines: ls.length,
-      heat, coldness: 1 - heat, halfBaked: null,
+      staleness, trained: ls.some(l => l.trained),
+      importance, weight: weightOf(importance), lines: ls.length,
+      ...scoreOf(staleness, importance), halfBaked: null,
     });
   }
 
@@ -267,17 +266,13 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
   for (const [name, discs] of pillOf) {
     const ds = [...discs].map(d => discipline.get(d)).filter(Boolean);
     if (!ds.length) continue;
-    const weight = mean(ds.map(d => d.weight));
-    // ⚠️ Also a max, extending Calum's reasoning one level up: a pillar's
-    // disciplines are no more trained-together than a discipline's lines are.
-    // He asked only about line → discipline, so flag this if it should differ.
-    const heat = Math.max(...ds.map(d => d.heat));
+    const importance = Math.min(...ds.map(d => d.importance));
     const seenP = ds.map(d => d.staleness).filter(x => x !== null);
+    const staleness = seenP.length ? Math.min(...seenP) : null;
     pillar.set(name, {
-      staleness: seenP.length ? Math.min(...seenP) : null,
-      trained: ds.some(d => d.trained),
-      weight, importance: importanceOfWeight(weight), disciplines: ds.length,
-      heat, coldness: 1 - heat, halfBaked: null,
+      staleness, trained: ds.some(d => d.trained),
+      importance, weight: weightOf(importance), disciplines: ds.length,
+      ...scoreOf(staleness, importance), halfBaked: null,
     });
   }
 
@@ -295,6 +290,6 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
 }
 
 export {
-  buildHeat, weightOf, importanceOfWeight, coolDaysFor, heatOf,
+  buildHeat, weightOf, coolDaysFor, heatOf,
   COOL_DAYS, WEIGHT, BLOCK_DAYS,
 };
