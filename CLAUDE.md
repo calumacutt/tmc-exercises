@@ -790,6 +790,22 @@ lightness, hue stays with the pillar.
   read back as a value.
 - **Line:** the whole lane darkens (`pillarLane()`). Lanes are the largest areas
   on the page, which is exactly where a lightness ramp reads well.
+- **Exercise:** a pill is tinted by its own heat (`pillarHeatPill()`), on the
+  same hue, running darker than the lane it sits on. Chips need more saturation
+  than large areas to read as coloured at all. Heat 0 stays white with dark ink.
+
+⚠️ **A pill shows HEAT IN BOTH MODES** — it does not follow the Cold/Hot toggle
+the way the lane and banner do. Deliberate: at exercise granularity the question
+is "was this one actually hit", and in Cold mode following the toggle would
+darken the ~500 never-trained pills, which is both overwhelming and something
+you already know. The mode question is answered by the lane behind them.
+
+⚠️ **An exercise INHERITS ITS LINE'S IMPORTANCE for heat** (Calum, 2026-10-08),
+not the `Importance` on its own row — which is a DISPLAY FILTER (§8.2's
+double-duty concern) and answers "how prominent is this", not "how often must it
+be trained". So a pill cools at the same rate as the lane it sits in and the two
+cannot disagree. This is not cosmetic: **323 of 616 rows disagree** with their
+line, e.g. `Monkey Crawl` is row-importance 1 inside an importance-3 line.
 
 ⚠️ **The filled part is DARKER than the normal banner; the unfilled part IS the
 normal banner.** Calum specified it the other way round — filled = normal,

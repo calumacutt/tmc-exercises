@@ -1286,7 +1286,10 @@
     position: absolute;
     top: 0;
     transform: translateX(-50%);
-    background: white;
+    /* `--pill-bg` carries heat. A VARIABLE, not an inline background: an inline
+       style would beat `.exercise.shortlisted`, and interaction state has to win
+       over a data overlay. */
+    background: var(--pill-bg, white);
     border: 1px solid var(--rule);
     border-radius: 12px;
     padding: 3px 8px 3px 6px;
@@ -1306,7 +1309,10 @@
 
   .exercise:hover {
     z-index: 10;
-    background: #FAFAFA;
+    /* Darken whatever the pill already is, rather than replacing it — a flat
+       hover colour would wipe out the heat tint on exactly the pill being
+       inspected. */
+    filter: brightness(0.94);
     border-color: var(--ink);
   }
 
@@ -1906,6 +1912,18 @@ function pillarFillInk(p) {
 function pillarFillBg(p) {
   return pillarBanner(p);
 }
+/**
+ * A PILL at heat value `v` (0..1). Chips need more saturation than large areas
+ * to read as coloured at all (the same reason keystone cards have their own
+ * tint), and they sit ON a lane, so they run darker than it at the same `v`.
+ * Dark ink stays legible across the whole ramp — 6.1:1 at v=1 on the lightest
+ * pillar — so the label never has to flip.
+ */
+function pillarHeatPill(p, v) {
+  const b = pillarBase(p);
+  return hsl(b.h, Math.round(b.s * (0.5 + 0.4 * v)), 88 - 34 * v);
+}
+
 /** A lane at heat value `v` (0..1). v=0 is exactly `pillarTint`. */
 function pillarLane(p, v) {
   const b = pillarBase(p);
@@ -2109,6 +2127,19 @@ function render(model) {
         exEl.className = 'exercise' + (ex.isKeystone ? ' keystone' : '');
         exEl.style.left = levelToPercent(ex.level) + '%';
         exEl.dataset.name = ex.name;
+
+        // ⚠️ A pill is tinted by its HEAT, in BOTH modes — it does not follow the
+        // Cold/Hot toggle the way the lane and banner do. Deliberate: the
+        // question at exercise granularity is "was this one actually hit", and
+        // in Cold mode following the toggle would darken the ~500 never-trained
+        // pills, which is both overwhelming and something you already know. The
+        // mode question is answered by the lane behind them.
+        const xHeat = HEAT && HEAT.exercise.get(ex.name);
+        if (viewState.heat !== 'off' && xHeat && xHeat.heat > 0) {
+          exEl.style.setProperty('--pill-bg', pillarHeatPill(trait.pillar, xHeat.heat));
+          exEl.title = ex.name + ' \u2014 heat ' + xHeat.heat.toFixed(2)
+            + ', trained ' + xHeat.staleness + ' days ago';
+        }
 
         // Pill structure: just the name. Level is already shown by horizontal
         // position on the spectrum, so the level badge is redundant here.

@@ -182,9 +182,16 @@ function buildHeat({ blocks, today, exercises, lineImportance, exerciseSetOf }) 
   const scoreFrom = scoreOf;
 
   // ---- Exercise level -------------------------------------------------------
+  // ⚠️ AN EXERCISE INHERITS ITS LINE'S IMPORTANCE (Calum, 2026-10-08), not the
+  // `Importance` on its own row. That column is a DISPLAY FILTER — §8.2's
+  // double-duty concern — and it answers "how prominent is this exercise", not
+  // "how often must this be trained". The cooling rate is the line's job, so a
+  // pill cools at the same rate as the lane it sits in and the two cannot
+  // disagree. Falls back to the row's own value, then to 3.
   const exercise = new Map();
   for (const ex of exercises) {
-    const imp = Number(ex.importance) || 3;
+    const lineKey = ex.discipline && ex.line ? ex.discipline + ' - ' + ex.line : null;
+    const imp = (lineKey && lineImportance.get(lineKey)) || Number(ex.importance) || 3;
     const { days, trained } = stalenessOf(ex.name);
     exercise.set(ex.name, {
       staleness: days, trained, importance: imp, weight: weightOf(imp),
